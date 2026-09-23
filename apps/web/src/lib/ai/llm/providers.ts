@@ -37,7 +37,10 @@ export function getProviders(env: Env = process.env): LlmProvider[] {
     const jsonMode = env[`${prefix}_JSON_MODE`] === "json_object" || env[`${prefix}_JSON_MODE`] === "json_schema"
       ? env[`${prefix}_JSON_MODE`] as JsonMode
       : DEFAULTS[name]?.jsonMode ?? "json_object";
-    return [{ name, baseUrl: baseUrl.replace(/\/+$/, ""), apiKey, model, jsonMode }];
+    // <NAME>_MODEL may list several models ("a,b"): each is tried in order before the next provider, so a
+    // model that is overloaded (503) or retired falls through to another one on the same key.
+    return model.split(",").map((entry) => entry.trim()).filter(Boolean)
+      .map((entry) => ({ name, baseUrl: baseUrl.replace(/\/+$/, ""), apiKey, model: entry, jsonMode }));
   });
 }
 

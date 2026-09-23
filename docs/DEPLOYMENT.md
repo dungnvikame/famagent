@@ -82,7 +82,7 @@ Chi tiết cột và quy tắc: [DATA.md](DATA.md).
    | `AI_ENABLED` | `true` |
    | `LLM_PROVIDERS` | `gemini` (hoặc `gemini,groq` nếu có thêm key Groq làm dự phòng) |
    | `GEMINI_API_KEY` | key vừa tạo |
-   | `GEMINI_MODEL` | tên model Flash đang có trong AI Studio, vd `gemini-2.5-flash` |
+   | `GEMINI_MODEL` | một hoặc nhiều model, cách nhau dấu phẩy, thử lần lượt khi model bị quá tải (503); vd `gemini-3.6-flash,gemini-flash-latest`. `gemini-2.5-flash` đã ngừng cho người dùng mới |
 3. Redeploy. AI chỉ được gọi khi người dùng tích ô đồng ý gửi nội dung tới nhà cung cấp AI; lỗi, hết hạn mức hoặc timeout → tự dùng quy tắc. Mỗi tài khoản có hạn mức giờ: chat 60, onboarding 20, so sánh 30.
 4. Kiểm tra: đăng nhập, bật đồng ý AI, hỏi “Tìm bỉm ban đêm cho bé 10kg dưới 400k” → trạng thái trên đầu hiện “AI đang hỗ trợ”. Nếu vẫn “Agent đang sẵn sàng”, xem **Vercel → Logs** (key sai, model sai tên, hết quota).
 

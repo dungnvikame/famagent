@@ -84,6 +84,7 @@ export const EVAL_CASES: EvalCase[] = [
   { id: "vi-12", group: "vi_natural", message: "bỉm cho bé 10kg, giá bao nhiêu cũng được", profile: family([gold], { maxBudget: 300000 }), expect: { outcome: "results", weightKg: 10 } },
   { id: "vi-13", group: "vi_natural", message: "mua bỉm đêm qua hết rồi, tìm bỉm cho bé 10kg", expect: { outcome: "results", weightKg: 10, nightUse: false } },
   { id: "os-04", group: "out_of_scope", message: "mua bím tóc cho con", expect: { outcome: "clarify" } },
+  { id: "vi-14", group: "vi_natural", message: "tim bim ban dem cho be nang 11 ky, gia toi da 380 nghin", expect: { outcome: "results", weightKg: 11, maxTotalPriceVnd: 380000, nightUse: true } },
   { id: "vi-07", group: "vi_natural", message: "Cho mình bỉm bé 12 kg, gói tối đa 380.000đ", expect: { outcome: "results", weightKg: 12, maxTotalPriceVnd: 380000 } },
 
   // Thiếu cân nặng/size; nhiều bé.

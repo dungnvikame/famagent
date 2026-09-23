@@ -34,6 +34,16 @@ test("providers theo thứ tự LLM_PROVIDERS, bỏ provider thiếu key", () =>
   assert.equal(providers[1].jsonMode, "json_object");
 });
 
+test("<NAME>_MODEL nhiều model: thử lần lượt trên cùng key trước provider kế tiếp", async () => {
+  const providers = getProviders({ ...env, LLM_PROVIDERS: "gemini,groq", GEMINI_MODEL: "g-a, g-b" });
+  assert.deepEqual(providers.map((p) => `${p.name}:${p.model}`), ["gemini:g-a", "gemini:g-b", `groq:${env.GROQ_MODEL}`]);
+  // g-a overloaded (503) → g-b answers.
+  const { calls, deps } = harness([reply(503), reply(200, JSON.stringify({ ok: true }))], providers);
+  const result = await chatJson<{ ok: boolean }>(request, deps);
+  assert.equal(result?.provider, "gemini");
+  assert.deepEqual(calls.map((call) => (call.body as unknown as { model: string }).model), ["g-a", "g-b"]);
+});
+
 test("thiếu LLM_PROVIDERS vẫn dùng cấu hình OpenAI cũ", () => {
   assert.deepEqual(getProviders({ OPENAI_API_KEY: "k", OPENAI_MODEL: "m" }).map((p) => p.name), ["openai"]);
 });

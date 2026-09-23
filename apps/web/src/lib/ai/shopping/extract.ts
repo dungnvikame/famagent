@@ -56,8 +56,8 @@ export function extractShoppingRules(message: string): ShoppingExtraction {
     : result.categoryId ? "discover" : null;
   // Several weights ("bỉm 5kg ... cho bé 10kg"): prefer one shortly after "bé/con/nặng/được" (a heuristic;
   // the optional name slot is loose under the i flag), else the first.
-  const weights = [...text.matchAll(/(\d{1,2}(?:[.,]\d)?)\s*(?:kg|ký|kí|cân)(?![\p{L}])/giu)];
-  const weight = weights.find((match) => /(?:bé|con|nặng|được)\s*(?:\p{Lu}\p{L}*\s*)?(?:nặng\s*)?$/iu.test(text.slice(Math.max(0, match.index! - 20), match.index))) ?? weights[0];
+  const weights = [...text.matchAll(plain ? /(\d{1,2}(?:[.,]\d)?)\s*(?:kg|ky|ki|ký|kí|cân)(?![\p{L}])/giu : /(\d{1,2}(?:[.,]\d)?)\s*(?:kg|ký|kí|cân)(?![\p{L}])/giu)];
+  const weight = weights.find((match) => /(?:bé|con|nặng|được|be|nang|duoc)\s*(?:\p{Lu}\p{L}*\s*)?(?:(?:nặng|nang)\s*)?$/iu.test(text.slice(Math.max(0, match.index! - 20), match.index))) ?? weights[0];
   if (weight) result.weightKg = Number(weight[1].replace(",", "."));
   const size = text.match(/(?:size|cỡ|sz)\s*(NB|S|M|L|XL|XXL)(?![\p{L}\d])/iu) ?? text.match(/(?<![\p{L}\d])(NB|XXL|XL)(?![\p{L}\d])/u);
   if (size) result.sizeLabel = size[1].toUpperCase();
