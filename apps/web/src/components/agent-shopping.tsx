@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { vnd } from "@/lib/catalog/format";
+import { AFFILIATE_DISCLOSURE, vnd } from "@/lib/catalog/format";
 import { lowestOffer, pricePerPiece } from "@/lib/catalog/filter";
 import type { Product } from "@/lib/catalog/types";
 import { type AgentView, type ChatResponse, type ChatTurn, type Conversation, type FamilyProfile, type Recommendation } from "@/lib/experience/types";
@@ -10,6 +10,8 @@ import { getConversations, getProfile, getSavedProducts, saveConversations, save
 import Link from "next/link";
 import { FamilyContextPanel } from "@/components/onboarding/family-context-panel";
 import { isAnonymousUser } from "@/lib/supabase/browser";
+import { RecommendationCard } from "@/components/recommendation-card";
+import { compareToken, MAX_COMPARE } from "@/lib/catalog/compare";
 import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved, saveCloudConversation, saveCloudProfile, setCloudSaved } from "@/lib/experience/cloud";
 
 const suggestions = ["Tìm bỉm ban đêm cho bé dưới 400k", "So sánh các lựa chọn phù hợp", "Cho tôi xem hồ sơ gia đình"];
@@ -30,6 +32,8 @@ export function AgentShopping() {
   // Anonymous guests are invited (never forced) to link an email after they get value (plan D6).
   const [invite, setInvite] = useState(false);
   const [dismissed, setDismissed] = useState(false);
+  // Compare selection: exact recommended variant + offer per product (plan P7).
+  const [compare, setCompare] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -58,6 +62,7 @@ export function AgentShopping() {
   }, [router]);
 
   const active = conversations.find((item) => item.id === activeId);
+  const liveOffers = new Map(products.flatMap((product) => product.variants.flatMap((variant) => variant.offers.filter((offer) => offer.availability === "in_stock").map((offer) => [offer.id, offer] as const))));
   const lastIntent = [...(active?.turns ?? [])].reverse().find((turn) => turn.role === "assistant" && turn.intent)?.intent ?? null;
   const recentRecommendations = [...(active?.turns ?? [])].reverse().find((turn) => turn.recommendations?.length)?.recommendations ?? [];
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [active?.turns.length, busy]);
@@ -80,7 +85,15 @@ export function AgentShopping() {
     const next = isSaved ? [...saved, id] : saved.filter((item) => item !== id);
     setSaved(next); saveSavedProducts(next);
     if (cloudEnabled) try { await setCloudSaved(id, isSaved); } catch { setError("Chưa lưu được sản phẩm. Vui lòng thử lại."); }
-    trackEvent("product_clicked", { productId: id });
+    trackEvent("product_saved", { productId: id, saved: isSaved });
+  }
+  function toggleCompare(item: Recommendation) {
+    const token = compareToken(item.product.id, item.variantId, item.offerId);
+    setCompare((current) => current.some((entry) => entry.startsWith(`${item.product.id}:`)) ? current.filter((entry) => !entry.startsWith(`${item.product.id}:`)) : current.length >= MAX_COMPARE ? current : [...current, token]);
+  }
+  function openDetails(item: Recommendation) {
+    trackEvent("product_clicked", { productId: item.product.id, rank: item.rank });
+    void send(`Xem chi tiết ${item.product.canonicalName}`);
   }
 
   async function send(value = message) {
@@ -116,7 +129,7 @@ export function AgentShopping() {
     <div className="agent-rail"><button className="agent-logo" onClick={startNew} aria-label="Cuộc trò chuyện mới">f<span>.</span></button><span className="rail-line"/><button className="rail-new" onClick={startNew} title="Cuộc trò chuyện mới" aria-label="Cuộc trò chuyện mới">＋</button><span className="rail-caption">FAMILY AI</span></div>
     <main className="agent-center shopping-center"><div className="agent-header"><span className="agent-status"><span className="status-dot"/> {mode === "ai" ? "AI đang hỗ trợ" : "Agent đang sẵn sàng"}</span><span className="agent-header-actions"><Link className="agent-history-trigger" href="/?update=1">Cập nhật hồ sơ</Link> <button className="agent-history-trigger" onClick={() => void send("Cho tôi xem lịch sử trò chuyện")}>Lịch sử ↗</button></span></div>
       {invite && !dismissed && (saved.length > 0 || recentRecommendations.length > 0) && <div className="ob-link-banner" role="note"><span>Lưu hồ sơ gia đình để dùng trên thiết bị khác.</span><span><Link href="/sign-in?link=1">Lưu bằng email</Link> <button onClick={dismissInvite} aria-label="Ẩn lời mời">✕</button></span></div>}
-      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">TRỢ LÝ MUA SẮM CHO GIA ĐÌNH</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child?.name ? `Tôi đã nhớ bé ${child.name}${child.weightKg ? `, ${child.weightKg} kg` : ""}. ` : ""}Cứ nói điều bạn cần. Tôi sẽ tìm, so sánh và đưa nội dung phù hợp tới đây.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestions.map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMILY AI</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.recommendations?.length ? <div className="agent-results">{turn.recommendations.map((item, index) => <AgentProductCard key={item.product.id} item={item} rank={index + 1} saved={saved.includes(item.product.id)} onSave={() => void saveItem(item.product.id)} onDetails={() => void send(`Xem chi tiết ${item.product.canonicalName}`)} conversationId={active.id}/>)}</div> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div><div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
+      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">TRỢ LÝ MUA SẮM CHO GIA ĐÌNH</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child?.name ? `Tôi đã nhớ bé ${child.name}${child.weightKg ? `, ${child.weightKg} kg` : ""}. ` : ""}Cứ nói điều bạn cần. Tôi sẽ tìm, so sánh và đưa nội dung phù hợp tới đây.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestions.map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMILY AI</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.recommendations?.length ? <><div className="agent-results">{turn.recommendations.map((item, index) => <RecommendationCard key={item.product.id} item={item} liveOffer={products.length ? liveOffers.get(item.offerId) ?? null : undefined} rank={index + 1} saved={saved.includes(item.product.id)} comparing={compare.some((entry) => entry.startsWith(`${item.product.id}:`))} compareFull={compare.length >= MAX_COMPARE} onSave={() => void saveItem(item.product.id)} onDetails={() => openDetails(item)} onCompare={() => toggleCompare(item)} conversationId={active.id}/>)}</div><p className="agent-disclosure">{AFFILIATE_DISCLOSURE}</p></> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div>{compare.length > 0 && <div className="agent-compare-bar" role="region" aria-label="So sánh"><span>{compare.length < 2 ? "Chọn thêm 1–2 sản phẩm để so sánh" : `Đã chọn ${compare.length} sản phẩm`}</span><span><button onClick={() => setCompare([])}>Bỏ chọn</button>{compare.length >= 2 && <Link href={`/compare?items=${encodeURIComponent(compare.join(","))}`} onClick={() => trackEvent("compare_started", { count: compare.length })}>So sánh ↗</Link>}</span></div>}<div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
       {error && <p className="agent-error agent-stage-error">{error}</p>}
       <div className="agent-bottom-note">Gợi ý dựa trên mức phù hợp, không dùng hoa hồng để xếp hạng. {products.some((item) => item.isDemo) ? "Đang dùng dữ liệu minh họa." : "Giá có thể thay đổi tại nơi bán."}</div>
     </main>
@@ -125,12 +138,6 @@ export function AgentShopping() {
 
 function AgentPrompt({ value, onChange, onSend, busy }: { value: string; onChange: (value: string) => void; onSend: () => void; busy: boolean }) {
   return <form className="agent-prompt" onSubmit={(event) => { event.preventDefault(); onSend(); }}><label htmlFor="shop-message">Trò chuyện với Family AI</label><textarea id="shop-message" rows={2} placeholder="Ví dụ: Tìm bỉm ban đêm cho bé 10kg dưới 400k..." value={value} onChange={(event) => onChange(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); onSend(); } }} disabled={busy}/><div className="agent-prompt-bottom"><span>Hỏi, so sánh hoặc yêu cầu tôi mở nội dung bạn cần.</span><button disabled={busy || !value.trim()} aria-label="Gửi cho agent">Gửi <span>↗</span></button></div></form>;
-}
-
-function AgentProductCard({ item, rank, saved, onSave, onDetails, conversationId }: { item: Recommendation; rank: number; saved: boolean; onSave: () => void; onDetails: () => void; conversationId: string }) {
-  const variant = item.product.variants.find((entry) => entry.id === item.variantId)!;
-  const offer = variant.offers.find((entry) => entry.id === item.offerId)!;
-  return <article className="agent-product"><div className="agent-product-top"><span>{rank === 1 ? "PHÙ HỢP NHẤT" : `LỰA CHỌN ${rank}`}</span><button onClick={onSave} aria-label={saved ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved ? "♥" : "♡"}</button></div><div className="agent-product-visual"><span>✳</span></div><div className="agent-product-main"><small>{item.product.brand}</small><h3>{item.product.canonicalName}</h3><p className="agent-product-score">Phù hợp với nhu cầu đã nêu</p><ul>{item.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul><p className="agent-product-price">{vnd(offer.price)} <span>· {variant.quantity} miếng</span></p>{item.tradeoff && <p className="agent-tradeoff">{item.tradeoff}</p>}<div className="agent-product-actions"><button onClick={onDetails}>Xem chi tiết</button><a href={`/go/${offer.id}?session=${encodeURIComponent(conversationId)}`}>{item.product.isDemo ? "Bước mua thử" : "Xem nơi bán"} ↗</a></div></div></article>;
 }
 
 function AgentViewPanel({ view, profile, products, saved, conversations, recent, onAsk, onConversation, onSave, onProfileEdit }: { view: AgentView; profile: FamilyProfile | null; products: Product[]; saved: string[]; conversations: Conversation[]; recent: Recommendation[]; onAsk: (value: string) => void; onConversation: (id: string) => void; onSave: (id: string) => void; onProfileEdit: (next: FamilyProfile) => void }) {

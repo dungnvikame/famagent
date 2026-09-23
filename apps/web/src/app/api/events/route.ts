@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { authenticated } from "@/lib/supabase/server";
 
-const names = new Set(["homepage_view", "family_profile_created", "family_profile_updated", "ai_message_sent", "intent_created", "recommendation_generated", "recommendation_viewed", "product_clicked", "compare_started", "offer_clicked"]);
+// Spec §41 + v1 §17 + onboarding funnel (P4); funnel views in migration 202609240005 read these names.
+const names = new Set([
+  "homepage_view", "onboarding_started", "onboarding_slot_filled", "onboarding_slot_skipped", "onboarding_completed", "family_profile_update_started",
+  "family_profile_created", "family_profile_updated", "ai_message_sent", "intent_created", "recommendation_generated", "recommendation_viewed",
+  "product_clicked", "product_saved", "compare_started", "product_compared", "offer_clicked",
+]);
 
 export async function POST(request: Request) {
   const auth = await authenticated();

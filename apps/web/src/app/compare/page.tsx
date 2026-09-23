@@ -1,25 +1,40 @@
 import Link from "next/link";
+import { CompareSummary } from "@/components/compare-summary";
+import { compareTemplate } from "@/lib/ai/shopping/compare-summary";
+import { compareToken, resolveCompareItems, type CompareItem } from "@/lib/catalog/compare";
+import { AFFILIATE_DISCLOSURE, vnd } from "@/lib/catalog/format";
+import { isOfferFresh, priceTimeLabel } from "@/lib/catalog/offer-status";
 import { getProducts } from "@/lib/catalog/repository";
-import { lowestOffer, pricePerPiece } from "@/lib/catalog/filter";
-import { vnd } from "@/lib/catalog/format";
 
-export default async function ComparePage({ searchParams }: { searchParams: Promise<{ products?: string }> }) {
-  const { products: param } = await searchParams;
-  const ids = (param ?? "").split(",").filter(Boolean).slice(0, 3);
-  const products = (await getProducts()).filter((product) => ids.includes(product.id));
-  const price = (product: typeof products[number]) => lowestOffer(product)?.offer.price;
-  const unit = (product: typeof products[number]) => { const match = lowestOffer(product); return match ? pricePerPiece(match.offer, match.variant) : null; };
-  const cheapest = [...products].sort((a, b) => (unit(a) ?? Infinity) - (unit(b) ?? Infinity))[0];
-  const night = [...products].filter((item) => item.diaper.nightUseScore !== undefined).sort((a, b) => (b.diaper.nightUseScore ?? 0) - (a.diaper.nightUseScore ?? 0))[0];
-  return <div className="container compare-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>So sánh</div><p className="eyebrow accent">SO SÁNH SẢN PHẨM</p><h1>Điểm khác nhau nằm ở đâu?</h1><p>Giá và thuộc tính lấy từ cùng catalog. Chỗ thiếu dữ liệu được để trống.</p>
-    {products.length < 2 ? <div className="empty-state"><h2>Hãy chọn 2–3 sản phẩm để so sánh</h2><Link href="/shop">Quay lại tư vấn</Link></div> : <><div className="compare-summary"><span className="agent-avatar">✳</span><p>{night && night.diaper.nightUseScore && night.diaper.nightUseScore > (cheapest?.diaper.nightUseScore ?? 0) ? `${night.canonicalName} có điểm dùng ban đêm cao hơn trong catalog. ` : ""}{cheapest ? `${cheapest.canonicalName} có giá mỗi miếng thấp nhất trong nhóm này.` : ""} Hãy xem thêm size và khoảng cân nặng trước khi chọn.</p></div><div className="table-scroll"><table className="compare-table"><thead><tr><th>Tiêu chí</th>{products.map((item) => <th key={item.id}><span className="compare-icon">✳</span><strong>{item.canonicalName}</strong><small>{item.brand}</small></th>)}</tr></thead><tbody>
-      <tr><th>Giá gói thấp nhất</th>{products.map((item) => <td key={item.id}>{price(item) ? vnd(price(item)!) : "Chưa có thông tin"}</td>)}</tr>
-      <tr><th>Giá mỗi miếng</th>{products.map((item) => <td key={item.id}>{unit(item) ? `${vnd(unit(item)!)} / miếng` : "Chưa có thông tin"}</td>)}</tr>
-      <tr><th>Khoảng cân nặng</th>{products.map((item) => <td key={item.id}>{item.diaper.minWeightKg}–{item.diaper.maxWeightKg} kg</td>)}</tr>
-      <tr><th>Size / số miếng</th>{products.map((item) => <td key={item.id}>{item.variants.map((variant) => `${variant.size} / ${variant.quantity}`).join(", ")}</td>)}</tr>
-      <tr><th>Kiểu bỉm</th>{products.map((item) => <td key={item.id}>{item.diaper.type === "pants" ? "Bỉm quần" : "Bỉm dán"}</td>)}</tr>
-      <tr><th>Điểm dùng ban đêm</th>{products.map((item) => <td key={item.id}>{item.diaper.nightUseScore ? `${item.diaper.nightUseScore}/5` : "Chưa có thông tin"}</td>)}</tr>
-      <tr><th></th>{products.map((item) => <td key={item.id}><Link href={`/products/${item.slug}`}>Xem chi tiết ↗</Link>{lowestOffer(item) && <><br /><Link href={`/go/${lowestOffer(item)!.offer.id}`}>{item.isDemo ? "Bước mua thử" : "Xem nơi bán"} ↗</Link></>}</td>)}</tr>
-    </tbody></table></div><p className="compare-disclaimer">{products.some((item) => item.isDemo) ? "Đang so sánh dữ liệu minh họa, không phải báo giá hoặc đánh giá thật." : "Thông tin có thể thay đổi tại nơi bán."}</p></>}
+const MISSING = "Chưa có thông tin";
+const score = (value: number | undefined) => value === undefined ? MISSING : `${value}/5`;
+
+export default async function ComparePage({ searchParams }: { searchParams: Promise<{ items?: string; products?: string }> }) {
+  const params = await searchParams;
+  const items = resolveCompareItems(await getProducts(), params);
+  const now = Date.now();
+  const tokens = items.filter((item) => item.offer).map((item) => compareToken(item.product.id, item.variant.id, item.offer!.id)).join(",");
+  const rows: Array<[string, (item: CompareItem) => React.ReactNode]> = [
+    ["Giá gói", (item) => item.offer ? vnd(item.offer.price) : "Hết hàng hoặc chưa có nơi bán"],
+    ["Giá mỗi miếng", (item) => item.unitPrice !== null ? `${vnd(Math.round(item.unitPrice))} / miếng` : MISSING],
+    ["Size / số miếng", (item) => `${item.variant.size} / ${item.variant.quantity} miếng`],
+    ["Khoảng cân nặng", (item) => `${item.product.diaper.minWeightKg}–${item.product.diaper.maxWeightKg} kg`],
+    ["Kiểu bỉm", (item) => item.product.diaper.type === "pants" ? "Bỉm quần" : "Bỉm dán"],
+    ["Điểm dùng ban đêm", (item) => score(item.product.diaper.nightUseScore)],
+    ["Điểm thấm hút", (item) => score(item.product.diaper.absorbencyScore)],
+    ["Độ dày", (item) => score(item.product.diaper.thicknessScore)],
+    ["Đánh giá nơi bán", (item) => item.offer?.sellerRating !== undefined ? `${item.offer!.sellerRating}/5` : MISSING],
+    ["Nơi bán", (item) => item.offer?.merchantName ?? MISSING],
+    ["Giá cập nhật", (item) => !item.offer ? MISSING : item.product.isDemo ? "Giá minh họa" : priceTimeLabel(item.offer.updatedAt)],
+  ];
+  return <div className="container compare-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>So sánh</div><p className="eyebrow accent">SO SÁNH SẢN PHẨM</p><h1>Điểm khác nhau nằm ở đâu?</h1><p>So sánh đúng phiên bản và nơi bán đã được gợi ý. Chỗ thiếu dữ liệu ghi “{MISSING}”.</p>
+    {items.length < 2 ? <div className="empty-state"><h2>Hãy chọn 2–3 sản phẩm để so sánh</h2><Link href="/shop">Quay lại tư vấn</Link></div> : <>
+      <CompareSummary template={compareTemplate(items)} items={tokens} count={items.length}/>
+      <div className="table-scroll"><table className="compare-table"><thead><tr><th>Tiêu chí</th>{items.map((item) => <th key={item.product.id}><span className="compare-icon">✳</span><strong>{item.product.canonicalName}</strong><small>{item.product.brand}</small></th>)}</tr></thead><tbody>
+        {rows.map(([label, cell]) => <tr key={label}><th>{label}</th>{items.map((item) => <td key={item.product.id}>{cell(item)}</td>)}</tr>)}
+        <tr><th></th>{items.map((item) => <td key={item.product.id}><Link href={`/products/${item.product.slug}`}>Xem chi tiết ↗</Link>{item.offer && (isOfferFresh(item.offer, now, item.product.isDemo) ? <><br /><Link href={`/go/${item.offer.id}`}>{item.product.isDemo ? "Bước mua thử" : "Xem nơi bán"} ↗</Link></> : <><br /><span className="stale-note">Giá cũ, đang chờ xác minh</span></>)}</td>)}</tr>
+      </tbody></table></div>
+      <p className="compare-disclaimer">{items.some((item) => item.product.isDemo) ? "Đang so sánh dữ liệu minh họa, không phải báo giá hoặc đánh giá thật. " : "Giá sản phẩm chưa gồm phí giao và có thể thay đổi tại nơi bán. "}{AFFILIATE_DISCLOSURE}</p>
+    </>}
   </div>;
 }

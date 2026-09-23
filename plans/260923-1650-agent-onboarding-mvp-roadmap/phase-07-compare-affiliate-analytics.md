@@ -1,7 +1,7 @@
 ---
 phase: 7
 title: "Compare, trust UX, affiliate, analytics"
-status: pending
+status: completed (engineering)
 priority: P2
 effort: "1.5w"
 dependencies: [5, 6]
@@ -42,3 +42,18 @@ Hoàn thiện phần sau gợi ý theo spec §10–11, §33, §41–49: card g�
 
 ## Risk Assessment
 - Chưa có affiliate program → redirect tới URL gốc merchant đã duyệt, vẫn ghi click; disclosure vẫn hiển thị.
+
+## Completion notes (2026-09-23)
+Done:
+- `components/recommendation-card.tsx`: image, brand, name, "Phù hợp với nhu cầu đã nêu" (no %), 3 reasons, price + per-piece, merchant, price time, "chưa gồm phí giao"; "Vì sao gợi ý này?" (Khớp vì / Đánh đổi incl. failed soft preferences); CTA hidden when the price is >48h old or the offer left the current catalog (live offer preferred over the stored conversation copy); `offer_clicked`.
+- Compare selection bar in `/shop` → `/compare?items=product:variant:offer` compares exactly the recommended variant/offer (legacy `products=` still works); rows incl. absorbency/thickness/seller rating with "Chưa có thông tin"; template summary from facts, AI wording via `POST /api/compare` only with consent + `compare` quota and only if `passesFactGuard` (ordered=false).
+- `lib/catalog/offer-status.ts`: `isOfferFresh`, ICU-independent `priceTimeLabel`, pure `decideRedirect`; `/go` sends stale offers to the product page (`?price=stale` notice).
+- Disclosure (spec §49) under recommendations, compare, product page, footer (`AFFILIATE_DISCLOSURE`).
+- Events allowlist incl. onboarding events, `product_saved`, `product_compared`; saving no longer counts as `product_clicked`.
+- Migration `202609240005`: `offer_snapshots` written only via SECURITY DEFINER `record_offer_snapshots` (values copied from `product_offers`), `compare` quota, dashboard views (funnel, no-result rate, agent latency p50/p95, affiliate clicks) with `security_invoker` and revoked from app roles.
+- Fix found during browser check: local-mode `/` ↔ `/shop` redirect loop when the gate cookie expired but localStorage kept the profile.
+- Tests: `tests/compare-redirect.test.ts`.
+
+Deviations: no separate `tests/redirect.test.ts` (merged into compare-redirect); compare page /go links carry no `?session` (no conversation context there).
+
+Open until Supabase exists: success criteria "click recorded + redirect" and "funnel counts in views" need a real project (P8 staging).

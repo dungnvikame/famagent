@@ -2,7 +2,7 @@
 
 ## Kết nối môi trường staging
 
-1. Tạo Supabase project riêng cho staging. Sao lưu trước (`pg_dump`) nếu DB đã có dữ liệu, rồi chạy lần lượt mọi file trong `supabase/migrations` theo thứ tự tên (các migration `202609240001`→`0004` phải chạy trước khi deploy code mới) và kiểm tra các bảng, RLS, policy đã xuất hiện.
+1. Tạo Supabase project riêng cho staging. Sao lưu trước (`pg_dump`) nếu DB đã có dữ liệu, rồi chạy lần lượt mọi file trong `supabase/migrations` theo thứ tự tên (các migration `202609240001`→`0005` phải chạy trước khi deploy code mới) và kiểm tra các bảng, RLS, policy đã xuất hiện.
 2. Đặt `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` trên web server. Đặt `DATABASE_URL` chỉ ở server để nhập catalog và ghi click merchant.
 3. Trong Supabase Auth, đặt Site URL và Redirect URLs cho `/auth/confirm`. Sửa Magic Link và Confirm signup template theo hướng dẫn trong `README.md`; cấu hình SMTP và thử email thật.
 4. Chỉ nhập sản phẩm đã kiểm tra quyền ảnh, nguồn thuộc tính, giá, tồn kho và URL. Luôn chạy `pnpm import-products -- <csv> --dry-run` trước, sửa hết lỗi rồi mới nhập thật. Chưa có dữ liệu đạt chuẩn thì giữ môi trường ở chế độ thử nghiệm.
@@ -18,7 +18,7 @@
 
 ## Theo dõi sau phát hành
 
-- Theo dõi lỗi API, p95 thời gian trả gợi ý, tỷ lệ yêu cầu không có kết quả, link merchant lỗi và tỷ lệ dữ liệu giá quá hạn.
+- Theo dõi lỗi API, p95 thời gian trả gợi ý, tỷ lệ yêu cầu không có kết quả, link merchant lỗi và tỷ lệ dữ liệu giá quá hạn. Các view trong Supabase SQL editor (migration `202609240005`): `analytics_funnel_daily` (homepage_view → onboarding_completed → ai_message_sent → recommendation_generated → product_clicked/compare_started → offer_clicked, theo ngày), `recommendation_quality_daily` (tỷ lệ phiên không có kết quả), `agent_latency_daily` (p50/p95 thời gian một lượt agent), `affiliate_clicks_daily` (click theo merchant). Các view không cấp cho `anon`/`authenticated`; xem bằng tài khoản quản trị.
 - Mỗi ngày chạy `pnpm verify-offers`; xem báo cáo, sao lưu `product_offers` rồi chạy `--apply` để ẩn offer lỗi hoặc quá hạn xác minh. Nhập lại giá mới qua CSV.
 - Mỗi tuần xem lại các câu hỏi bị hiểu sai, mẫu gợi ý không phù hợp và phản hồi của người dùng; cập nhật bộ đánh giá trước khi đổi thuật toán.
 

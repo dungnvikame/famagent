@@ -42,6 +42,10 @@ Nguồn dữ liệu thật và người phụ trách catalog, quy trình cập n
 
 Khi chưa có Supabase, onboarding, hồ sơ, hội thoại và sản phẩm đã lưu nằm trong `localStorage` để thử luồng. Khi có URL và publishable key, người dùng đăng nhập bằng email; API `/api/me`, `/api/conversations`, `/api/saved`, `/api/events` xác thực tài khoản trước khi đọc/ghi. Migration thứ hai và thứ ba tạo bảng, RLS, cột tuổi bé và log kết quả gợi ý. Trang `/family` cho phép sửa hoặc xóa hồ sơ, hội thoại và sản phẩm đã lưu. Chưa kiểm thử quyền và xóa dữ liệu trên Supabase thật.
 
+## Snapshot giá và analytics (migration `202609240005_offer_snapshots_analytics.sql`)
+
+Mỗi phiên gợi ý của người dùng đăng nhập ghi `offer_snapshots`: giá, tình trạng hàng và thời điểm quan sát giá của offer đã hiển thị (SPEC_V1 §16). Snapshot được ghi qua hàm `record_offer_snapshots` (SECURITY DEFINER): hàm kiểm tra chủ phiên rồi tự sao chép giá từ `product_offers`, nên client không thể ghi giá giả; người dùng chỉ có quyền đọc, không sửa; xóa phiên sẽ xóa snapshot. Ghi snapshot lỗi chỉ ghi log, không làm hỏng lượt tư vấn. Migration này cũng thêm hạn mức `compare` (30 lượt AI/giờ) cho tóm tắt so sánh. Offer có giá quá 48 giờ vẫn hiển thị sản phẩm nhưng ẩn nút mua trên thẻ gợi ý, trang so sánh và trang sản phẩm; `/go/:offerId` chuyển về trang sản phẩm thay vì nơi bán. Sự kiện được chấp nhận: xem danh sách trong `apps/web/src/app/api/events/route.ts`. Thứ tự: sao lưu → `202609240001` … `202609240005` → deploy code.
+
 ## Hồ sơ gia đình v2 (migration `202609240001_family_profile_v2.sql`)
 
 Hồ sơ chứa đủ bối cảnh theo [SOURCE_SPEC §12–13](SOURCE_SPEC.md): số người lớn; mỗi bé có tên gọi, ngày sinh (ưu tiên hơn tuổi theo tháng), cân nặng, size, lưu ý (`sensitive_skin`, `rash_prone`, `fragrance_free`), thương hiệu đang dùng, thích và muốn tránh; ưu tiên giá (`budget`, `value`, `balanced`, `premium`), ưu tiên giao hàng, ngân sách, thương hiệu tin dùng, thành phần muốn tránh; loại máy giặt. `onboarding` ghi nhóm câu hỏi agent đã hỏi hoặc người dùng bỏ qua.

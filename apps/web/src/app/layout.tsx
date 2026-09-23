@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AFFILIATE_DISCLOSURE } from "@/lib/catalog/format";
 import "@fontsource/be-vietnam-pro/400.css";
 import "@fontsource/be-vietnam-pro/500.css";
 import "@fontsource/be-vietnam-pro/600.css";
@@ -22,6 +23,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <nav aria-label="Điều hướng chính"><Link href="/shop">Tư vấn</Link><Link href="/products">Khám phá</Link><Link href="/saved">Đã lưu</Link><Link href="/family">Gia đình</Link></nav>
     </div></header>
     <main>{children}</main>
-    <footer className="site-footer"><div className="container"><strong>Family AI</strong><p>Bản trải nghiệm với dữ liệu minh họa. Giá và thông số sản phẩm cần được xác minh trước khi công bố.</p></div></footer>
+    <footer className="site-footer"><div className="container"><strong>Family AI</strong><p>{AFFILIATE_DISCLOSURE} Giá sản phẩm chưa gồm phí giao và có thể thay đổi tại nơi bán.</p></div></footer>
   </body></html>;
 }

@@ -36,6 +36,13 @@ export async function persistShoppingTurn(client: SupabaseClient, userId: string
         score_version: item.scoreVersion,
       })));
       if (itemsError) return "items";
+      // Price as stored when shown (spec v1 §16), copied server-side from product_offers so it cannot be forged.
+      // Audit data like the trace: a failed write is logged, not surfaced as a failed turn.
+      const offerIds = response.recommendations.filter((item) => !item.product.isDemo).map((item) => item.offerId);
+      if (offerIds.length) {
+        const { error: snapshotError } = await client.rpc("record_offer_snapshots", { p_session_id: session.id, p_offer_ids: offerIds });
+        if (snapshotError) console.warn("[offer_snapshots]", JSON.stringify({ code: snapshotError.code ?? "unknown" }));
+      }
     }
   }
   // Trace is observability, not business data: a failed write must not fail the user's turn.

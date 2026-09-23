@@ -36,6 +36,8 @@ export interface GuardContext {
   items: Array<{ name: string; brand: string }>;
   /** Every product name/brand in the catalog; any not among the items is rejected. */
   catalog: Array<{ name: string; brand: string }>;
+  /** false when the items have no rank order (compare view); default true. */
+  ordered?: boolean;
 }
 
 /**
@@ -53,6 +55,7 @@ export function passesFactGuard(text: string, facts: string, context?: GuardCont
   if (!context) return true;
   const allowedNames = new Set(context.items.flatMap((item) => [item.name, item.brand]).map((name) => name.toLocaleLowerCase("vi")));
   if (context.catalog.some((item) => [item.name, item.brand].some((name) => !allowedNames.has(name.toLocaleLowerCase("vi")) && lowerText.includes(name.toLocaleLowerCase("vi"))))) return false;
+  if (context.ordered === false) return true;
   // The first product the summary names must be the rank-1 item (no reordering).
   const firstNamed = context.items.map((item, rank) => ({ rank, at: lowerText.indexOf(item.name.toLocaleLowerCase("vi")) })).filter((hit) => hit.at >= 0).sort((a, b) => a.at - b.at)[0];
   return !firstNamed || firstNamed.rank === 0;

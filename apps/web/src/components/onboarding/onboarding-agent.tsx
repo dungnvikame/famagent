@@ -76,7 +76,11 @@ export function OnboardingAgent() {
         setSession(current);
         if (remote?.onboardedAt && !updateMode) { router.replace("/shop"); return; }
         initial = remote ?? (local?.onboardedAt ? null : local);
-      } else if (local?.onboardedAt && !updateMode) { router.replace("/shop"); return; }
+      } else if (local?.onboardedAt && !updateMode) {
+        // The middleware gate cookie can expire while localStorage keeps the profile; refresh it or /shop bounces back here forever.
+        document.cookie = "family-ai-onboarded=1; Path=/; SameSite=Lax; Max-Age=2592000";
+        router.replace("/shop"); return;
+      }
       if (cancelled) return;
       start(initial ?? freshProfile(), updateMode);
       trackEvent(updateMode ? "family_profile_update_started" : "onboarding_started");
