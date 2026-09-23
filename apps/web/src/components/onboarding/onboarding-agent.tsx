@@ -18,7 +18,10 @@ type Pending = PendingValue & { value: unknown };
 type TurnResult = { profile: FamilyProfile; reply: string; quickReplies: string[]; activeSlot: string; pending: Pending[]; done: boolean; mode: "ai" | "rules" };
 
 const GROUPS: Array<ActiveSlot["kind"]> = ["household", "child.basics", "child.care", "preferences", "home"];
-const INTRO = "Chào bạn 👋 Mình là Family AI. Trước khi chọn đồ, mình muốn hiểu gia đình bạn một chút để gợi ý đúng size và ngân sách — khoảng 1–2 phút, câu nào chưa muốn trả lời cứ bỏ qua.";
+// Step names shown next to the progress bar (multi-step flows name the current step, not just "2/5").
+const GROUP_LABELS: Record<string, string> = { household: "Gia đình", "child.basics": "Về bé", "child.care": "Chăm sóc", preferences: "Ưu tiên", home: "Nhà mình" };
+// The welcome block above the thread explains duration and skipping; the first message stays short.
+const INTRO = "Chào bạn 👋 Mình là Family AI. Mình hỏi vài câu ngắn để gợi ý đúng cho nhà mình nhé.";
 
 const freshProfile = (): FamilyProfile => ({ id: crypto.randomUUID(), children: [], pricePreference: "balanced", aiConsent: false, updatedAt: new Date().toISOString() });
 /** Typed shortcuts that finish: the whole message must be one of these (not a prefix like "bắt đầu từ tuần sau…"). */
@@ -174,14 +177,14 @@ export function OnboardingAgent() {
     <div className="ob-rail"><div className="agent-logo" aria-label="Family AI">f<span>.</span></div></div>
     <main className="ob-chat">
       <header className="ob-top">
-        <span><span className="status-dot"/>Family AI đang lắng nghe</span>
+        <span className="ob-who"><span className="ob-orb" aria-hidden="true"/><span><b>Family AI</b><small><span className="status-dot"/>đang lắng nghe</small></span></span>
         {cloudEnabled && (!session || session.anonymous) && <Link className="ob-signin" href="/sign-in">Đã có tài khoản? Đăng nhập</Link>}
         <span className="ob-progress" role="progressbar" aria-label="Tiến độ" aria-valuemin={0} aria-valuemax={GROUPS.length} aria-valuenow={position} aria-valuetext={shownKind === "review" ? "Đã xong" : `Nhóm ${position + 1} trên ${GROUPS.length}`}>
           {GROUPS.map((group, index) => <i key={group} className={index < position ? "on" : index === position ? "now" : ""}/>)}
-          <em>{shownKind === "review" ? "Xong" : `${position + 1}/${GROUPS.length}`}</em>
+          <em>{shownKind === "review" ? "Hoàn tất" : <>Bước {position + 1}/{GROUPS.length} · <b>{GROUP_LABELS[shownKind] ?? ""}</b></>}</em>
         </span>
       </header>
-      <OnboardingThread lines={lines} busy={busy} confirming={confirming} chips={done ? [] : chips} message={message} consent={profile.aiConsent}
+      <OnboardingThread lines={lines} busy={busy} confirming={confirming} updating={updating} chips={done ? [] : chips} message={message} consent={profile.aiConsent}
         onMessage={setMessage} onSend={(value) => void send(value)} onConsent={(value) => persistLocal({ ...profile, aiConsent: value })}>
         {done && !pending.length && <OnboardingReview profile={profile} cloud={cloudEnabled} busy={busy} onStart={() => void finish()} onEdit={() => document.getElementById("ob-message")?.focus()} onReset={reset}/>}
       </OnboardingThread>

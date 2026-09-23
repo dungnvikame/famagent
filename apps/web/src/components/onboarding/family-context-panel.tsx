@@ -86,6 +86,9 @@ export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disab
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
   const groups = familyRows(profile);
+  // How much context the agent has so far (display only; empty rows are fine — every question is skippable).
+  const allRows = groups.flatMap((group) => group.rows);
+  const filled = allRows.filter((row) => row.display).length;
   const first = profile.children[0];
   const compact = [profile.adultsCount ? `${profile.adultsCount} người lớn` : null, first && (first.name || first.weightKg || first.diaperSize) ? [first.name ? `Bé ${first.name}` : "Bé", first.weightKg ? `${first.weightKg} kg` : null, first.diaperSize].filter(Boolean).join(" ") : null, profile.maxBudget ? `≤ ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean).join(" · ") || "Chưa có thông tin";
 
@@ -98,7 +101,9 @@ export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disab
   return <aside className={`ob-panel${open ? " open" : ""}`} aria-label={title}>
     <button type="button" className="ob-panel-compact" aria-expanded={open} onClick={() => setOpen(!open)}><span>{compact}</span><b>{open ? "Thu gọn ▴" : "Xem & sửa ▾"}</b></button>
     <div className="ob-panel-body">
-      <h3>{title}</h3>
+      <div className="ob-panel-head"><span className="ob-orb" aria-hidden="true" /><h3>{title}</h3></div>
+      <div className="ob-meter" role="meter" aria-label="Mức độ đầy đủ của hồ sơ" aria-valuemin={0} aria-valuemax={allRows.length} aria-valuenow={filled}><span style={{ width: `${allRows.length ? Math.round((filled / allRows.length) * 100) : 0}%` }} /></div>
+      <p className="ob-meter-label">Đã có {filled}/{allRows.length} thông tin</p>
       <p className="ob-panel-sub">{onEdit ? "Bấm vào dòng bất kỳ để sửa — không cần chat." : "Thông tin đang dùng để tư vấn."}</p>
       {groups.map((group) => <section className="ob-group" key={group.title}><h4>{group.title}</h4>
         {group.rows.map((row) => {

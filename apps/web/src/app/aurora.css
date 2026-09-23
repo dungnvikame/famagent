@@ -211,3 +211,96 @@ button.ob-field:hover,button.ob-field:focus-visible{background:#f6f4ff}
   .agent-prompt textarea{min-height:44px}
   .agent-prompt-bottom{padding-top:6px;justify-content:flex-end}
 }
+
+/* ---------- onboarding v2 (ak-ui-ux-pro-max pass) ---------- */
+.ob-orb{display:inline-block;flex:none;width:30px;height:30px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 3px #ffffffb3,0 6px 14px -6px #7a5cff80}
+.ob-orb.ghost{visibility:hidden}
+.ob-orb-lg{width:64px;height:64px;box-shadow:0 0 0 8px #ffffff80,0 24px 44px -18px #7a5cff99;animation:aurora-breathe 4s ease-in-out infinite}
+.ob-top{min-height:64px;background:#ffffff66;backdrop-filter:var(--blur)}
+.ob-who{display:flex;align-items:center;gap:10px}
+.ob-who>span:last-child{display:flex;flex-direction:column;line-height:1.25}
+.ob-who b{font-size:14px;color:var(--ink)}
+.ob-who small{font-size:11.5px;color:var(--muted);font-weight:500;display:flex;align-items:center}
+.ob-progress i{width:30px;transition:background-color .25s ease}
+.ob-progress em{font-size:12px}
+.ob-progress em b{color:var(--primary);font-weight:700}
+
+.ob-thread{gap:14px;padding-top:28px}
+.ob-hero{align-self:center;text-align:center;max-width:560px;margin:8px auto 18px;display:flex;flex-direction:column;align-items:center;gap:10px;animation:ob-in .35s ease-out both}
+.ob-hero h1{margin:8px 0 0;font-size:clamp(26px,3.2vw,34px);font-weight:800;letter-spacing:-.035em;line-height:1.15;background:linear-gradient(90deg,var(--ink),#5b4bb7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ob-hero p{margin:0;color:var(--muted);font-size:15px}
+.ob-benefits{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.ob-benefits li{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#4a4468;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:var(--blur);padding:8px 12px;border-radius:var(--pill);box-shadow:var(--shadow-sm)}
+.ob-benefits svg{color:var(--primary)}
+
+.ob-row{display:flex;align-items:flex-end;gap:10px;animation:ob-in .22s ease-out both}
+.ob-row.user{justify-content:flex-end}
+.ob-row .ob-msg{max-width:min(600px,80%)}
+.ob-msg{font-size:15px;line-height:1.6;padding:12px 16px}
+.ob-row.agent .ob-confirm{margin:0}
+.ob-confirm{box-shadow:var(--shadow-sm)}
+.ob-typing{width:64px;justify-content:center}
+
+.ob-chips{gap:8px}
+.ob-chip{min-height:40px;transition:transform .15s ease,background-color .15s ease,box-shadow .15s ease}
+.ob-chip:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--shadow)}
+.ob-chip:active:not(:disabled){transform:scale(.97)}
+
+.ob-composer{align-items:center;border-radius:var(--pill);padding:6px 6px 6px 20px}
+.ob-composer textarea{padding:10px 0;font-size:16px}
+.ob-send{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0!important;border-radius:50%!important;transition:transform .15s ease,opacity .15s ease}
+.ob-send:not(:disabled):hover{transform:translateY(-1px)}
+.ob-send:not(:disabled):active{transform:scale(.94)}
+.ob-send:disabled{opacity:.4}
+
+.ob-consent{align-items:center;gap:12px;cursor:pointer}
+.ob-consent input{appearance:none;-webkit-appearance:none;flex:none;margin:0;width:40px;height:24px;border-radius:var(--pill);background:#dcd8ea;position:relative;cursor:pointer;transition:background-color .2s ease}
+.ob-consent input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s ease}
+.ob-consent input:checked{background:var(--grad)}
+.ob-consent input:checked::after{transform:translateX(16px)}
+.ob-consent input:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+.ob-consent-text{display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.ob-consent-text svg{flex:none;margin-top:2px;color:var(--ok)}
+.ob-consent-text b{color:var(--ink);font-weight:600}
+
+.ob-review{padding:22px;animation:ob-in .3s ease-out both}
+.ob-review-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.ob-review-head h2{margin:0 0 4px;font-size:19px;font-weight:800;letter-spacing:-.02em}
+.ob-review-head p{margin:0;color:var(--muted);font-size:13.5px}
+.ob-review-badge{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--ok-bg);color:var(--ok)}
+.ob-review-list{list-style:none;padding:0!important;margin:0 0 18px!important;display:grid;gap:8px!important}
+.ob-review-list li{display:flex;gap:9px;align-items:flex-start;font-size:14px;background:#ffffffb3;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px}
+.ob-review-list svg{flex:none;margin-top:3px;color:var(--ok)}
+.ob-review-actions .ob-btn.primary{padding:13px 22px;font-size:15px}
+
+.ob-panel-body{padding:20px 18px}
+.ob-panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ob-panel-head .ob-orb{width:26px;height:26px}
+.ob-panel h3{font-size:16px;font-weight:800;margin:0}
+.ob-meter{height:6px;border-radius:var(--pill);background:#e8e4f6;overflow:hidden}
+.ob-meter span{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .4s ease-out}
+.ob-meter-label{margin:6px 0 4px;font-size:12px;font-weight:600;color:var(--primary-ink)}
+.ob-group{border:1px solid var(--glass-border);border-top:1px solid var(--glass-border);background:#ffffffa6;border-radius:var(--r);padding:10px 10px 8px;margin-top:10px;box-shadow:var(--shadow-sm)}
+.ob-field{min-height:36px;align-items:center}
+.ob-field.empty b{font-style:italic}
+
+@keyframes ob-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ob-row,.ob-hero,.ob-review,.ob-orb-lg{animation:none}.ob-chip,.ob-send,.ob-consent input,.ob-consent input::after,.ob-meter span{transition:none}}
+@media (max-width:980px){
+  .ob-hero{margin:4px auto 10px}
+  .ob-hero h1{font-size:25px}
+  .ob-benefits li{font-size:12px;padding:7px 10px}
+  .ob-row .ob-msg,.ob-row .ob-confirm{max-width:86%}
+  .ob-panel-compact{font-weight:600}
+}
+
+/* The pill composer shows focus on its outer edge (:focus-within); no second ring on the textarea. */
+.ob-composer textarea:focus-visible,.agent-prompt textarea:focus-visible{outline:none}
+
+@media (max-width:560px){
+  .ob-top{padding:10px 14px;min-height:56px}
+  .ob-who small{display:none}
+  .ob-progress i{width:16px}
+  .ob-progress em{white-space:nowrap}
+  .ob-consent{font-size:11.5px}
+}
