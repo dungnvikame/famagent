@@ -1,4 +1,5 @@
 import type { FamilyProfile } from "@/lib/experience/types";
+import { stampChanges } from "../experience/profile-meta.ts";
 
 export function parseProfileChange(message: string, profile: FamilyProfile | null): FamilyProfile | null {
   if (!profile || !/(?:đổi|cập nhật|sửa|thay|hiện nặng|giờ nặng|ngân sách thành|size thành)/i.test(message)) return null;
@@ -18,5 +19,6 @@ export function parseProfileChange(message: string, profile: FamilyProfile | nul
   if (/ưu tiên (?:giá tốt|tiết kiệm)/.test(lower)) { updated.pricePreference = "budget"; changed = true; }
   if (/ưu tiên (?:cao cấp|premium)/.test(lower)) { updated.pricePreference = "premium"; changed = true; }
   if (/ưu tiên cân bằng/.test(lower)) { updated.pricePreference = "balanced"; changed = true; }
-  return changed ? updated : null;
+  // An explicit "đổi/cập nhật ..." command is the user's own entry, so it is recorded as confirmed.
+  return changed ? stampChanges(profile, updated, "user_entered", updated.updatedAt) : null;
 }

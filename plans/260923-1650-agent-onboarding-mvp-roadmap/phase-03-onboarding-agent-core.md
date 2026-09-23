@@ -24,7 +24,10 @@ Thay `processOnboarding` 2 bước cứng bằng agent slot-filling: mỗi lư�
     7. `review`
   - Người dùng nói "bỏ qua / không nhớ / sau" → slot vào `skippedSlots`, sang slot kế. Slot bắt buộc bị bỏ qua → agent giải thích ngắn vì sao cần (tránh sai size) và cho phép nhập size thay cân nặng; nếu vẫn bỏ qua → vẫn cho vào `/shop`, `/shop` sẽ hỏi lại (hành vi hiện có).
   - Sửa bất kỳ lúc nào: "à bé 11kg chứ" → cập nhật slot đã điền, xác nhận lại.
+  - **Giá trị mơ hồ** ("chắc tầm 10kg", "hình như size L") → LLM đánh dấu `certain:false`; agent trả `pendingConfirmations` + chip [Đúng] [Sửa]; chỉ ghi hồ sơ (source `user_confirmed`) khi người dùng xác nhận. Giá trị mới mâu thuẫn giá trị đã xác nhận → hỏi, không ghi đè (spec v1 §3, §6.1 — D14).
+  - Mỗi lượt hỏi **tối đa 2 câu**, ưu tiên dạng lựa chọn (spec v1 §9). <!-- Updated: Session 2 - D13/D14 -->
   - Trả về: `{ profile, reply, quickReplies: string[], activeSlot, done, mode: "ai" | "rules" }`.
+  - Extractor mới phải sinh được `pricePreference: "value"` và mọi trường profile v2 (carry-over P2). Nếu agent cập nhật danh sách (brand…) khi `/family` đang mở: `ListInput` chỉ đọc giá trị ban đầu → thêm `key` theo giá trị hoặc đồng bộ draft từ props (carry-over P2).
   - Kết quả LLM được **gộp với rules** (carry-over P1): giá trị AI chỉ thắng khi khác null; AI trả toàn null → dùng rules, `mode:"rules"`. <!-- Updated: P1 carry-over -->
   - Guest rate limit (D1, D5): khi có Supabase, trang chủ gọi `supabase.auth.signInAnonymously()` nếu chưa có session → route onboarding dùng `authenticated()` như chat, đếm `api_request_limits` endpoint `onboarding` (~20 lượt LLM/giờ/user). Không có Supabase → bộ đếm in-memory theo IP. Vượt → rules, không lỗi. <!-- Updated: Validation Session 1 - D5 anonymous sign-in -->
   - Chống lạm dụng tạo user ẩn danh hàng loạt: bật CAPTCHA (Turnstile) cho anonymous sign-in trên Supabase trước khi mở test rộng; giới hạn tạo session theo IP của Supabase Auth.

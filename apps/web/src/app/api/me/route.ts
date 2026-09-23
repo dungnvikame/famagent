@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { authenticated } from "@/lib/supabase/server";
 import { validProfile } from "@/lib/experience/validate";
-import type { FamilyProfile } from "@/lib/experience/types";
+import { childRow, familyRow, profileFromRow } from "@/lib/experience/profile-mapper";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +11,7 @@ export async function GET() {
   const { data, error } = await auth.client.from("family_profiles").select("*,children(*)").eq("user_id", auth.user.id).maybeSingle();
   if (error) return NextResponse.json({ error: "Không thể tải hồ sơ" }, { status: 500 });
   if (!data) return NextResponse.json({ profile: null });
-  const profile: FamilyProfile = {
-    id: data.id, familyName: data.name ?? undefined, pricePreference: data.price_preference,
-    mainConcern: data.main_concern ?? undefined, maxBudget: data.max_budget ?? undefined,
-    aiConsent: data.ai_consent, onboardedAt: data.onboarded_at ?? undefined, updatedAt: data.updated_at,
-    children: (data.children ?? []).sort((a: { position: number }, b: { position: number }) => a.position - b.position).map((child: Record<string, unknown>) => ({ id: child.id as string, name: child.name as string | undefined, weightKg: child.current_weight_kg ? Number(child.current_weight_kg) : undefined, ageMonths: child.age_months as number | undefined, diaperSize: child.diaper_size as string | undefined })),
-  };
+  const profile = profileFromRow(data);
   return NextResponse.json({ profile }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
@@ -27,22 +22,14 @@ export async function PUT(request: Request) {
   if (!validProfile(body?.profile)) return NextResponse.json({ error: "Hồ sơ không hợp lệ" }, { status: 400 });
   const profile = body.profile;
   const now = new Date().toISOString();
-  const { data: family, error } = await auth.client.from("family_profiles").upsert({
-    user_id: auth.user.id, name: profile.familyName || null, price_preference: profile.pricePreference,
-    main_concern: profile.mainConcern || null, max_budget: profile.maxBudget || null,
-    ai_consent: profile.aiConsent, onboarded_at: profile.onboardedAt || null, updated_at: now,
-  }, { onConflict: "user_id" }).select("id").single();
+  const { data: family, error } = await auth.client.from("family_profiles").upsert(familyRow(profile, auth.user.id, now), { onConflict: "user_id" }).select("id").single();
   if (error || !family) return NextResponse.json({ error: "Không thể lưu hồ sơ" }, { status: 500 });
   const { data: existing, error: readError } = await auth.client.from("children").select("id").eq("family_profile_id", family.id);
   if (readError) return NextResponse.json({ error: "Không thể tải thông tin bé" }, { status: 500 });
   const existingIds = new Set((existing ?? []).map((child) => child.id));
   const childIds = profile.children.map((child) => /^[a-f0-9-]{36}$/i.test(child.id) ? child.id : crypto.randomUUID());
   if (profile.children.length) {
-    const { error: childError } = await auth.client.from("children").upsert(profile.children.map((child, index) => ({
-      id: childIds[index], family_profile_id: family.id, name: child.name || null,
-      current_weight_kg: child.weightKg ?? null, age_months: child.ageMonths ?? null, position: index,
-      diaper_size: child.diaperSize || null, updated_at: now,
-    })));
+    const { error: childError } = await auth.client.from("children").upsert(profile.children.map((child, index) => childRow({ ...child, id: childIds[index] }, family.id, index, now)));
     if (childError) return NextResponse.json({ error: "Không thể lưu thông tin bé" }, { status: 500 });
   }
   const removed = [...existingIds].filter((id) => !childIds.includes(id));

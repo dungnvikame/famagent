@@ -2,7 +2,7 @@
 
 **Phiên bản:** 0.2 · **Ngày cập nhật:** 23/09/2026 · **Trạng thái:** Đang xây MVP
 
-Tài liệu này là nguồn chuẩn cho các quyết định sản phẩm từ lúc bắt đầu phát triển. [Spec đầu vào](SOURCE_SPEC.md) được giữ nguyên để đối chiếu. Khi thay đổi phạm vi, hành vi hoặc cách đo, cập nhật tài liệu này và ghi vào mục Nhật ký quyết định.
+Tài liệu này là nguồn chuẩn cho các quyết định sản phẩm từ lúc bắt đầu phát triển. [Spec đầu vào MVP](SOURCE_SPEC.md) và [spec v1 Household Purchasing Agent](SPEC_V1_PURCHASING_AGENT.md) được giữ nguyên để đối chiếu. Khi thay đổi phạm vi, hành vi hoặc cách đo, cập nhật tài liệu này và ghi vào mục Nhật ký quyết định.
 
 ## 1. Mục tiêu
 
@@ -117,6 +117,10 @@ Chỉ publish khi có tên, thương hiệu, danh mục, ảnh, variant, giá, m
 | 23/09/2026 | Onboarding là điểm vào chính | Người dùng cần chia sẻ bối cảnh trước khi trải nghiệm tư vấn; thay trang giới thiệu đơn thuần bằng hội thoại agent. |
 | 23/09/2026 | Hoàn thiện luồng demo bỉm từ đầu đến cuối | Cho phép kiểm tra onboarding → tư vấn → so sánh → bước mở nơi bán trước khi có dữ liệu thương mại thật. |
 | 23/09/2026 | Bản demo lưu hồ sơ và lịch sử trong trình duyệt | Chưa có đăng nhập; dữ liệu có thể mất khi đổi thiết bị hoặc xóa dữ liệu trình duyệt. |
+| 23/09/2026 | Nhận [spec v1 Household Purchasing Agent](SPEC_V1_PURCHASING_AGENT.md) làm định hướng | MVP vẫn là tìm–so sánh–đề xuất; mua lại, dự báo tiêu thụ, nhắc mua và giỏ tháng làm sau khi MVP đạt tiêu chí. Khi hai spec mâu thuẫn, spec v1 thắng. |
+| 23/09/2026 | Hồ sơ chỉ chứa giá trị đã xác nhận, kèm nguồn gốc | Agent hỏi xác nhận trước khi ghi giá trị mơ hồ (vd "chắc tầm 10kg"); mỗi trường có source, thời điểm quan sát và xác nhận. |
+| 23/09/2026 | MVP giữ 1 tài khoản = 1 hộ gia đình | Chia sẻ hồ sơ giữa nhiều thành viên (households/permissions) làm khi có nhu cầu thật. |
+| 23/09/2026 | Không hiển thị "Family Match %" | Điểm chưa được hiệu chuẩn; dùng "Phù hợp với nhu cầu đã nêu" (spec v1 §11.5). |
 
 ## 9. Cần xác nhận khi chuẩn bị phát hành
 

@@ -14,9 +14,11 @@ Hoàn thiện phần sau gợi ý theo spec §10–11, §33, §41–49: card g�
 
 ## Requirements
 - Functional:
-  - Card §10: ảnh, brand, tên, Family Match %, 3 lý do, giá, giá/miếng, nơi bán, [So sánh] [Chi tiết] [Mua]; top card nhãn "Phù hợp nhất" (không "tốt nhất").
+  - Card: **không hiển thị %** — dùng "Phù hợp với nhu cầu đã nêu" (spec v1 §11.5); giá kèm thời điểm cập nhật; offer cũ → ẩn nút mua; thiếu phí giao → "giá sản phẩm, chưa gồm phí giao" (§8, §12). <!-- Updated: Session 2 - D13 -->
+  - Card §10 (spec MVP, trừ %): ảnh, brand, tên, 3 lý do, giá, giá/miếng, nơi bán, [So sánh] [Chi tiết] [Mua]; top card nhãn "Phù hợp nhất" (không "tốt nhất").
   - "Why this?" §48: Matched because ✓ / Tradeoffs.
-  - `/compare?products=` §11: Family Match, giá, giá/miếng, cân nặng, ban đêm, độ dày, seller rating; thiếu → "Chưa có thông tin"; AI summary 1–2 câu qua fact-guard (P5).
+  - Offer snapshot lưu giá đã thấy lúc đề xuất (`offer_snapshots`, spec v1 §16), không ghi đè bằng giá mới.
+  - `/compare?products=` §11: giá, giá/miếng, cân nặng, ban đêm, độ dày, seller rating; thiếu → "Chưa có thông tin"; AI summary 1–2 câu qua fact-guard (P5).
   - `/go/:offerId`: HTTPS + domain allowlist + ghi `affiliate_clicks` + redirect; URL affiliate không có trong API public.
   - Disclosure §49 ở card/compare/footer.
   - Events §41 đủ + onboarding events (P4); funnel §42: homepage_view → onboarding_completed → ai_message_sent → recommendation_generated → product_clicked/compare_started → offer_clicked.

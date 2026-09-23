@@ -9,6 +9,7 @@ import { authenticated, authConfigured } from "@/lib/supabase/server";
 import type { SupabaseClient, User } from "@supabase/supabase-js";
 import { routeWorkspace } from "@/lib/ai/workspace";
 import { parseProfileChange } from "@/lib/ai/profile-change";
+import { profileFromRow } from "@/lib/experience/profile-mapper";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null) as { message?: string; profile?: FamilyProfile | null; previousIntent?: ShoppingIntent | null; conversationId?: string } | null;
@@ -25,11 +26,7 @@ export async function POST(request: Request) {
     account = auth;
     const { data, error } = await auth.client.from("family_profiles").select("*,children(*)").eq("user_id", auth.user.id).maybeSingle();
     if (error) return NextResponse.json({ error: "Không thể tải hồ sơ" }, { status: 500 });
-    profile = data ? {
-      id: data.id, familyName: data.name ?? undefined, pricePreference: data.price_preference,
-      mainConcern: data.main_concern ?? undefined, maxBudget: data.max_budget ?? undefined, aiConsent: data.ai_consent,
-      updatedAt: data.updated_at, children: (data.children ?? []).sort((a: { position: number }, b: { position: number }) => a.position - b.position).map((child: Record<string, unknown>) => ({ id: child.id as string, name: child.name as string | undefined, weightKg: child.current_weight_kg ? Number(child.current_weight_kg) : undefined, ageMonths: child.age_months as number | undefined, diaperSize: child.diaper_size as string | undefined })),
-    } : null;
+    profile = data ? profileFromRow(data) : null;
     previousIntent = null;
     if (body.conversationId && /^[a-f0-9-]{36}$/i.test(body.conversationId)) {
       const { data: conversation } = await auth.client.from("conversations").select("id").eq("id", body.conversationId).eq("user_id", auth.user.id).maybeSingle();
@@ -50,7 +47,7 @@ export async function POST(request: Request) {
   const profileChange = parseProfileChange(body.message, profile);
   if (profileChange) {
     if (account) {
-      const { error: familyError } = await account.client.from("family_profiles").update({ max_budget: profileChange.maxBudget ?? null, price_preference: profileChange.pricePreference, updated_at: profileChange.updatedAt }).eq("user_id", account.user.id);
+      const { error: familyError } = await account.client.from("family_profiles").update({ max_budget: profileChange.maxBudget ?? null, price_preference: profileChange.pricePreference, field_meta: profileChange.fieldMeta ?? {}, updated_at: profileChange.updatedAt }).eq("user_id", account.user.id);
       if (familyError) return NextResponse.json({ error: "Không thể cập nhật hồ sơ" }, { status: 500 });
       for (const child of profileChange.children) {
         const { error: childError } = await account.client.from("children").update({ current_weight_kg: child.weightKg ?? null, diaper_size: child.diaperSize ?? null, updated_at: profileChange.updatedAt }).eq("id", child.id);

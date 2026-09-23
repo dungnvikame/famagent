@@ -29,7 +29,8 @@ export function recommend(products: Product[], intent: ShoppingIntent, profile: 
     const fit = fitFactors.length ? clamp(fitFactors.reduce((sum, value) => sum + value, 0) / fitFactors.length) : 100;
     const value = max === min ? 75 : clamp(100 - ((unitPrice - min) / (max - min)) * 70);
     const sellerTrust = 50; const availability = 100; const delivery = 50;
-    const preference = profile?.pricePreference === "budget" ? value : profile?.pricePreference === "premium" ? quality : clamp((value + quality) / 2);
+    // "value" (best per-unit price) scores like "budget" until offer-level ranking (spec v1 §11.4) separates them.
+    const preference = profile?.pricePreference === "budget" || profile?.pricePreference === "value" ? value : profile?.pricePreference === "premium" ? quality : clamp((value + quality) / 2);
     const scores = { fit, quality, value, sellerTrust, availability, delivery, preference };
     const score = clamp(fit * .35 + quality * .20 + value * .20 + sellerTrust * .10 + availability * .05 + delivery * .05 + preference * .05);
     const reasons = [

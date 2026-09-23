@@ -14,6 +14,7 @@ Kiểm chứng câu hỏi MVP (spec §3): người dùng chọn nhanh hơn và t
 
 ## Requirements
 - Functional:
+  - Eval theo nhóm bắt buộc spec v1 §21 áp cho MVP: tiếng Việt viết tắt/sai chính tả, nhiều bé, mâu thuẫn lời nói vs hồ sơ, giá trần gói vs đơn vị, quy cách gần giống, offer cũ/hết hàng, không có kết quả, prompt injection trong dữ liệu sản phẩm, LLM timeout. Gate: 0 vi phạm lọc cứng, 100% giá/thuộc tính có nguồn, 0 truy cập chéo household. <!-- Updated: Session 2 - D13 -->
   - Eval offline: 50 case shopping (có sẵn, mở rộng P5) + 30 case onboarding (P3) chạy trên provider thật; báo cáo hard-constraint, hallucination, số câu hỏi lại, latency.
   - Test người dùng 5–8 phụ huynh: onboarding (thời gian, chỗ khó hiểu) + so sánh với marketplace cùng tình huống bỉm (thời gian tới quyết định, tự tin 1–5).
   - Staging: Supabase + auth magic link + SMTP + **Anonymous Sign-ins + CAPTCHA** (D5); kiểm tra RLS (user A không đọc được dữ liệu user B, kể cả user ẩn danh), liên kết ẩn danh → email giữ nguyên hồ sơ/lịch sử, xóa dữ liệu.
