@@ -33,7 +33,7 @@ export const EVAL_CATALOG: Product[] = [
 const child = (id: string, name: string, patch: Partial<FamilyProfile["children"][number]> = {}) => ({ id, name, ...patch });
 const family = (children: FamilyProfile["children"], patch: Partial<FamilyProfile> = {}): FamilyProfile => ({ id: "eval-family", children, pricePreference: "balanced", aiConsent: false, updatedAt: "2026-09-20T00:00:00Z", onboardedAt: "2026-09-20T00:00:00Z", ...patch });
 
-export type EvalGroup = "vi_natural" | "missing_or_multi_child" | "conflict_with_profile" | "price_cap" | "near_identical_pack" | "offer_state" | "no_result" | "prompt_injection" | "llm_failure" | "out_of_scope";
+export type EvalGroup = "vi_natural" | "missing_or_multi_child" | "conflict_with_profile" | "price_cap" | "near_identical_pack" | "offer_state" | "no_result" | "prompt_injection" | "llm_failure" | "out_of_scope" | "missing_data";
 
 export interface EvalCase {
   id: string;
@@ -53,6 +53,8 @@ export interface EvalCase {
     ambiguity?: string;
     /** Offer that must be chosen for a product when it is recommended. */
     chosenOffer?: Record<string, string>;
+    /** Product that must be ranked first. */
+    firstProduct?: string;
     excludedProducts?: string[];
     textExcludes?: RegExp[];
     summarySource?: "template" | "ai";
@@ -66,7 +68,9 @@ const na = child("c-na", "Na", { weightKg: 7, diaperSize: "M" });
 
 export const EVAL_CASES: EvalCase[] = [
   // Tiếng Việt tự nhiên, viết tắt, sai chính tả, nhiều ý trong một câu.
-  { id: "vi-01", group: "vi_natural", message: "Tìm bỉm ban đêm cho bé 10kg dưới 400k", expect: { outcome: "results", weightKg: 10, maxTotalPriceVnd: 400000, nightUse: true } },
+  { id: "vi-01", group: "vi_natural", message: "Tìm bỉm ban đêm cho bé 10kg dưới 400k", expect: { outcome: "results", weightKg: 10, maxTotalPriceVnd: 400000, nightUse: true, firstProduct: "bong-dem-l" } },
+  // Found on staging: a cheap product with no night data must not outrank one with sourced night data.
+  { id: "md-01", group: "missing_data", message: "Tìm bỉm ban đêm cho bé Gold", profile: family([gold], { maxBudget: 400000 }), expect: { outcome: "results", weightKg: 10, nightUse: true, firstProduct: "bong-dem-l" } },
   { id: "vi-02", group: "vi_natural", message: "bỉm đêm bé 10 kí dưới 400 nghìn", expect: { outcome: "results", weightKg: 10, maxTotalPriceVnd: 400000, nightUse: true } },
   { id: "vi-03", group: "vi_natural", message: "Bé nhà mình 11kg, cần bỉm quần, ngân sách tầm 350k, ưu tiên dùng đêm", expect: { outcome: "results", weightKg: 11, maxTotalPriceVnd: 350000, nightUse: true } },
   { id: "vi-04", group: "vi_natural", message: "bỉm size L cho bé 10kg", expect: { outcome: "results", weightKg: 10, sizeLabel: "L" } },

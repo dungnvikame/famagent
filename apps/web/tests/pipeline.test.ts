@@ -105,11 +105,11 @@ test("thứ tự sản phẩm không đổi khi chỉ thay dữ liệu hoa hồn
   assert.deepEqual(order(affiliateSwapped), order(demoProducts));
 });
 
-test("thành phần điểm thiếu dữ liệu là unknown, không được điểm cao", () => {
+test("thiếu dữ liệu: yêu cầu được hỏi mà không có dữ liệu chấm thấp; thành phần không có tín hiệu là unknown", () => {
   const intent = mergeIntent(extractShoppingRules("bỉm chống tràn cho bé 10kg"), null, null);
   const [first] = recommend(demoProducts, intent, NOW).recommendations;
   assert.equal(first.scores.purchaseContinuity, null);
-  assert.equal(first.scores.requirementFit, null); // demo has no absorbency data
+  assert.equal(first.scores.requirementFit, 40); // demo has no absorbency data → weak fit, never a free pass
   assert.ok(first.tradeoffs.some((line) => line.includes("Chưa có dữ liệu")));
   assert.equal(combine({ requirementFit: null, householdPreferenceFit: null, evidenceQuality: 20, value: 80, purchaseContinuity: null }), 50);
 });

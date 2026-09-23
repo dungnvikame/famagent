@@ -8,6 +8,7 @@ import type { ProductScores, Recommendation, ShoppingIntent } from "../experienc
 export const RANKING_VERSION = "product_score_v1";
 export const OFFER_SCORE_VERSION = "offer_score_v1";
 const TOP = 3;
+const UNKNOWN_FIT = 40;
 const WEIGHTS: Record<keyof ProductScores, number> = { requirementFit: 0.40, householdPreferenceFit: 0.20, evidenceQuality: 0.15, value: 0.15, purchaseContinuity: 0.10 };
 
 export type RejectReason = "category" | "excluded_brand" | "weight" | "size" | "out_of_stock" | "price_total" | "price_unit";
@@ -121,7 +122,10 @@ export function rankCandidates(candidates: Candidate[], intent: ShoppingIntent, 
       knownFit.push(value * 20); evidence.push(`attr:${item.attr}`);
       if (value >= 3) matched.push(`Điểm ${item.label} trong catalog: ${value}/5`); else failed.push(item.label);
     }
-    const requirementFit = !requested.length ? 100 : knownFit.length ? clamp(knownFit.reduce((a, b) => a + b, 0) / knownFit.length) : null;
+    // A requested attribute without catalog data counts as a weak fit (below the 3/5 = 60 "matched" line):
+    // unverified products must not outrank ones with sourced evidence (spec v1 §12 "missing key attribute").
+    const unknownRequested = requested.length - knownFit.length;
+    const requirementFit = !requested.length ? 100 : clamp((knownFit.reduce((a, b) => a + b, 0) + unknownRequested * UNKNOWN_FIT) / requested.length);
 
     // value: unit price relative to the other candidates (same pieces-based unit).
     const value = maxUnit === minUnit ? 75 : clamp(100 - ((unit - minUnit) / (maxUnit - minUnit)) * 70);

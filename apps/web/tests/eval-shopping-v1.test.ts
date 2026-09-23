@@ -88,6 +88,7 @@ function expectationFailures(item: EvalCase, response: ChatResponse, finalState:
     const shown = recommendations.find((entry) => entry.product.id === productId);
     if (!shown) failures.push(`${productId} not recommended`); else check(`${productId} offer`, shown.offerId, offerId);
   }
+  if (expect.firstProduct) check("first product", recommendations[0]?.product.id, expect.firstProduct);
   for (const productId of expect.excludedProducts ?? []) if (recommendations.some((entry) => entry.product.id === productId)) failures.push(`${productId} should be excluded`);
   for (const pattern of expect.textExcludes ?? []) if (pattern.test(response.text)) failures.push(`text matches ${pattern}`);
   if (expect.summarySource === "template" && response.mode === "ai") failures.push("expected template/rules answer");
