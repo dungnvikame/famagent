@@ -25,6 +25,7 @@ Thay `processOnboarding` 2 bước cứng bằng agent slot-filling: mỗi lư�
   - Người dùng nói "bỏ qua / không nhớ / sau" → slot vào `skippedSlots`, sang slot kế. Slot bắt buộc bị bỏ qua → agent giải thích ngắn vì sao cần (tránh sai size) và cho phép nhập size thay cân nặng; nếu vẫn bỏ qua → vẫn cho vào `/shop`, `/shop` sẽ hỏi lại (hành vi hiện có).
   - Sửa bất kỳ lúc nào: "à bé 11kg chứ" → cập nhật slot đã điền, xác nhận lại.
   - Trả về: `{ profile, reply, quickReplies: string[], activeSlot, done, mode: "ai" | "rules" }`.
+  - Kết quả LLM được **gộp với rules** (carry-over P1): giá trị AI chỉ thắng khi khác null; AI trả toàn null → dùng rules, `mode:"rules"`. <!-- Updated: P1 carry-over -->
   - Guest rate limit (D1, D5): khi có Supabase, trang chủ gọi `supabase.auth.signInAnonymously()` nếu chưa có session → route onboarding dùng `authenticated()` như chat, đếm `api_request_limits` endpoint `onboarding` (~20 lượt LLM/giờ/user). Không có Supabase → bộ đếm in-memory theo IP. Vượt → rules, không lỗi. <!-- Updated: Validation Session 1 - D5 anonymous sign-in -->
   - Chống lạm dụng tạo user ẩn danh hàng loạt: bật CAPTCHA (Turnstile) cho anonymous sign-in trên Supabase trước khi mở test rộng; giới hạn tạo session theo IP của Supabase Auth.
 - Non-functional:

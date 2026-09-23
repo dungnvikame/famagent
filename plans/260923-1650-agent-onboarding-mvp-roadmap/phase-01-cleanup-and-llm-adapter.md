@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Dọn dead code + LLM adapter free-tier"
-status: pending
+status: completed
 priority: P1
 effort: "1.5d"
 dependencies: []
@@ -55,10 +55,19 @@ Giữ chữ ký cũ `structuredOutput()` làm wrapper mỏng trong giai đoạn 
 6. Tạo key free-tier Gemini (Google AI Studio) và Groq để test tay.
 
 ## Success Criteria
-- [ ] `grep -r "OnboardingFlow\|ShoppingExperience" src` rỗng; `pnpm lint typecheck test build` xanh
-- [ ] Đổi `LLM_PROVIDERS` không cần sửa code; tắt mạng → app vẫn chạy bằng rules
-- [ ] Không có `OPENAI_*`/key nào trong bundle client
+- [x] `grep -r "OnboardingFlow\|ShoppingExperience" src` rỗng; `pnpm lint typecheck test build` xanh
+- [x] Đổi `LLM_PROVIDERS` không cần sửa code; tắt mạng → app vẫn chạy bằng rules
+- [x] Không có `OPENAI_*`/key nào trong bundle client
 
 ## Risk Assessment
 - Provider free không hỗ trợ `json_schema` strict → dùng `json_object` + validate code. Tín hiệu: tỷ lệ parse fail >5% trong log → đổi model/provider primary.
 - Điều khoản free tier (dữ liệu có thể dùng để cải thiện dịch vụ) → chỉ test kín, consent ghi rõ, giảm PII (Phase 3). Trước public launch: chuyển paid tier/no-training (gate ở P8).
+
+## Completion Notes (2026-09-23)
+- Done: git baseline `2bc1ebc`; 2 dead components removed; `experience.css` 14.8KB → 4.2KB (dead selectors only); `lib/ai/llm/{providers,chat-json,schema-guard,index}.ts`; `openai.ts` deleted, `intent.ts`/`onboarding.ts` call `chatJson`; docs + `.env.example` updated.
+- Added beyond plan (from review): `schema-guard.ts` always validates model output (H1); per-attempt timeout split (M1); blank `LLM_PROVIDERS` → openai (M2); retry carries JSON-only reminder (M3); success not logged.
+- Verification: tests 18/18, tsc/eslint/build 0; runtime smoke AI off + AI on w/ unreachable provider → 200 `mode:"rules"` (<150ms); no secrets in `.next/static`. Report: `plans/reports/ak-engineer-tester-260923-1709-phase01-validation.md`.
+- Carry-over:
+  - `import "server-only"` not added (package missing, pnpm unavailable) → add when deps can be installed.
+  - All-null AI reply still counts as `mode:"ai"` (pre-existing) → P3/P5: merge AI result with rules result, AI wins only on non-null.
+  - No live provider smoke test (no keys) — unverified whether Gemini accepts nullable union types under `strict`; 400 → json_object downgrade covers rejection.

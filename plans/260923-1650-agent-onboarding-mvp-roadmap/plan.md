@@ -1,7 +1,7 @@
 ---
 title: "Agent onboarding + lộ trình hoàn thiện MVP Family AI"
 description: "Thay onboarding 2 bước bằng agent thu thập bối cảnh gia đình đầy đủ (spec §12–13), dùng LLM free-tier qua adapter chung, rồi đi hết các mốc tới MVP release (spec §52–61, §69)."
-status: pending
+status: in-progress
 priority: P1
 effort: "~7–8 tuần"
 tags: [onboarding, agent, llm, mvp, roadmap]
@@ -39,7 +39,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 
 | # | Phase | Status | Effort | Depends |
 |---|-------|--------|--------|---------|
-| 1 | [Dọn dead code + LLM adapter free-tier](./phase-01-cleanup-and-llm-adapter.md) | Pending | 1.5d | – |
+| 1 | [Dọn dead code + LLM adapter free-tier](./phase-01-cleanup-and-llm-adapter.md) | Completed | 1.5d | – |
 | 2 | [Family Profile model đầy đủ (§13)](./phase-02-family-profile-model.md) | Pending | 1.5d | – |
 | 3 | [Onboarding Agent core (slot-filling)](./phase-03-onboarding-agent-core.md) | Pending | 3d | 1, 2 |
 | 4 | [Onboarding Agent UI](./phase-04-onboarding-agent-ui.md) | Pending | 2.5d | 3 |
@@ -74,7 +74,7 @@ LLM chỉ **hiểu và diễn đạt**; code quyết định slot bắt buộc, 
 
 ## Success Criteria
 
-- [ ] Không còn component chết; lint/typecheck/test/build xanh
+- [x] Không còn component chết; lint/typecheck/test/build xanh
 - [ ] Người dùng mới hoàn tất onboarding ≤2 phút (MVP_PLAN Mốc 1), trả lời bằng câu tự nhiên nhiều ý trong 1 lượt ("Nhà mình 2 vợ chồng, bé Gold 14 tháng 10kg dùng size L, da hơi nhạy cảm") được ghi nhận đủ
 - [ ] Agent không đoán thông tin trẻ; mọi slot có thể bỏ qua trừ cân nặng/size; xem lại + sửa + xóa được
 - [ ] `/shop` câu đầu "Mua bỉm ban đêm cho Gold dưới 400k" dùng đúng profile (spec §57, §72)

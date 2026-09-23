@@ -92,7 +92,7 @@ Các ngưỡng 48 giờ và 8 giây là mục tiêu thử nghiệm ban đầu, c
 | Engineering | Auth, dữ liệu, agent, ranking, so sánh, redirect, analytics |
 | QA | Bộ tình huống tiếng Việt, điều kiện bắt buộc, quyền dữ liệu, mobile |
 
-**Phụ thuộc lớn nhất:** quyền dùng dữ liệu sản phẩm và merchant feed; tài khoản Supabase; OpenAI API key/model nếu bật AI; quyết định đăng nhập và retention. Những phần này không được thay bằng dữ liệu đoán hoặc URL giả.
+**Phụ thuộc lớn nhất:** quyền dùng dữ liệu sản phẩm và merchant feed; tài khoản Supabase; API key/model của provider LLM nếu bật AI (free tier khi thử nghiệm); quyết định đăng nhập và retention. Những phần này không được thay bằng dữ liệu đoán hoặc URL giả.
 
 ## 6. Cách cập nhật tài liệu
 

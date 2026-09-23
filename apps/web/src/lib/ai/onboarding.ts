@@ -1,4 +1,4 @@
-import { structuredOutput } from "./openai";
+import { chatJson } from "./llm/index.ts";
 import type { FamilyProfile, PricePreference, ShoppingConcern } from "@/lib/experience/types";
 
 type Extracted = { childName: string | null; weightKg: number | null; ageMonths: number | null; diaperSize: string | null; pricePreference: PricePreference | null; mainConcern: ShoppingConcern | null; maxBudget: number | null };
@@ -36,8 +36,8 @@ function fallback(message: string): Extracted {
 }
 
 export async function processOnboarding(step: "child" | "preferences", message: string, profile: FamilyProfile): Promise<{ profile: FamilyProfile; reply: string; nextStep: "preferences" | "review"; mode: "ai" | "rules" }> {
-  const ai = profile.aiConsent ? await structuredOutput<Extracted>("onboarding_context", schema,
-    "Bạn là agent thu thập bối cảnh mua sắm cho gia đình. Chỉ trích xuất thông tin người dùng nói rõ. Không đoán thông tin trẻ, không đưa tư vấn sản phẩm. Giá tiền đổi thành VND; trường không có trả null.", message) : null;
+  const ai = profile.aiConsent ? (await chatJson<Extracted>({ name: "onboarding_context", schema, messages: [{ role: "user", content: message }], system:
+    "Bạn là agent thu thập bối cảnh mua sắm cho gia đình. Chỉ trích xuất thông tin người dùng nói rõ. Không đoán thông tin trẻ, không đưa tư vấn sản phẩm. Giá tiền đổi thành VND; trường không có trả null." }))?.data ?? null : null;
   const data = ai ?? fallback(message);
   const updated: FamilyProfile = { ...profile, updatedAt: new Date().toISOString() };
   if (step === "child") {
