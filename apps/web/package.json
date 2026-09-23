@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "eval": "node scripts/evaluate.mjs",
-    "import-products": "node scripts/import-products.mjs"
+    "import-products": "node scripts/import-products.mjs",
+    "verify-offers": "node scripts/verify-offers.mjs"
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",

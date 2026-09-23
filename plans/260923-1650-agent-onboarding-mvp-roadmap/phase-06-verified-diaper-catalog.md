@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Catalog bỉm đã xác minh"
-status: pending
+status: in-progress (engineering done; data ops blocked)
 priority: P1
 effort: "1–2w (data ops, song song)"
 dependencies: []
@@ -42,3 +42,14 @@ Thay 6 sản phẩm demo bằng 50–100 variant bỉm thật, có nguồn và q
 
 ## Risk Assessment
 - Không có quyền dữ liệu/affiliate program → **chặn release**; tín hiệu: sau tuần 2 chưa có nguồn → đưa quyết định lên user (thu thập thủ công có phép, hoặc hoãn release).
+
+## Completion notes (2026-09-23) — engineering part
+Done (steps 5 + import hardening):
+- `scripts/lib/catalog-csv.mjs`: pure parse/validate, every error reported by line; required `category`, `price_verified_at` (ISO with timezone); scores need `attribute_source` + `attribute_verified_at`; hostname-validated `merchant_domain`, HTTPS URL on that domain; schema limits (int, numeric(5,2), 300 chars); cross-row: unique offer/slug, consistent merchant/product/variant, one variant per size+quantity. Unit tests `tests/catalog-import.test.ts`.
+- `import-products.mjs`: `--dry-run` (no DB), `--max-age-hours` (stale prices import as `availability='unknown'`), refuses changing an existing merchant domain unless `--allow-domain-change`; `updated_at` = `price_verified_at`.
+- Migration `202609240004_catalog_provenance.sql` (`attribute_source`, `attribute_verified_at`, NOT VALID check).
+- `verify-offers.mjs`: freshness + per-hop HTTPS/domain redirect check, report + exit 2 over 5%, `--apply` hides (never deletes), refused above 20% failures unless `--force`, does not overwrite offers re-imported mid-run.
+
+Deviation: no `last_verified_at` column — `product_offers.updated_at` carries the price observation time; attribute provenance lives on `diaper_attributes`.
+
+Still blocked (not engineering): data owner + source rights (step 1), Supabase dev project (step 2), 50–100 real variants + manual sample check (steps 3–4). Success criteria remain open until then; release gate unchanged.

@@ -8,7 +8,11 @@ Trong vòng đầu, chỉ có danh mục `diapers`. Bảng thuộc tính riêng 
 
 ## Chuẩn nhập
 
-File mẫu: `data/products.template.csv`. Mỗi dòng tương ứng một offer. Có thể lặp `product_id` và `variant_id` khi một variant có nhiều nơi bán; `offer_id` phải riêng. ID cần ổn định giữa các lần nhập. Tên cột, kiểu dữ liệu và giá trị cho phép được kiểm tra trong script `apps/web/scripts/import-products.mjs`.
+File mẫu: `data/products.template.csv`. Mỗi dòng tương ứng một offer. Có thể lặp `product_id` và `variant_id` khi một variant có nhiều nơi bán; `offer_id` phải riêng. ID cần ổn định giữa các lần nhập. Tên cột, kiểu dữ liệu và giá trị cho phép được kiểm tra trong `apps/web/scripts/lib/catalog-csv.mjs` (có unit test `tests/catalog-import.test.ts`).
+
+Cột bắt buộc gồm thêm `category` (chỉ `diapers`) và `price_verified_at` (ISO 8601 có múi giờ, vd. `2026-09-23T08:00:00+07:00`; thời điểm thực sự xem giá; không được ở tương lai). `merchant_domain` phải là hostname đầy đủ, không kèm scheme/đường dẫn. Cột tùy chọn: 5 cột điểm (`night_use_score`, `absorbency_score`, `softness_score`, `thickness_score`, `sensitive_skin_score`, số nguyên 1–5), `attribute_source` và `attribute_verified_at` (bắt buộc khi có bất kỳ điểm nào; nguồn ≤300 ký tự: nhãn bao bì, trang hãng, phép thử nội bộ…), `description`, `availability` (`in_stock`/`out_of_stock`), `seller_rating` (0–5), `shipping_estimate`, `gtin`, `sku`. Cột lạ bị từ chối để tránh sai chính tả âm thầm.
+
+Kiểm tra chéo giữa các dòng: `offer_id` không trùng; `slug` không dùng cho hai product; cùng `merchant_id` phải cùng tên và domain; cùng `product_id` phải cùng slug/tên/hãng/cân nặng/loại; cùng `variant_id` phải cùng product/size/số miếng; một product không có hai variant trùng size + số miếng.
 
 `merchant_domain` là domain được phép mở từ nút “Xem nơi bán”. URL offer phải dùng HTTPS và thuộc domain này hoặc subdomain của nó. Nếu mạng affiliate chuyển qua một domain riêng, cần khai báo và xác minh domain đó trước khi nhập.
 
@@ -20,15 +24,19 @@ Trước khi nhập, người phụ trách dữ liệu xác nhận:
 - Điểm chất lượng chỉ có khi có thang đo và nguồn được lưu lại; để trống nếu chưa xác thực.
 - Offer hết hàng hoặc link lỗi được ẩn/cập nhật trước khi publish.
 
-Script import kiểm tra cột bắt buộc và URL HTTPS, sau đó nhập trong một transaction. Cần `DATABASE_URL` kết nối PostgreSQL. Chạy lại với cùng ID sẽ cập nhật giá và thông tin thay vì tạo bản ghi mới. Không đưa mật khẩu DB vào CSV, Git hoặc biến `NEXT_PUBLIC_`.
+Chạy `pnpm import-products -- data/products.csv --dry-run` để kiểm tra mà không cần DB: mọi lỗi được liệt kê theo số dòng, không dừng ở lỗi đầu. Không có lỗi mới nhập, trong một transaction; `product_offers.updated_at` lấy từ `price_verified_at` để kiểm tra độ tươi 48h có ý nghĩa; offer có giá cũ hơn `--max-age-hours` (mặc định 48) được nhập với `availability='unknown'` và không hiện nút mua. Script từ chối đổi domain của merchant đã có trong DB (sẽ làm hỏng URL của các offer cũ) trừ khi chạy với `--allow-domain-change`, và từ chối slug đã thuộc product khác trong DB. `attribute_verified_at` chưa có hạn tươi ở v1: người phụ trách dữ liệu xem lại nguồn điểm định kỳ. Cần `DATABASE_URL` kết nối PostgreSQL và đã chạy migration `202609240004_catalog_provenance.sql`. Chạy lại với cùng ID sẽ cập nhật giá và thông tin thay vì tạo bản ghi mới. Không đưa mật khẩu DB vào CSV, Git hoặc biến `NEXT_PUBLIC_`.
 
 ## Dữ liệu minh họa
 
 Khi chưa cấu hình Supabase, `apps/web/src/lib/catalog/demo.ts` cung cấp 6 sản phẩm hư cấu để thử giao diện. Các tên, thông số và giá không được dùng làm tư vấn mua thật. Chế độ Supabase không tự chuyển về demo khi truy vấn lỗi để tránh che giấu sự cố dữ liệu.
 
+## Kiểm tra offer hằng ngày
+
+`pnpm verify-offers` (cần `DATABASE_URL`) duyệt các offer `in_stock`: giá quá 48h chưa xác minh (`--max-age-hours=N` để đổi), link không mở được, hoặc chuyển hướng ra ngoài `merchant_domain` (kiểm tra từng bước redirect). Mặc định chỉ báo cáo; `--apply` chuyển offer lỗi sang `availability='unknown'` (không xóa) — sao lưu `product_offers` trước. Khi hơn 20% offer lỗi (thường do mất mạng hoặc merchant chặn bot), `--apply` không ẩn gì trừ khi thêm `--force`; offer vừa được nhập lại trong lúc kiểm tra không bị ghi đè. Mã thoát 2 khi tỷ lệ lỗi vượt ngưỡng phát hành 5%.
+
 ## Việc cần bổ sung trước khi mở chat công khai
 
-Nguồn và thời điểm xác thực cho từng thuộc tính, quy trình cập nhật offer, chính sách gỡ sản phẩm, bảng lịch sử thay đổi giá và bộ dữ liệu đánh giá. Các điểm chất lượng như “chống tràn” cần định nghĩa và bằng chứng trước khi xuất hiện trong lời giải thích.
+Nguồn dữ liệu thật và người phụ trách catalog, quy trình cập nhật offer, chính sách gỡ sản phẩm, bảng lịch sử thay đổi giá và bộ dữ liệu đánh giá. Các điểm chất lượng như “chống tràn” cần định nghĩa và bằng chứng trước khi xuất hiện trong lời giải thích.
 
 ## Dữ liệu người dùng và tài khoản
 

@@ -50,7 +50,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 | 3 | [Onboarding Agent core (slot-filling)](./phase-03-onboarding-agent-core.md) | Completed | 3d | 1, 2 |
 | 4 | [Onboarding Agent UI](./phase-04-onboarding-agent-ui.md) | Completed | 2.5d | 3 |
 | 5 | [Shopping Agent pipeline theo §21–28](./phase-05-shopping-agent-pipeline.md) | Completed | 1.5w | 1, 2 |
-| 6 | [Catalog bỉm đã xác minh](./phase-06-verified-diaper-catalog.md) | Pending | 1–2w (ops song song) | – |
+| 6 | [Catalog bỉm đã xác minh](./phase-06-verified-diaper-catalog.md) | Engineering done · Data ops blocked (owner + Supabase) | 1–2w (ops song song) | – |
 | 7 | [Compare, trust UX, affiliate, analytics](./phase-07-compare-affiliate-analytics.md) | Pending | 1.5w | 5, 6 |
 | 8 | [Đánh giá, staging, release](./phase-08-evaluation-and-release.md) | Pending | 1.5w | 4, 7 |
 

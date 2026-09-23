@@ -10,6 +10,7 @@
     "typecheck": "pnpm --filter @family-ai/web typecheck",
     "test": "pnpm --filter @family-ai/web test",
     "eval": "pnpm --filter @family-ai/web eval",
-    "import-products": "pnpm --filter @family-ai/web import-products"
+    "import-products": "pnpm --filter @family-ai/web import-products",
+    "verify-offers": "pnpm --filter @family-ai/web verify-offers"
   }
 }
