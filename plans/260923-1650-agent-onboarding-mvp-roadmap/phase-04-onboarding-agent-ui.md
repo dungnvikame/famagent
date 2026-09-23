@@ -36,6 +36,7 @@ components/onboarding/
 
 ## Related Code Files
 - Create: `apps/web/src/components/onboarding/*.tsx`
+- Implement (chuyển từ P3): `signInAnonymously()` khi vào `/` nếu có Supabase và chưa có session; bật CAPTCHA (Turnstile) cho anonymous sign-in trước khi mở test rộng.
 - Modify: `apps/web/src/app/page.tsx`, `apps/web/src/app/agent-workspace.css`, `apps/web/src/components/agent-shopping.tsx` (dùng panel + nút cập nhật hồ sơ + banner liên kết email), `apps/web/src/lib/experience/cloud.ts`, `apps/web/src/lib/supabase/browser.ts` (anonymous sign-in helper), `apps/web/src/app/sign-in/page.tsx`, `apps/web/src/middleware.ts` (cho phép user ẩn danh vào `/shop`)
 - Delete: `apps/web/src/components/agent-onboarding.tsx`
 

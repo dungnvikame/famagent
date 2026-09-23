@@ -37,12 +37,10 @@ export async function POST(request: Request) {
       }
     }
     if (!conversationId) return NextResponse.json({ error: "Cần tạo hội thoại trước khi tư vấn" }, { status: 400 });
-    const since = new Date(Date.now() - 60 * 60 * 1000).toISOString();
-    const { count, error: limitError } = await auth.client.from("api_request_limits").select("id", { count: "exact", head: true }).eq("user_id", auth.user.id).eq("endpoint", "chat").gte("created_at", since);
+    // Atomic count-and-insert (migration 202609240002) so parallel requests cannot exceed the hourly limit.
+    const { data: allowed, error: limitError } = await auth.client.rpc("consume_request_quota", { p_endpoint: "chat", p_limit: 60 });
     if (limitError) return NextResponse.json({ error: "Không thể kiểm tra giới hạn sử dụng" }, { status: 503 });
-    if ((count ?? 0) >= 60) return NextResponse.json({ error: "Bạn đã dùng hết 60 lượt tư vấn trong một giờ. Vui lòng thử lại sau." }, { status: 429 });
-    const { error: recordError } = await auth.client.from("api_request_limits").insert({ user_id: auth.user.id, endpoint: "chat" });
-    if (recordError) return NextResponse.json({ error: "Không thể ghi lượt tư vấn" }, { status: 503 });
+    if (allowed !== true) return NextResponse.json({ error: "Bạn đã dùng hết 60 lượt tư vấn trong một giờ. Vui lòng thử lại sau." }, { status: 429 });
   }
   const profileChange = parseProfileChange(body.message, profile);
   if (profileChange) {

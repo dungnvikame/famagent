@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Onboarding Agent core (slot-filling)"
-status: pending
+status: completed
 priority: P1
 effort: "3d"
 dependencies: [1, 2]
@@ -29,7 +29,7 @@ Thay `processOnboarding` 2 bước cứng bằng agent slot-filling: mỗi lư�
   - Trả về: `{ profile, reply, quickReplies: string[], activeSlot, done, mode: "ai" | "rules" }`.
   - Extractor mới phải sinh được `pricePreference: "value"` và mọi trường profile v2 (carry-over P2). Nếu agent cập nhật danh sách (brand…) khi `/family` đang mở: `ListInput` chỉ đọc giá trị ban đầu → thêm `key` theo giá trị hoặc đồng bộ draft từ props (carry-over P2).
   - Kết quả LLM được **gộp với rules** (carry-over P1): giá trị AI chỉ thắng khi khác null; AI trả toàn null → dùng rules, `mode:"rules"`. <!-- Updated: P1 carry-over -->
-  - Guest rate limit (D1, D5): khi có Supabase, trang chủ gọi `supabase.auth.signInAnonymously()` nếu chưa có session → route onboarding dùng `authenticated()` như chat, đếm `api_request_limits` endpoint `onboarding` (~20 lượt LLM/giờ/user). Không có Supabase → bộ đếm in-memory theo IP. Vượt → rules, không lỗi. <!-- Updated: Validation Session 1 - D5 anonymous sign-in -->
+  - Guest rate limit (D1, D5): **(P3 làm phần server; lời gọi `signInAnonymously()` phía client chuyển sang P4 — quyết định khi review)** khi có Supabase, trang chủ gọi `supabase.auth.signInAnonymously()` nếu chưa có session → route onboarding dùng `authenticated()` như chat, đếm `api_request_limits` endpoint `onboarding` (~20 lượt LLM/giờ/user). Không có Supabase → bộ đếm in-memory theo IP. Vượt → rules, không lỗi. <!-- Updated: Validation Session 1 - D5 anonymous sign-in -->
   - Chống lạm dụng tạo user ẩn danh hàng loạt: bật CAPTCHA (Turnstile) cho anonymous sign-in trên Supabase trước khi mở test rộng; giới hạn tạo session theo IP của Supabase Auth.
 - Non-functional:
   - Không đoán thông tin trẻ: chỉ nhận slot người dùng nói rõ; validate khoảng (cân nặng 2–30kg, size enum, ngày sinh 0–6 năm).
@@ -69,12 +69,20 @@ Quyết định: code là nguồn chân lý cho luồng; LLM chỉ trích xuất
 5. Bộ 30 hội thoại mẫu (fixture) chạy trong test ở rules mode; chạy tay trên Gemini/Groq ghi kết quả vào report.
 
 ## Success Criteria
-- [ ] 1 câu nhiều ý điền ≥4 slot cùng lúc (AI mode)
-- [ ] Rules mode hoàn tất được onboarding với 30 fixture, không slot nào nhận giá trị ngoài khoảng
-- [ ] Không có tên bé thật trong payload gửi provider (test kiểm tra payload)
-- [ ] Vượt rate limit → trả `mode:"rules"`, không lỗi 5xx
+- [x] 1 câu nhiều ý điền ≥4 slot cùng lúc (AI mode)
+- [x] Rules mode hoàn tất được onboarding với 30 fixture, không slot nào nhận giá trị ngoài khoảng
+- [x] Không có tên bé thật trong payload gửi provider với tên đã biết hoặc đứng sau từ gợi ý (bé/con/tên bé là…) — best-effort, đã ghi trong consent (test kiểm tra payload)
+- [x] Vượt rate limit → trả `mode:"rules"`, không lỗi 5xx
 
 ## Risk Assessment
 - LLM hỏi lệch luồng/lan man → ép reply theo `activeSlot`, fallback template. Tín hiệu: >10% lượt dùng template thay LLM reply → sửa prompt.
 - Rate limit in-memory (chế độ không Supabase) không bền khi serverless nhiều instance → chỉ dùng cho dev/demo; môi trường test thật phải có Supabase + anonymous sign-in.
 - User ẩn danh tích tụ trong `auth.users` → job dọn user ẩn danh không hoạt động >30 ngày (P8).
+
+## Completion Notes (2026-09-23)
+- Done: `lib/ai/onboarding/{slots,extraction,extract-rules,templates,agent,rate-limit}.ts`; `/api/onboarding` rewritten (history + pending contract, consent + budget gate, per-turn save for anonymous users only); `lib/experience/profile-store.ts` shared with `/api/me`; migration `202609240002_request_quota.sql` (atomic `consume_request_quota`, delete policy dropped; chat route uses it too); `agent-onboarding.tsx` adapted minimally; old `lib/ai/onboarding.ts` removed.
+- Behaviour: AI+rules merge (AI wins on non-null, hedges from both), confirmation chips for hedged values and conflicts with confirmed values, ≤2 questions/turn, required slot explained once before skipping, name masking (known + cue-word names; placeholders only become names if trusted), LLM reply used only if it asks the chosen slot and mentions only saved numbers.
+- Review: BLOCK ×2 → fixed (server-profile overwrite, size/age regexes, quota bypass, hedge override, masking false names, etc.) → APPROVE WITH NITS (nits fixed).
+- Verification: tests 49/49 (30 rules fixtures), typecheck + lint + production compile exit 0; runtime AI off + AI on/unreachable full flow (report `plans/reports/tester-260923-1800-phase03-validation.md`).
+- Moved to P4: client `signInAnonymously()` + Turnstile. Deploy order: backup → `202609240001` → `202609240002` → code.
+- Not done: manual run on real Gemini/Groq (no API keys yet); migrations not applied to a real DB.

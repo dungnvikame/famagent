@@ -30,7 +30,8 @@ export function validBirthDate(value: unknown, now = new Date(), maxYears = 18):
 function validOnboarding(value: unknown): boolean {
   if (!value || typeof value !== "object") return false;
   const state = value as Record<string, unknown>;
-  const slots = (list: unknown) => Array.isArray(list) && list.length <= 30 && list.every(shortText(MAX_TEXT));
+  // Slot ids look like "child.basics:<uuid>" (49 chars), so allow up to 80.
+  const slots = (list: unknown) => Array.isArray(list) && list.length <= 30 && list.every(shortText(80));
   return state.version === 2 && slots(state.completedSlots) && slots(state.skippedSlots);
 }
 

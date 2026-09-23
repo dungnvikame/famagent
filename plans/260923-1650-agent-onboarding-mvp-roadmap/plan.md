@@ -47,7 +47,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 |---|-------|--------|--------|---------|
 | 1 | [Dọn dead code + LLM adapter free-tier](./phase-01-cleanup-and-llm-adapter.md) | Completed | 1.5d | – |
 | 2 | [Family Profile model đầy đủ (§13)](./phase-02-family-profile-model.md) | Completed | 1.5d | – |
-| 3 | [Onboarding Agent core (slot-filling)](./phase-03-onboarding-agent-core.md) | Pending | 3d | 1, 2 |
+| 3 | [Onboarding Agent core (slot-filling)](./phase-03-onboarding-agent-core.md) | Completed | 3d | 1, 2 |
 | 4 | [Onboarding Agent UI](./phase-04-onboarding-agent-ui.md) | Pending | 2.5d | 3 |
 | 5 | [Shopping Agent pipeline theo §21–28](./phase-05-shopping-agent-pipeline.md) | Pending | 1.5w | 1, 2 |
 | 6 | [Catalog bỉm đã xác minh](./phase-06-verified-diaper-catalog.md) | Pending | 1–2w (ops song song) | – |

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { authenticated } from "@/lib/supabase/server";
 import { validProfile } from "@/lib/experience/validate";
-import { childRow, familyRow, profileFromRow } from "@/lib/experience/profile-mapper";
+import { profileFromRow } from "@/lib/experience/profile-mapper";
+import { saveProfileForUser, type SaveProfileError } from "@/lib/experience/profile-store";
 
 export const dynamic = "force-dynamic";
+
+const saveErrors: Record<SaveProfileError, string> = { family: "Không thể lưu hồ sơ", children_read: "Không thể tải thông tin bé", children_write: "Không thể lưu thông tin bé", children_delete: "Không thể cập nhật danh sách bé" };
 
 export async function GET() {
   const auth = await authenticated();
@@ -21,22 +24,8 @@ export async function PUT(request: Request) {
   const body = await request.json().catch(() => null) as { profile?: unknown } | null;
   if (!validProfile(body?.profile)) return NextResponse.json({ error: "Hồ sơ không hợp lệ" }, { status: 400 });
   const profile = body.profile;
-  const now = new Date().toISOString();
-  const { data: family, error } = await auth.client.from("family_profiles").upsert(familyRow(profile, auth.user.id, now), { onConflict: "user_id" }).select("id").single();
-  if (error || !family) return NextResponse.json({ error: "Không thể lưu hồ sơ" }, { status: 500 });
-  const { data: existing, error: readError } = await auth.client.from("children").select("id").eq("family_profile_id", family.id);
-  if (readError) return NextResponse.json({ error: "Không thể tải thông tin bé" }, { status: 500 });
-  const existingIds = new Set((existing ?? []).map((child) => child.id));
-  const childIds = profile.children.map((child) => /^[a-f0-9-]{36}$/i.test(child.id) ? child.id : crypto.randomUUID());
-  if (profile.children.length) {
-    const { error: childError } = await auth.client.from("children").upsert(profile.children.map((child, index) => childRow({ ...child, id: childIds[index] }, family.id, index, now)));
-    if (childError) return NextResponse.json({ error: "Không thể lưu thông tin bé" }, { status: 500 });
-  }
-  const removed = [...existingIds].filter((id) => !childIds.includes(id));
-  if (removed.length) {
-    const { error: removeError } = await auth.client.from("children").delete().eq("family_profile_id", family.id).in("id", removed);
-    if (removeError) return NextResponse.json({ error: "Không thể cập nhật danh sách bé" }, { status: 500 });
-  }
+  const failed = await saveProfileForUser(auth.client, auth.user.id, profile);
+  if (failed) return NextResponse.json({ error: saveErrors[failed] }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
 
@@ -49,9 +38,8 @@ export async function DELETE() {
   const { error: logsError } = await client.from("recommendation_sessions").delete().eq("user_id", userId);
   const { error: analyticsError } = await client.from("analytics_events").delete().eq("user_id", userId);
   const { error: clicksError } = await client.from("affiliate_clicks").delete().eq("user_id", userId);
-  const { error: limitsError } = await client.from("api_request_limits").delete().eq("user_id", userId);
   const { error: conversationsError } = await client.from("conversations").delete().eq("user_id", userId);
   const { error: familyError } = await client.from("family_profiles").delete().eq("user_id", userId);
-  if (savedError || logsError || analyticsError || clicksError || limitsError || conversationsError || familyError) return NextResponse.json({ error: "Chưa thể xóa toàn bộ dữ liệu" }, { status: 500 });
+  if (savedError || logsError || analyticsError || clicksError || conversationsError || familyError) return NextResponse.json({ error: "Chưa thể xóa toàn bộ dữ liệu" }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
