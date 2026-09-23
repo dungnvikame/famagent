@@ -71,7 +71,7 @@ pnpm import-products -- data/products.csv
 ```
 Chi tiết cột và quy tắc: [DATA.md](DATA.md).
 
-Để thử luồng trên staging trước khi có dữ liệu thật: `data/staging-test-products.csv` (7 sản phẩm hư cấu, tên có tiền tố “[THỬ NGHIỆM]”, link tới example.com). Gỡ khỏi hiển thị bằng SQL `update public.products set published = false where id like test-%;` — không dùng cho môi trường công khai.
+Để thử luồng trên staging trước khi có dữ liệu thật: `data/staging-test-products.csv` (7 sản phẩm hư cấu, tên có tiền tố “[THỬ NGHIỆM]”, link tới example.com). Gỡ khỏi hiển thị bằng SQL `update public.products set published = false where id like 'test-%';` — không dùng cho môi trường công khai.
 
 ## 4. Gemini AI
 
