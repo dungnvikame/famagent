@@ -1,0 +1,15 @@
+{
+  "name": "family-ai",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "pnpm --filter @family-ai/web dev",
+    "build": "pnpm --filter @family-ai/web build",
+    "lint": "pnpm --filter @family-ai/web lint",
+    "typecheck": "pnpm --filter @family-ai/web typecheck",
+    "test": "pnpm --filter @family-ai/web test",
+    "eval": "pnpm --filter @family-ai/web eval",
+    "import-products": "pnpm --filter @family-ai/web import-products"
+  }
+}
