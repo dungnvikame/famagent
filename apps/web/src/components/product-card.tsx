@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { DiaperIllustration } from "@/components/diaper-illustration";
 import { lowestMatchingOffer, pricePerPiece } from "@/lib/catalog/filter";
 import { vnd } from "@/lib/catalog/format";
 import type { CatalogFilters, Product } from "@/lib/catalog/types";
@@ -8,7 +9,7 @@ export function ProductCard({ product, filters = {} }: { product: Product; filte
   const match = lowestMatchingOffer(product, filters);
   return <article className="product-card">
     <div className="product-visual">
-      {product.imageUrl ? <Image unoptimized src={product.imageUrl} alt={product.canonicalName} width={400} height={300} /> : <span aria-hidden="true">✳</span>}
+      {product.imageUrl ? <Image unoptimized src={product.imageUrl} alt={product.canonicalName} width={400} height={300} /> : <DiaperIllustration />}
       {product.isDemo && <span className="demo-tag">DỮ LIỆU MẪU</span>}
     </div>
     <div className="product-body">

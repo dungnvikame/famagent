@@ -7,6 +7,7 @@ import { isOfferFresh, priceTimeLabel } from "@/lib/catalog/offer-status";
 import type { ProductOffer } from "@/lib/catalog/types";
 import type { Recommendation } from "@/lib/experience/types";
 import { trackEvent } from "@/lib/experience/storage";
+import { DiaperIllustration } from "@/components/diaper-illustration";
 
 interface Props { item: Recommendation; /** Current catalog copy of the offer; null = catalog loaded and the offer is no longer in stock. */ liveOffer?: ProductOffer | null; rank: number; saved: boolean; comparing: boolean; compareFull: boolean; conversationId: string; onSave: () => void; onDetails: () => void; onCompare: () => void }
 
@@ -25,13 +26,13 @@ export function RecommendationCard({ item, liveOffer, rank, saved, comparing, co
   const tradeoffs = [...(item.tradeoffs ?? (item.tradeoff ? [item.tradeoff] : [])), ...(item.failedSoftPreferences ?? []).map((label) => `Chưa đạt mức mong muốn về ${label}`)];
   return <article className="agent-product">
     <div className="agent-product-top"><span>{rank === 1 ? "PHÙ HỢP NHẤT" : `LỰA CHỌN ${rank}`}</span><button onClick={onSave} aria-label={saved ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved ? "♥" : "♡"}</button></div>
-    <div className="agent-product-visual">{item.product.imageUrl ? <Image unoptimized src={item.product.imageUrl} alt={item.product.canonicalName} width={240} height={120} /> : <span aria-hidden="true">✳</span>}</div>
+    <div className="agent-product-visual">{item.product.imageUrl ? <Image unoptimized src={item.product.imageUrl} alt={item.product.canonicalName} width={240} height={120} /> : <DiaperIllustration />}</div>
     <div className="agent-product-main">
       <small>{item.product.brand}</small>
       <h3>{item.product.canonicalName}</h3>
       <p className="agent-product-score">Phù hợp với nhu cầu đã nêu</p>
       <ul>{item.reasons.slice(0, 3).map((reason) => <li key={reason}>{reason}</li>)}</ul>
-      <p className="agent-product-price">{vnd(offer.price)} <span>· {variant.quantity} miếng{unit ? ` · ${vnd(Math.round(unit))}/miếng` : ""}</span></p>
+      <p className="agent-product-price">{vnd(offer.price)} <span>{variant.quantity} miếng{unit ? ` · ${vnd(Math.round(unit))}/miếng` : ""}</span></p>
       <p className="agent-offer-meta">{offer.merchantName} · {demo ? "giá minh họa" : `giá cập nhật ${priceTimeLabel(offer.updatedAt)}`} · {offer.shippingEstimate ? `giao ${offer.shippingEstimate}` : "chưa gồm phí giao"}</p>
       <details className="agent-why">
         <summary>Vì sao gợi ý này?</summary>
