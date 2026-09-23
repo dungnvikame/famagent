@@ -20,6 +20,9 @@ export interface ProductOffer {
   currency: "VND";
   availability: "in_stock" | "out_of_stock" | "unknown";
   updatedAt: string;
+  /** 0–5 from the merchant/feed when known; used only for offer ranking (spec v1 §11.4). */
+  sellerRating?: number;
+  shippingEstimate?: string;
   // Không trả affiliate URL qua API public; redirect sẽ được làm ở milestone sau.
 }
 

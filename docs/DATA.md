@@ -45,3 +45,7 @@ Migration chỉ thêm cột và nới ràng buộc, không xóa dữ liệu. **T
 ## Giới hạn lượt gọi AI (migration `202609240002_request_quota.sql`)
 
 `api_request_limits` đếm lượt gọi LLM theo người dùng (kể cả người dùng ẩn danh) cho `chat` (60/giờ) và `onboarding` (20/giờ). Hàm `consume_request_quota(endpoint, limit)` đếm và ghi trong cùng một giao dịch nên yêu cầu song song không vượt giới hạn. Người dùng không còn quyền xóa bản ghi của mình (trước đây xóa trực tiếp qua API là vượt được giới hạn); bản ghi chỉ có user_id, endpoint, thời điểm và bị xóa cùng tài khoản. Vì vậy "Xóa hồ sơ và dữ liệu mua sắm" không xóa các bản ghi này. Thứ tự: sao lưu → migration `202609240001` → `202609240002` → deploy code.
+
+## Trace và lý do loại (migration `202609240003_agent_trace.sql`)
+
+`recommendation_sessions.rejected_products` lưu sản phẩm bị lọc cứng và mã lý do (`weight`, `size`, `price_total`, `price_unit`, `excluded_brand`, `out_of_stock`, `category`); `recommendation_items.score_version` ghi phiên bản công thức. `agent_runs` lưu mỗi lượt agent: trạng thái cuối, các bước (tên trạng thái, thời gian, số ứng viên), phiên bản thuật toán — không lưu nội dung tin nhắn hay prompt. Thứ tự: sao lưu → `202609240001` → `202609240002` → `202609240003` → deploy code.

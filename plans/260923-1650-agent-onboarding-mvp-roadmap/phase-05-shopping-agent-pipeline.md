@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Shopping Agent pipeline theo spec v1 §4–12"
-status: pending
+status: completed
 priority: P1
 effort: "1.5w"
 dependencies: [1, 2]
@@ -50,9 +50,27 @@ lib/experience/chat-persistence.ts // tách phần ghi Supabase
 4. Ghi rejected products; cập nhật eval 50 case thêm kiểm tra excludedBrands và số câu hỏi ≤2 mỗi lượt.
 
 ## Success Criteria
-- [ ] Eval 50 case: 100% hard constraint (cân nặng, giá trần, brand tránh, còn hàng)
-- [ ] 0 claim/giá không có trong facts ở output đã qua fact-guard
-- [ ] Route chat ≤40 dòng, logic nằm trong lib có test
+- [x] Eval 50 case: 100% hard constraint (cân nặng, giá trần, brand tránh, còn hàng) — eval mở rộng 62/62
+- [x] 0 claim/giá không có trong facts ở output đã qua fact-guard (test fact-guard + template fallback)
+- [x] Route chat mỏng (59 dòng — lệch mục tiêu 40, xem Deviations), logic nằm trong lib có test
 
 ## Risk Assessment
 - Free-tier model viết tiếng Việt kém/bịa → fact-guard + template fallback; tín hiệu: fact-guard chặn >20% → giữ template làm mặc định, chỉ dùng LLM cho summary ngắn.
+
+## Deviations decided during implementation (2026-09-23, review P5)
+- **No separate `query-planner.ts` / `retrieval.ts`:** catalog is in-memory for the MVP; `hardFilter` is the query + filter step. SQL-side retrieval arrives with the real catalog (P6) behind the same `hardFilter` contract.
+- **Fact-guard lives in `composer.ts`** (tests in `pipeline.test.ts`), not a separate file.
+- **Composer output = `{summary, followUpQuestion}`:** per-item reasons/tradeoffs come from structured ranking data (never LLM text), which is safer than LLM `topReason/alternatives`.
+- **`compare` intent:** "so sánh" is routed by `routeWorkspace` to the compare view before extraction (unchanged behaviour); a dedicated compare flow is P7.
+- **Trace:** one `agent_runs` row with `steps` jsonb instead of `agent_runs` + `agent_events`; no token counts (the LLM layer doesn't expose usage yet). OFFERS_RESOLVED is folded into RANKED (offers are ranked per variant inside ranking).
+- **Price basis (§11.2):** resolved by domain rule instead of a question — amounts ≤20k without "/miếng" are per-piece ceilings (no diaper pack costs <20k).
+- **Route ≤40 lines:** 58 lines (auth + quota + persistence call); all logic is in `lib/ai/shopping` + `chat-persistence.ts`.
+- **Repeated clarification counter** not implemented; each clarification asks one question with choices. Revisit with real-session data in P8.
+- Decisions: when the child is unclear, every child's disliked brands apply; "rẻ hơn khoảng N%" (price comparison) is allowed, only match-score % is banned.
+
+## Completion Notes (2026-09-23)
+- Done: `ShoppingIntentV1` types; `lib/ai/shopping/{extract,context-merger,composer,pipeline}.ts`; `ranking/recommend.ts` (hardFilter with per-product reasons, `offer_score_v1`, `product_score_v1` with unknown components, top 3); thin `api/chat` + `chat-persistence.ts`; migration `202609240003_agent_trace.sql`; card shows "Phù hợp với nhu cầu đã nêu"; eval extended.
+- Review: BLOCK ×3 (brand negation → preference, pack count as unit price, stale profile size, weak fact-guard, same-name loop, lift regressions incl. ambiguity lost in upgradeIntent round trip) → fixed → APPROVE WITH NITS.
+- Verification: tests 76/76, eval 62/62 against server, tsc + eslint + next compile exit 0, runtime 12/12 asserts through route.
+- Carry-over to P8 eval: bare budget "300"; identical same-name choice labels when weight/size missing/equal; CLAIMS list growth; fact-guard number semantics; local limiter dev-only.
+- Deploy order: backup → 202609240001 → 202609240002 → 202609240003 → code.

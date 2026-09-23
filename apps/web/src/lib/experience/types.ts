@@ -70,25 +70,66 @@ export interface FamilyProfile {
   updatedAt: string;
 }
 
-export interface ShoppingIntent {
-  category: "diapers" | "unsupported" | null;
-  childName?: string;
+/** Intents the agent recognises (spec v1 §7). MVP handles discover/compare/update_family; the rest answer "coming soon". */
+export const INTENT_TYPES = ["discover", "compare", "reorder", "check_replenishment", "monthly_basket", "price_check", "update_family", "unknown"] as const;
+export type IntentType = (typeof INTENT_TYPES)[number];
+export const PRIORITIES = ["lowest_cost", "best_value", "quality", "fast_delivery"] as const;
+export type Priority = (typeof PRIORITIES)[number];
+
+/** Where a merged intent field came from (spec v1 §7 SourceType); previous turns count as user_message. */
+export interface ExtractedField { value: unknown; source: "user_message" | "family_profile" | "purchase_history"; confidence: number }
+
+/** Category-specific hard/soft requirements; only diapers in the MVP. */
+export interface DiaperRequirements {
   weightKg?: number;
-  diaperSize?: string;
-  maxPrice?: number;
+  sizeLabel?: string;
   nightUse?: boolean;
   leakProtection?: boolean;
   sensitiveSkin?: boolean;
-  brand?: string;
 }
 
+/** Structured request the pipeline works on (spec v1 §7). */
+export interface ShoppingIntent {
+  schemaVersion: "1";
+  intentType: IntentType;
+  /** Child name (display) the request is for, when known. */
+  householdMemberRef?: string;
+  categoryId?: "diapers" | "unsupported";
+  requiredAttributes: DiaperRequirements;
+  /** priceLimitRemoved: the user said "bỏ giới hạn giá" — stays off until they state a new price. */
+  /** liftedBrands: exclusions the user overrode in this conversation ("vẫn tìm X"); the profile is unchanged. */
+  constraints: { maxTotalPriceVnd?: number; maxUnitPriceVnd?: number; excludedBrands?: string[]; priceLimitRemoved?: boolean; liftedBrands?: string[] };
+  preferences: { priority?: Priority; preferredBrands?: string[] };
+  fieldEvidence: Record<string, ExtractedField>;
+  /** Codes of unresolved ambiguity, e.g. "member" when several children could be meant. */
+  ambiguity: string[];
+}
+
+/** product_score_v1 components (0–100); null = unknown, excluded from the weighted sum (spec v1 §11.3). */
+export interface ProductScores {
+  requirementFit: number | null;
+  householdPreferenceFit: number | null;
+  evidenceQuality: number | null;
+  value: number | null;
+  purchaseContinuity: number | null;
+}
+
+/** One ranked product (spec v1 §11.5) plus the product/variant/offer the UI renders. */
 export interface Recommendation {
   product: Product;
   variantId: string;
+  /** Best offer for the variant by offer_score_v1 (spec v1 §11.4). */
   offerId: string;
+  rank: number;
   score: number;
-  scores: { fit: number; quality: number; value: number; sellerTrust: number; availability: number; delivery: number; preference: number };
+  scoreVersion: string;
+  scores: ProductScores;
+  /** Also shown as reasons in the card. */
   reasons: string[];
+  tradeoffs: string[];
+  failedSoftPreferences: string[];
+  evidenceRefs: string[];
+  /** Legacy single tradeoff line (first of tradeoffs), kept for existing UI. */
   tradeoff?: string;
 }
 
