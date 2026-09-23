@@ -1,0 +1,30 @@
+# CI: every push and pull request runs typecheck, lint, tests (incl. offline eval v1) and a production build.
+# Deployment is done by Vercel's Git integration (preview per PR, production on main) — see docs/DEPLOYMENT.md.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4 # version from package.json "packageManager"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm lint
+      - run: pnpm test
+      # No Supabase/AI env here: the app compiles in demo mode, which is what CI needs to prove.
+      - run: pnpm --filter @family-ai/web build

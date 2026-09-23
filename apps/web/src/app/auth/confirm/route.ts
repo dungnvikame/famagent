@@ -5,8 +5,11 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const tokenHash = url.searchParams.get("token_hash");
   const client = await createAuthClient();
-  if (tokenHash && client && url.searchParams.get("type") === "email") {
-    const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+  // "email": magic link / signup. "email_change": a guest linking an email (updateUser) — the
+  // "Change email address" template must point here with type=email_change.
+  const type = url.searchParams.get("type");
+  if (tokenHash && client && (type === "email" || type === "email_change")) {
+    const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
     if (!error) return NextResponse.redirect(new URL("/shop", url.origin));
   }
   return NextResponse.redirect(new URL("/sign-in?error=confirm", url.origin));
