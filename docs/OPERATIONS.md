@@ -6,7 +6,9 @@
 2. Đặt `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` trên web server. Đặt `DATABASE_URL` chỉ ở server để nhập catalog và ghi click merchant.
 3. Trong Supabase Auth, đặt Site URL và Redirect URLs cho `/auth/confirm`. Sửa Magic Link và Confirm signup template theo hướng dẫn trong `README.md`; cấu hình SMTP và thử email thật.
 4. Chỉ nhập sản phẩm đã kiểm tra quyền ảnh, nguồn thuộc tính, giá, tồn kho và URL. Luôn chạy `pnpm import-products -- <csv> --dry-run` trước, sửa hết lỗi rồi mới nhập thật. Chưa có dữ liệu đạt chuẩn thì giữ môi trường ở chế độ thử nghiệm.
-5. Lên lịch `pnpm verify-offers` mỗi ngày (cron trên server có `DATABASE_URL`); cảnh báo khi mã thoát là 2 (tỷ lệ lỗi >5%).
+5. Bật Auth > Anonymous Sign-ins và Auth > CAPTCHA (Cloudflare Turnstile) trong Supabase; đặt secret key Turnstile ở Supabase và `NEXT_PUBLIC_TURNSTILE_SITE_KEY` trên web server. Thiếu site key thì ứng dụng không gửi token và Supabase sẽ từ chối đăng nhập khi CAPTCHA đang bật.
+6. Lên lịch `pnpm cleanup-anonymous` mỗi tuần (báo cáo; thêm `--apply` sau khi sao lưu để xóa khách ẩn danh không hoạt động >30 ngày). Báo cáo cũng cho tỷ lệ người đã onboarding có liên kết email.
+7. Lên lịch `pnpm verify-offers` mỗi ngày (cron trên server có `DATABASE_URL`); cảnh báo khi mã thoát là 2 (tỷ lệ lỗi >5%).
 
 ## Kiểm tra trước khi phát hành
 
@@ -15,6 +17,21 @@
 - Hỏi bỉm ban đêm cho bé 10 kg dưới 400.000đ: chỉ trả offer phù hợp cân nặng/size/giá; sản phẩm dùng đêm tốt hơn được ưu tiên khi các điều kiện khác tương đương.
 - Xóa dữ liệu ở mục Gia đình: hồ sơ, hội thoại, phiên gợi ý và sản phẩm đã lưu của tài khoản không còn. Kiểm tra lại qua API và DB.
 - Mở offer thật: chỉ redirect HTTPS tới domain đã duyệt; URL, variant, merchant và click khớp nhau. Offer sai domain hoặc hết hàng phải bị chặn.
+
+## Cổng phát hành MVP (plan P8)
+
+Chỉ mở công khai khi mọi mục dưới đây đạt; ghi kết quả vào `plans/reports/`.
+
+| Mục | Cách kiểm tra | Đạt khi |
+|---|---|---|
+| Bộ lọc cứng, số liệu có nguồn | `pnpm test` (gồm `tests/eval-shopping-v1.test.ts`, 44 tình huống theo SPEC_V1 §21) + mẫu thủ công 20 câu trên staging | 0 vi phạm; 0 giá/thông số không có nguồn |
+| Eval với provider thật | Bật `AI_ENABLED` + key trên staging, chạy `EVAL_BASE_URL=<staging> pnpm eval` và hỏi lại bộ tình huống trong `apps/web/evals/shopping-v1.ts` qua giao diện | 0 vi phạm; ghi số câu hỏi lại, độ trễ |
+| Onboarding | Test 5–8 phụ huynh, bấm giờ | Hoàn tất ≥70%, median ≤2 phút, câu hỏi mua sắm đầu tiên dùng đúng hồ sơ |
+| Quyền và xóa dữ liệu | Mục "Kiểm tra trước khi phát hành" ở trên, thêm tài khoản ẩn danh | RLS chặn truy cập chéo; liên kết email giữ hồ sơ; xóa dữ liệu sạch |
+| Catalog | `pnpm import-products -- <csv> --dry-run`, `pnpm verify-offers` | ≥50 variant thật; link lỗi ≤5%; không còn dữ liệu minh họa |
+| Hiệu năng | View `agent_latency_daily` | p95 ≤8 giây |
+| AI provider | Điều khoản dữ liệu của provider trả phí/không dùng dữ liệu để huấn luyện | Đã chốt trước khi mở công khai |
+| Minh bạch | Xem thẻ gợi ý, so sánh, trang sản phẩm, chân trang | Có đồng ý AI và công bố hoa hồng |
 
 ## Theo dõi sau phát hành
 

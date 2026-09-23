@@ -52,7 +52,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 | 5 | [Shopping Agent pipeline theo §21–28](./phase-05-shopping-agent-pipeline.md) | Completed | 1.5w | 1, 2 |
 | 6 | [Catalog bỉm đã xác minh](./phase-06-verified-diaper-catalog.md) | Engineering done · Data ops blocked (owner + Supabase) | 1–2w (ops song song) | – |
 | 7 | [Compare, trust UX, affiliate, analytics](./phase-07-compare-affiliate-analytics.md) | Completed (needs Supabase for E2E) | 1.5w | 5, 6 |
-| 8 | [Đánh giá, staging, release](./phase-08-evaluation-and-release.md) | Pending | 1.5w | 4, 7 |
+| 8 | [Đánh giá, staging, release](./phase-08-evaluation-and-release.md) | Engineering done · Staging/user tests blocked | 1.5w | 4, 7 |
 
 Song song được: P1 ∥ P2 ∥ P6 (P6 chủ yếu là data ops). P5 bắt đầu sau P1+P2, chạy song song P3–P4.
 

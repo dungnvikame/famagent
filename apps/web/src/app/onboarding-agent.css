@@ -89,3 +89,6 @@ button.ob-field:disabled{cursor:progress;opacity:.7}
   .ob-chips,.ob-composer,.ob-consent,.ob-error{margin-left:16px;margin-right:16px}.ob-chips{padding:0 0 10px}
   .ob-msg,.ob-confirm{max-width:90%}
 }
+
+/* Turnstile (P8): the widget only renders when Cloudflare needs interaction. */
+.captcha-slot{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:50}

@@ -1,4 +1,5 @@
 import { createBrowserClient } from "@supabase/ssr";
+import { getCaptchaToken } from "./captcha";
 
 export function createAuthBrowserClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,8 +21,10 @@ export function ensureSession(): Promise<{ anonymous: boolean } | null> {
     if (!client) return null;
     const { data } = await client.auth.getUser();
     if (data.user) return { anonymous: Boolean(data.user.is_anonymous) };
-    // Until CAPTCHA is wired (plan P8), Supabase's per-IP limit on anonymous sign-ins applies.
-    const { data: created, error } = await client.auth.signInAnonymously();
+    // Turnstile token when NEXT_PUBLIC_TURNSTILE_SITE_KEY is set (plan P8); otherwise Supabase's per-IP limit applies.
+    const captchaToken = await getCaptchaToken().catch(() => null);
+    if (captchaToken === null) return null;
+    const { data: created, error } = await client.auth.signInAnonymously(captchaToken ? { options: { captchaToken } } : undefined);
     return error || !created.user ? null : { anonymous: true };
   })().finally(() => { inflight = null; });
   return inflight;

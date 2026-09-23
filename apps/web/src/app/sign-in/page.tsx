@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAuthBrowserClient } from "@/lib/supabase/browser";
+import { getCaptchaToken } from "@/lib/supabase/captcha";
 
 type Mode = "link" | "signin";
 
@@ -40,7 +41,9 @@ export default function SignInPage() {
         setState("idle"); return;
       }
     } else {
-      const { error: authError } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo } });
+      const captchaToken = await getCaptchaToken().catch(() => null);
+      if (captchaToken === null) { setError("Chưa xác minh được trình duyệt. Vui lòng tải lại trang và thử lại."); setState("idle"); return; }
+      const { error: authError } = await client.auth.signInWithOtp({ email, options: { emailRedirectTo, ...(captchaToken ? { captchaToken } : {}) } });
       if (authError) { setError("Chưa gửi được liên kết đăng nhập. Vui lòng thử lại."); setState("idle"); return; }
     }
     setSentMode(anonymous ? mode : "signin"); setState("sent");

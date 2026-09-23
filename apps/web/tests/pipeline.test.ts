@@ -114,14 +114,14 @@ test("thành phần điểm thiếu dữ liệu là unknown, không được đi
   assert.equal(combine({ requirementFit: null, householdPreferenceFit: null, evidenceQuality: 20, value: 80, purchaseContinuity: null }), 50);
 });
 
-test("xếp hạng offer chỉ so trong cùng variant: rẻ hơn và mới hơn đứng trước", () => {
+test("xếp hạng offer chỉ so trong cùng variant: giá đã xác minh (≤48h) luôn đứng trước giá cũ", () => {
   const variant = demoProducts[1].variants[0];
   const offers = [
     { ...variant.offers[0], id: "old-cheap", price: 360000, updatedAt: "2026-09-01T00:00:00Z" },
     { ...variant.offers[0], id: "fresh", price: 365000, updatedAt: "2026-09-23T08:00:00Z", sellerRating: 4.9 },
     { ...variant.offers[0], id: "fresh-pricey", price: 420000, updatedAt: "2026-09-23T08:00:00Z" },
   ];
-  assert.deepEqual(rankOffers(variant, offers, NOW).map((entry) => entry.offer.id), ["fresh", "old-cheap", "fresh-pricey"]);
+  assert.deepEqual(rankOffers(variant, offers, NOW).map((entry) => entry.offer.id), ["fresh", "fresh-pricey", "old-cheap"]);
 });
 
 test("fact-guard chặn giá/số bịa và lời 'tốt nhất'; LLM bịa → dùng câu mẫu", async () => {

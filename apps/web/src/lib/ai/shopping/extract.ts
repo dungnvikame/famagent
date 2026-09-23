@@ -36,18 +36,28 @@ function unitPrice(lower: string): { value: number; text: string } | null {
   return value >= 500 && value <= 50_000 ? { value: Math.round(value), text: match[0] } : null;
 }
 
+/** "giá bao nhiêu cũng được" = any price is fine: no ceiling, and not a price-check question. */
+const ANY_PRICE = /giá\s+(?:bao nhiêu|nào|gì)\s+cũng\s+được/;
+
 export function extractShoppingRules(message: string): ShoppingExtraction {
   const text = message.trim();
   const lower = text.toLocaleLowerCase("vi");
+  // Typing without diacritics is common on phones: "tim bim ban dem". Folded cues apply only when the
+  // message itself has no diacritics ("bạn đem" / "dùng đệm" must not fold into "ban dem" / "dung dem").
+  const folded = lower.normalize("NFD").replace(/\p{M}/gu, "").replace(/đ/g, "d");
+  const plain = folded === lower;
   const result = emptyShoppingExtraction();
-  result.categoryId = /bỉm|tã|diaper/.test(lower) ? "diapers" : /khăn|giặt|rửa|giấy|túi rác|sữa|thuốc/.test(lower) ? "unsupported" : null;
+  result.categoryId = /bỉm|tã|diaper/.test(lower) || (plain && word("bim|ta dan|ta quan").test(folded) && !/bim\s*bim/.test(folded)) ? "diapers" : /khăn|giặt|rửa|giấy|túi rác|sữa|thuốc/.test(lower) ? "unsupported" : null;
   result.intentType = /so sánh|khác nhau/.test(lower) ? "compare"
     : /mua lại|như lần trước|loại lần trước/.test(lower) ? "reorder"
     : /sắp hết|còn (?:bao nhiêu|mấy)|hết chưa/.test(lower) ? "check_replenishment"
     : /giỏ (?:hàng )?tháng|tháng này cần mua/.test(lower) ? "monthly_basket"
-    : /giá .*(?:bao nhiêu|hiện tại|đang giảm)|có giảm giá/.test(lower) ? "price_check"
+    : /giá .*(?:bao nhiêu|hiện tại|đang giảm)|có giảm giá/.test(lower) && !ANY_PRICE.test(lower) ? "price_check"
     : result.categoryId ? "discover" : null;
-  const weight = text.match(/(\d{1,2}(?:[.,]\d)?)\s*(?:kg|ký|kí|cân)(?![\p{L}])/iu);
+  // Several weights ("bỉm 5kg ... cho bé 10kg"): prefer one shortly after "bé/con/nặng/được" (a heuristic;
+  // the optional name slot is loose under the i flag), else the first.
+  const weights = [...text.matchAll(/(\d{1,2}(?:[.,]\d)?)\s*(?:kg|ký|kí|cân)(?![\p{L}])/giu)];
+  const weight = weights.find((match) => /(?:bé|con|nặng|được)\s*(?:\p{Lu}\p{L}*\s*)?(?:nặng\s*)?$/iu.test(text.slice(Math.max(0, match.index! - 20), match.index))) ?? weights[0];
   if (weight) result.weightKg = Number(weight[1].replace(",", "."));
   const size = text.match(/(?:size|cỡ|sz)\s*(NB|S|M|L|XL|XXL)(?![\p{L}\d])/iu) ?? text.match(/(?<![\p{L}\d])(NB|XXL|XL)(?![\p{L}\d])/u);
   if (size) result.sizeLabel = size[1].toUpperCase();
@@ -60,9 +70,10 @@ export function extractShoppingRules(message: string): ShoppingExtraction {
     const small = lower.match(/(?:dưới|tối đa|không quá|tầm|khoảng)\s*(\d{1,2}(?:[.,]\d)?)\s*(k|nghìn|ngàn)(?![\p{L}])/u);
     if (small) { const value = Math.round(Number(small[1].replace(",", ".")) * 1000); if (value >= 1000 && value <= 20_000) result.maxUnitPriceVnd = value; }
   }
-  result.removePriceLimit = /bỏ (?:giới hạn )?giá|không giới hạn giá/.test(lower);
+  // "giá bao nhiêu cũng được" drops carried-over ceilings, but never a cap stated in the same message.
+  result.removePriceLimit = /bỏ (?:giới hạn )?giá|không giới hạn giá/.test(lower) || (ANY_PRICE.test(lower) && result.maxTotalPriceVnd === null && result.maxUnitPriceVnd === null);
   if (result.removePriceLimit) result.maxTotalPriceVnd = null;
-  result.nightUse = /ban đêm|dùng đêm|ngủ đêm|qua đêm/.test(lower) ? true : null;
+  result.nightUse = /ban đêm|dùng đêm|ngủ đêm|qua đêm/.test(lower) || /(?:bỉm|tã)\s+(?:dùng\s+)?đêm(?!\s+qua)/.test(lower) || (plain && word("ban dem|dung dem|ngu dem|qua dem|bim dem").test(folded)) ? true : null;
   result.leakProtection = /chống tràn|hay tràn|hạn chế tràn|bị tràn/.test(lower) ? true : null;
   result.sensitiveSkin = /da nhạy cảm|kích ứng|dễ hăm/.test(lower) ? true : null;
   result.priority = /rẻ nhất|giá thấp nhất/.test(lower) ? "lowest_cost"

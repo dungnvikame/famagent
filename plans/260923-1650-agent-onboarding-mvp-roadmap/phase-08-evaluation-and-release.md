@@ -1,7 +1,7 @@
 ---
 phase: 8
 title: "Đánh giá, staging, release MVP"
-status: pending
+status: in-progress (engineering done; staging, provider eval and user tests blocked on owner)
 priority: P1
 effort: "1.5w"
 dependencies: [4, 7]
@@ -41,3 +41,13 @@ Kiểm chứng câu hỏi MVP (spec §3): người dùng chọn nhanh hơn và t
 ## Risk Assessment
 - Kết quả nghiên cứu không cho thấy nhanh/tự tin hơn → không mở rộng danh mục; quay lại P3–P5 điều chỉnh (spec §3: chưa chứng minh thì chưa build thêm).
 - Sau khi đạt gate mới mở 7 danh mục còn lại (MVP_PLAN Mốc 5) — plan riêng, không nằm trong plan này.
+
+## Completion notes (2026-09-23) — engineering part
+Done:
+- Versioned offline eval `apps/web/evals/shopping-v1.ts` (44 cases, all spec v1 §21 MVP groups except purchase/return which need purchase history) run by `tests/eval-shopping-v1.test.ts` in `pnpm test`: hard invariants + per-case ground truth (checked against recommendations, not the extracted intent) gate every case; knownGap mechanism for documented gaps (none open).
+- Fixes the eval surfaced: fresh offers always rank before stale ones (`rankOffers`); no-diacritics input ("tim bim ban dem"), "bỉm đêm", two weights in one message, "giá bao nhiêu cũng được" misread as price check; review-found regressions (price cap erased by "loại nào cũng được", "bạn đem"/"đêm qua" as night use, "bim bim") covered by regression cases.
+- Turnstile CAPTCHA (`lib/supabase/captcha.ts`) for anonymous and magic-link sign-in, off without `NEXT_PUBLIC_TURNSTILE_SITE_KEY`.
+- `scripts/cleanup-anonymous.mjs`: report (users, guests, email-link rate after onboarding — D6 metric) and `--apply` deletion of guests inactive >30 days.
+- Release gate table + setup steps in `docs/OPERATIONS.md`.
+
+Blocked (needs owner): Supabase staging + migrations 0001–0005, hosting, Turnstile keys, Gemini/Groq keys for provider eval, 5–8 parent user tests, AI provider decision for public launch, real catalog (P6).

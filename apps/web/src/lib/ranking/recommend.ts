@@ -1,6 +1,7 @@
 // Hard filter + two-level ranking (spec v1 §11). Commission/affiliate data never enters any score.
 import { pricePerPiece } from "../catalog/filter.ts";
 import { vnd } from "../catalog/format.ts";
+import { isOfferFresh } from "../catalog/offer-status.ts";
 import type { Product, ProductOffer, ProductVariant } from "../catalog/types.ts";
 import type { ProductScores, Recommendation, ShoppingIntent } from "../experience/types.ts";
 
@@ -58,7 +59,10 @@ export function hardFilter(products: Product[], intent: ShoppingIntent): { candi
   return { candidates, rejected };
 }
 
-/** offer_score_v1: only offers of the same variant are compared (spec v1 §11.4). */
+/**
+ * offer_score_v1: only offers of the same variant are compared (spec v1 §11.4). A price older than the
+ * freshness window is not a verifiable price, so every fresh offer ranks before any stale one.
+ */
 export function rankOffers(variant: ProductVariant, offers: ProductOffer[], now = Date.now()): Array<{ offer: ProductOffer; score: number }> {
   const prices = offers.map((offer) => offer.price);
   const min = Math.min(...prices); const max = Math.max(...prices);
@@ -69,7 +73,7 @@ export function rankOffers(variant: ProductVariant, offers: ProductOffer[], now 
     parts.push([0.25, Number.isNaN(ageHours) ? 30 : ageHours <= 24 ? 100 : ageHours <= 48 ? 70 : 30]);
     const weight = parts.reduce((sum, [w]) => sum + w, 0);
     return { offer, score: clamp(parts.reduce((sum, [w, value]) => sum + w * value, 0) / weight) };
-  }).sort((a, b) => b.score - a.score || a.offer.price - b.offer.price || a.offer.id.localeCompare(b.offer.id));
+  }).sort((a, b) => Number(isOfferFresh(b.offer, now)) - Number(isOfferFresh(a.offer, now)) || b.score - a.score || a.offer.price - b.offer.price || a.offer.id.localeCompare(b.offer.id));
 }
 
 const SOFT: Array<{ key: "nightUse" | "leakProtection" | "sensitiveSkin"; attr: "nightUseScore" | "absorbencyScore" | "sensitiveSkinScore"; label: string }> = [

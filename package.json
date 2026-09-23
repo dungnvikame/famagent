@@ -11,6 +11,7 @@
     "test": "pnpm --filter @family-ai/web test",
     "eval": "pnpm --filter @family-ai/web eval",
     "import-products": "pnpm --filter @family-ai/web import-products",
-    "verify-offers": "pnpm --filter @family-ai/web verify-offers"
+    "verify-offers": "pnpm --filter @family-ai/web verify-offers",
+    "cleanup-anonymous": "pnpm --filter @family-ai/web cleanup-anonymous"
   }
 }
