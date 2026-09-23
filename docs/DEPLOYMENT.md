@@ -33,7 +33,9 @@ Không bao giờ commit key thật. File `.env*` đã nằm trong `.gitignore` (
 ### 3.2 Chạy migration
 Project mới chưa có dữ liệu nên chưa cần sao lưu; với project đã có dữ liệu luôn chạy lệnh `pg_dump` ghi ở đầu mỗi file trước.
 
-Mở **SQL Editor**, chạy lần lượt từng file trong `supabase/migrations/` theo đúng thứ tự tên file (dán nội dung → Run), không bỏ file nào:
+**Cách nhanh:** sao chép `apps/web/.env.example` thành `apps/web/.env.local`, điền `DATABASE_URL`, rồi `pnpm --filter @family-ai/web db:migrate` — chạy các file chưa chạy theo thứ tự (mỗi file một transaction, ghi lịch sử ở schema `ops`), sau đó kiểm tra RLS. `db:migrate -- --status` để xem file đang chờ.
+
+**Cách thủ công:** mở **SQL Editor**, chạy lần lượt từng file trong `supabase/migrations/` theo đúng thứ tự tên file (dán nội dung → Run), không bỏ file nào:
 
 ```
 202609230001_catalog.sql
@@ -49,6 +51,8 @@ Mở **SQL Editor**, chạy lần lượt từng file trong `supabase/migrations
 Kiểm tra: **Table Editor** có các bảng `family_profiles`, `children`, `conversations`, `offer_snapshots`…; **Authentication → Policies** thấy RLS bật trên các bảng người dùng. Luôn chạy migration **trước** khi deploy code cần nó.
 
 ### 3.3 Cấu hình Auth
+Có thể làm tự động các mục 1–3 bằng `pnpm --filter @family-ai/web setup:auth` (cần `SUPABASE_ACCESS_TOKEN` và `APP_URL` trong `.env.local`; xóa token sau khi xong). Hoặc làm tay:
+
 1. **Authentication → URL Configuration**: Site URL = domain production (vd `https://<app>.vercel.app`); Redirect URLs thêm `https://<app>.vercel.app/auth/confirm` và, nếu dùng preview, `https://*-<team>.vercel.app/auth/confirm`.
 2. **Authentication → Sign In / Providers**: bật Email; bật **Allow anonymous sign-ins** (khách dùng thử không cần đăng ký).
 3. **Authentication → Emails → Templates**, sửa liên kết trong nút:
@@ -66,6 +70,8 @@ pnpm import-products -- data/products.csv --dry-run
 pnpm import-products -- data/products.csv
 ```
 Chi tiết cột và quy tắc: [DATA.md](DATA.md).
+
+Để thử luồng trên staging trước khi có dữ liệu thật: `data/staging-test-products.csv` (7 sản phẩm hư cấu, tên có tiền tố “[THỬ NGHIỆM]”, link tới example.com). Gỡ khỏi hiển thị bằng SQL `update public.products set published = false where id like test-%;` — không dùng cho môi trường công khai.
 
 ## 4. Gemini AI
 
