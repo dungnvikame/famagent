@@ -4,6 +4,9 @@
 // Sets: Site URL, redirect allow-list (/auth/confirm), email sign-in, anonymous sign-ins, and the three email
 // templates pointing to /auth/confirm with the right type. SMTP and CAPTCHA are left to the dashboard.
 const dryRun = process.argv.includes("--dry-run");
+// Free-tier projects on the default email provider cannot change templates; /auth/confirm also accepts the
+// default templates' PKCE ?code= redirect, so templates are optional. Use --skip-templates there.
+const skipTemplates = process.argv.includes("--skip-templates");
 const { NEXT_PUBLIC_SUPABASE_URL: supabaseUrl, APP_URL: rawAppUrl, SUPABASE_ACCESS_TOKEN: token } = process.env;
 const missing = Object.entries({ NEXT_PUBLIC_SUPABASE_URL: supabaseUrl, APP_URL: rawAppUrl, SUPABASE_ACCESS_TOKEN: token }).filter(([, value]) => !value).map(([key]) => key);
 if (missing.length) { console.error(`Thiếu trong .env.local: ${missing.join(", ")}`); process.exit(1); }
@@ -21,6 +24,8 @@ const config = {
   uri_allow_list: `${appUrl}/auth/confirm,${appUrl}/**`,
   external_email_enabled: true,
   external_anonymous_users_enabled: true,
+};
+const templates = {
   mailer_subjects_magic_link: "Đăng nhập Family AI",
   mailer_templates_magic_link_content: button("Bấm nút dưới đây để đăng nhập Family AI.", "email"),
   mailer_subjects_confirmation: "Xác nhận email Family AI",
@@ -29,12 +34,12 @@ const config = {
   mailer_templates_email_change_content: button("Bấm nút dưới đây để liên kết email này với hồ sơ gia đình của bạn.", "email_change"),
 };
 
-console.log(`Project ${ref}: site_url=${appUrl}, anonymous=on, email=on, 3 mẫu email → /auth/confirm.`);
+console.log(`Project ${ref}: site_url=${appUrl}, anonymous=on, email=on, ${skipTemplates ? "giữ mẫu email mặc định" : "3 mẫu email → /auth/confirm"}.`);
 if (dryRun) process.exit(0);
 const response = await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, {
   method: "PATCH",
   headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-  body: JSON.stringify(config),
+  body: JSON.stringify(skipTemplates ? config : { ...config, ...templates }),
 });
 if (!response.ok) {
   // Error bodies do not contain the token; print status and message only.
