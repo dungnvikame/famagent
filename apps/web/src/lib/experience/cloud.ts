@@ -1,10 +1,6 @@
 import type { Conversation, FamilyProfile } from "./types";
 
 export const cloudEnabled = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
-const PENDING_IMPORT_KEY = "family-ai:pending-import:v1";
-export function markPendingImport(onboardedAt: string) { localStorage.setItem(PENDING_IMPORT_KEY, onboardedAt); }
-export function isPendingImport(onboardedAt?: string) { return Boolean(onboardedAt && localStorage.getItem(PENDING_IMPORT_KEY) === onboardedAt); }
-export function clearPendingImport() { localStorage.removeItem(PENDING_IMPORT_KEY); }
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, { cache: "no-store", ...options, headers: { "Content-Type": "application/json", ...options?.headers } });

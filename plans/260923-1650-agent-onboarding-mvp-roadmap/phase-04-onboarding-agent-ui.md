@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Onboarding Agent UI"
-status: pending
+status: completed
 priority: P1
 effort: "2.5d"
 dependencies: [3]
@@ -36,7 +36,7 @@ components/onboarding/
 
 ## Related Code Files
 - Create: `apps/web/src/components/onboarding/*.tsx`
-- Implement (chuyển từ P3): `signInAnonymously()` khi vào `/` nếu có Supabase và chưa có session; bật CAPTCHA (Turnstile) cho anonymous sign-in trước khi mở test rộng.
+- Implement (chuyển từ P3): `signInAnonymously()` khi vào `/` nếu có Supabase và chưa có session. **CAPTCHA (Turnstile) chuyển sang P8** (quyết định khi review P4: cần site key Cloudflare; tới lúc đó dựa vào giới hạn anonymous sign-in theo IP của Supabase) — bắt buộc trước khi mở test rộng.
 - Modify: `apps/web/src/app/page.tsx`, `apps/web/src/app/agent-workspace.css`, `apps/web/src/components/agent-shopping.tsx` (dùng panel + nút cập nhật hồ sơ + banner liên kết email), `apps/web/src/lib/experience/cloud.ts`, `apps/web/src/lib/supabase/browser.ts` (anonymous sign-in helper), `apps/web/src/app/sign-in/page.tsx`, `apps/web/src/middleware.ts` (cho phép user ẩn danh vào `/shop`)
 - Delete: `apps/web/src/components/agent-onboarding.tsx`
 
@@ -49,10 +49,17 @@ components/onboarding/
 6. Kiểm tra tay trên Browser pane: mobile 375px, desktop; kịch bản Gold (spec §72).
 
 ## Success Criteria
-- [ ] Kịch bản Gold hoàn tất ≤2 phút, 3–5 lượt chat
-- [ ] Panel phản ánh đúng mọi slot sau mỗi lượt; sửa inline lưu ngay
-- [ ] Không có horizontal scroll ở 360px; điều hướng bàn phím đầy đủ
-- [ ] Event `onboarding_completed` có duration + turns
+- [x] Kịch bản Gold hoàn tất ≤2 phút, 3–5 lượt chat
+- [x] Panel phản ánh đúng mọi slot sau mỗi lượt; sửa inline lưu ngay
+- [x] Không có horizontal scroll ở 360px; điều hướng bàn phím đầy đủ
+- [x] Event `onboarding_completed` có duration + turns
 
 ## Risk Assessment
 - Người dùng thấy dài vì spec §12 nhiều trường → nhóm câu hỏi, cho "Bỏ qua phần còn lại" sau khi đủ slot bắt buộc. Tín hiệu: tỷ lệ hoàn tất <70% trong test 5–8 phụ huynh (MVP_PLAN Mốc 1) → cắt nhóm `home`/`child.care` ra khỏi onboarding, hỏi lúc cần trong `/shop`.
+
+## Completion Notes (2026-09-23)
+- Done: mockup approved (D9); `components/onboarding/{onboarding-agent,onboarding-thread,family-context-panel,onboarding-review}.tsx`, `app/onboarding-agent.css`; `/` uses OnboardingAgent; old `agent-onboarding.tsx` removed; panel reused in `/shop` (editable) + "Cập nhật hồ sơ" (`/?update=1`) + email-link banner for guests; `ensureSession()` anonymous sign-in (single in-flight); `/sign-in` link-vs-sign-in choice with `email_exists` fallback; pending-import removed; shared label maps; summary shows only explicit preferences; hedge limited to same clause.
+- Review: BLOCK (cloud-mode dead ends C1/C2, panel/pending races H1/H2, email update-mode save H3, analytics/regex/focus/StrictMode) → fixed → APPROVE WITH NITS → N1 (failed profile load must not enable server writes) + nits fixed.
+- Verification: tests 52/52, typecheck + lint + production compile exit 0; browser UI checks (desktop + 375 mobile); runtime API flow 6/6 asserts (report `plans/reports/tester-260923-1900-phase04-validation.md`).
+- Moved to P8: Turnstile CAPTCHA wiring. Known limitation: `session` read once on mount (sign-in in another tab needs reload).
+- Not verified: cloud mode end-to-end (no Supabase project) — P8 staging must cover guest→email link, `email_exists` → sign-in, no-session → sign-in → resume at review, email update mode per-turn save, `/api/me` 500 on load (N1).

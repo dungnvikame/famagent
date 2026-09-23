@@ -1,7 +1,7 @@
 // Vietnamese wording for rules mode and for any LLM reply that fails checks.
 // Each question asks one slot group with at most 2 questions (spec v1 §9).
 import { childAgeMonths } from "../../experience/profile-mapper.ts";
-import { PRICE_PREFERENCE_LABELS, type ChildProfile, type FamilyProfile } from "../../experience/types.ts";
+import { PRICE_PREFERENCE_LABELS, SHOPPING_CONCERN_LABELS, WASHING_MACHINE_LABELS, type ChildProfile, type FamilyProfile } from "../../experience/types.ts";
 import type { ActiveSlot } from "./slots.ts";
 
 export interface PendingConfirmation { path: string; value: unknown; label: string }
@@ -52,7 +52,10 @@ export function profileSummary(profile: FamilyProfile): string[] {
     const details = [child.weightKg ? `${child.weightKg} kg` : null, child.diaperSize ? `size ${child.diaperSize}` : null, age !== undefined ? `${age} tháng` : null].filter(Boolean);
     lines.push(`${childLabel(child, index).replace(/^b/, "B")}: ${details.length ? details.join(", ") : "chưa có cân nặng/size"}`);
   });
-  lines.push(`Ưu tiên: ${PRICE_PREFERENCE_LABELS[profile.pricePreference]}${profile.maxBudget ? `, tối đa ${profile.maxBudget.toLocaleString("vi-VN")}đ` : ""}`);
+  // Only what the user actually said: the default price preference is not shown as a choice.
+  const priorities = [profile.fieldMeta?.pricePreference ? PRICE_PREFERENCE_LABELS[profile.pricePreference] : null, profile.mainConcern ? SHOPPING_CONCERN_LABELS[profile.mainConcern] : null, profile.maxBudget ? `tối đa ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean);
+  if (priorities.length) lines.push(`Ưu tiên: ${priorities.join(", ")}`);
+  if (profile.appliances?.washingMachine) lines.push(`Máy giặt: ${WASHING_MACHINE_LABELS[profile.appliances.washingMachine].toLowerCase()}`);
   return lines;
 }
 

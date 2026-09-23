@@ -4,6 +4,7 @@ const PROFILE_KEY = "family-ai:profile:v1";
 const CONVERSATIONS_KEY = "family-ai:conversations:v1";
 const SAVED_KEY = "family-ai:saved:v1";
 const EVENTS_KEY = "family-ai:events:v1";
+// Legacy key from the pre-anonymous-session import flow; still cleared by clearAllData().
 const PENDING_IMPORT_KEY = "family-ai:pending-import:v1";
 
 function read<T>(key: string, fallback: T): T {

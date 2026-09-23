@@ -16,6 +16,12 @@ export function profileFieldValues(profile: FamilyProfile): Map<string, unknown>
 const empty = (value: unknown) => value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0);
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
+/** Field paths whose value differs between two profiles (UI highlights these after a turn or edit). */
+export function changedPaths(before: FamilyProfile | null, after: FamilyProfile): Set<string> {
+  const previous = before ? profileFieldValues(before) : new Map<string, unknown>();
+  return new Set([...profileFieldValues(after)].filter(([path, value]) => !empty(value) && !same(previous.get(path), value)).map(([path]) => path));
+}
+
 /**
  * Returns `after` with fieldMeta updated: only values that actually changed are stamped
  * with `source` and confirmed now. Unchanged values keep their existing meta (or stay

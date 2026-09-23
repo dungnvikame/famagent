@@ -95,3 +95,10 @@ test("đổi cân nặng qua chat được ghi nguồn user_entered", () => {
   assert.equal(changed?.fieldMeta?.[`children.${childId}.weightKg`]?.source, "user_entered");
   assert.equal(validProfile(changed), true);
 });
+
+test("changedPaths chỉ trả các trường thật sự đổi (để tô sáng trên panel)", async () => {
+  const { changedPaths } = await import("../src/lib/experience/profile-meta.ts");
+  const edited = { ...base, maxBudget: 300_000, children: [{ ...base.children[0], weightKg: 11 }] };
+  assert.deepEqual([...changedPaths(base, edited)].sort(), [`children.${childId}.weightKg`, "maxBudget"]);
+  assert.equal(changedPaths(base, base).size, 0);
+});

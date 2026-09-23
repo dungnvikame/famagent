@@ -1,3 +1,3 @@
-import { AgentOnboarding } from "@/components/agent-onboarding";
+import { OnboardingAgent } from "@/components/onboarding/onboarding-agent";
 
-export default function Home() { return <AgentOnboarding />; }
+export default function Home() { return <OnboardingAgent />; }

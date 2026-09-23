@@ -48,7 +48,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 | 1 | [Dọn dead code + LLM adapter free-tier](./phase-01-cleanup-and-llm-adapter.md) | Completed | 1.5d | – |
 | 2 | [Family Profile model đầy đủ (§13)](./phase-02-family-profile-model.md) | Completed | 1.5d | – |
 | 3 | [Onboarding Agent core (slot-filling)](./phase-03-onboarding-agent-core.md) | Completed | 3d | 1, 2 |
-| 4 | [Onboarding Agent UI](./phase-04-onboarding-agent-ui.md) | Pending | 2.5d | 3 |
+| 4 | [Onboarding Agent UI](./phase-04-onboarding-agent-ui.md) | Completed | 2.5d | 3 |
 | 5 | [Shopping Agent pipeline theo §21–28](./phase-05-shopping-agent-pipeline.md) | Pending | 1.5w | 1, 2 |
 | 6 | [Catalog bỉm đã xác minh](./phase-06-verified-diaper-catalog.md) | Pending | 1–2w (ops song song) | – |
 | 7 | [Compare, trust UX, affiliate, analytics](./phase-07-compare-affiliate-analytics.md) | Pending | 1.5w | 5, 6 |
@@ -82,8 +82,8 @@ LLM chỉ **hiểu và diễn đạt**; code quyết định slot bắt buộc, 
 
 - [x] Không còn component chết; lint/typecheck/test/build xanh
 - [ ] Người dùng mới hoàn tất onboarding ≤2 phút (MVP_PLAN Mốc 1), trả lời bằng câu tự nhiên nhiều ý trong 1 lượt ("Nhà mình 2 vợ chồng, bé Gold 14 tháng 10kg dùng size L, da hơi nhạy cảm") được ghi nhận đủ
-- [ ] Agent không đoán thông tin trẻ; mọi slot có thể bỏ qua trừ cân nặng/size; xem lại + sửa + xóa được
-- [ ] `/shop` câu đầu "Mua bỉm ban đêm cho Gold dưới 400k" dùng đúng profile (spec §57, §72)
+- [x] Agent không đoán thông tin trẻ; mọi slot có thể bỏ qua trừ cân nặng/size; xem lại + sửa + xóa được (P3–P4)
+- [x] `/shop` câu đầu "Mua bỉm ban đêm cho Gold dưới 400k" dùng đúng profile (spec §57, §72) — kiểm tra trên browser P4
 - [ ] Chạy được với 0đ chi phí AI (free tier) và vẫn chạy khi hết quota (rules)
 - [ ] Đạt điều kiện phát hành MVP_PLAN §4 (100% hard constraint, không claim thiếu nguồn, p95 ≤8s, link lỗi ≤5%)
 

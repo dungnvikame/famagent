@@ -11,9 +11,12 @@ export const FIELD_SOURCES = ["user_entered", "user_confirmed"] as const;
 export type PricePreference = (typeof PRICE_PREFERENCES)[number];
 export const PRICE_PREFERENCE_LABELS: Record<PricePreference, string> = { budget: "Giá thấp nhất", value: "Giá trị tốt nhất", balanced: "Cân bằng", premium: "Cao cấp" };
 export type ShoppingConcern = (typeof SHOPPING_CONCERNS)[number];
+export const SHOPPING_CONCERN_LABELS: Record<ShoppingConcern, string> = { night: "dùng ban đêm", leak: "hạn chế tràn", soft: "mỏng nhẹ", sensitive: "da nhạy cảm", value: "giá theo đơn vị" };
 export type DeliveryPreference = (typeof DELIVERY_PREFERENCES)[number];
+export const DELIVERY_PREFERENCE_LABELS: Record<DeliveryPreference, string> = { cheapest: "phí giao thấp", fastest: "giao nhanh", balanced: "giao hàng cân bằng" };
 export type Sensitivity = (typeof SENSITIVITIES)[number];
 export type WashingMachine = (typeof WASHING_MACHINES)[number];
+export const WASHING_MACHINE_LABELS: Record<WashingMachine, string> = { front: "Cửa trước", top: "Cửa trên", none: "Không dùng máy giặt" };
 export type FieldSource = (typeof FIELD_SOURCES)[number];
 
 /**

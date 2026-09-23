@@ -3,7 +3,7 @@
 import { chatJson, type ChatMessage } from "../llm/index.ts";
 import { stampChanges } from "../../experience/profile-meta.ts";
 import { validBirthDate, INPUT_BIRTH_YEARS } from "../../experience/validate.ts";
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type ChildProfile, type FamilyProfile, type FieldSource } from "../../experience/types.ts";
+import { DELIVERY_PREFERENCE_LABELS, DELIVERY_PREFERENCES, DIAPER_SIZES, PRICE_PREFERENCE_LABELS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERN_LABELS, SHOPPING_CONCERNS, WASHING_MACHINE_LABELS, WASHING_MACHINES, type ChildProfile, type FamilyProfile, type FieldSource } from "../../experience/types.ts";
 import { emptyExtraction, turnSchema, type Extraction, type TurnOutput } from "./extraction.ts";
 import { extractRules } from "./extract-rules.ts";
 import { markSlot, nextSlot, slotId, slotSatisfied, type ActiveSlot, type SlotKind } from "./slots.ts";
@@ -141,13 +141,13 @@ function childUpdates(extraction: Extraction, childId: string, now: Date): Updat
 function familyUpdates(extraction: Extraction): Update[] {
   const updates: Update[] = [];
   if (inRange(extraction.adultsCount, 1, 10, true)) updates.push({ path: "adultsCount", value: extraction.adultsCount, label: `${extraction.adultsCount} người lớn` });
-  if (oneOf(PRICE_PREFERENCES, extraction.pricePreference)) updates.push({ path: "pricePreference", value: extraction.pricePreference, label: "ưu tiên giá" });
+  if (oneOf(PRICE_PREFERENCES, extraction.pricePreference)) updates.push({ path: "pricePreference", value: extraction.pricePreference, label: `ưu tiên ${PRICE_PREFERENCE_LABELS[extraction.pricePreference!].toLowerCase()}` });
   if (inRange(extraction.maxBudget, 50_000, 100_000_000, true)) updates.push({ path: "maxBudget", value: extraction.maxBudget, label: `ngân sách ${extraction.maxBudget!.toLocaleString("vi-VN")}đ` });
-  if (oneOf(SHOPPING_CONCERNS, extraction.mainConcern)) updates.push({ path: "mainConcern", value: extraction.mainConcern, label: "điều quan trọng nhất" });
-  if (oneOf(DELIVERY_PREFERENCES, extraction.deliveryPreference)) updates.push({ path: "deliveryPreference", value: extraction.deliveryPreference, label: "ưu tiên giao hàng" });
+  if (oneOf(SHOPPING_CONCERNS, extraction.mainConcern)) updates.push({ path: "mainConcern", value: extraction.mainConcern, label: `ưu tiên ${SHOPPING_CONCERN_LABELS[extraction.mainConcern!]}` });
+  if (oneOf(DELIVERY_PREFERENCES, extraction.deliveryPreference)) updates.push({ path: "deliveryPreference", value: extraction.deliveryPreference, label: DELIVERY_PREFERENCE_LABELS[extraction.deliveryPreference!] });
   const avoided = cleanList(extraction.avoidedIngredients);
   if (avoided?.length) updates.push({ path: "avoidedIngredients", value: avoided, label: `tránh ${avoided.join(", ")}` });
-  if (oneOf(WASHING_MACHINES, extraction.washingMachine)) updates.push({ path: "appliances.washingMachine", value: extraction.washingMachine, label: "loại máy giặt" });
+  if (oneOf(WASHING_MACHINES, extraction.washingMachine)) updates.push({ path: "appliances.washingMachine", value: extraction.washingMachine, label: `máy giặt ${WASHING_MACHINE_LABELS[extraction.washingMachine!].toLowerCase()}` });
   return updates;
 }
 

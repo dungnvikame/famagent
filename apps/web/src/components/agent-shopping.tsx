@@ -5,9 +5,12 @@ import { useRouter } from "next/navigation";
 import { vnd } from "@/lib/catalog/format";
 import { lowestOffer, pricePerPiece } from "@/lib/catalog/filter";
 import type { Product } from "@/lib/catalog/types";
-import { PRICE_PREFERENCE_LABELS, type AgentView, type ChatResponse, type ChatTurn, type Conversation, type FamilyProfile, type Recommendation } from "@/lib/experience/types";
+import { type AgentView, type ChatResponse, type ChatTurn, type Conversation, type FamilyProfile, type Recommendation } from "@/lib/experience/types";
 import { getConversations, getProfile, getSavedProducts, saveConversations, saveProfile, saveSavedProducts, trackEvent } from "@/lib/experience/storage";
-import { clearPendingImport, cloudEnabled, isPendingImport, loadCloudConversations, loadCloudProfile, loadCloudSaved, saveCloudConversation, saveCloudProfile, setCloudSaved } from "@/lib/experience/cloud";
+import Link from "next/link";
+import { FamilyContextPanel } from "@/components/onboarding/family-context-panel";
+import { isAnonymousUser } from "@/lib/supabase/browser";
+import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved, saveCloudConversation, saveCloudProfile, setCloudSaved } from "@/lib/experience/cloud";
 
 const suggestions = ["Tìm bỉm ban đêm cho bé dưới 400k", "So sánh các lựa chọn phù hợp", "Cho tôi xem hồ sơ gia đình"];
 function newConversation(): Conversation { return { id: crypto.randomUUID(), title: "Cuộc trò chuyện mới", turns: [], updatedAt: new Date().toISOString() }; }
@@ -24,6 +27,9 @@ export function AgentShopping() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"ai" | "rules">("rules");
+  // Anonymous guests are invited (never forced) to link an email after they get value (plan D6).
+  const [invite, setInvite] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -34,9 +40,7 @@ export function AgentShopping() {
         let savedIds = getSavedProducts();
         if (cloudEnabled) {
           const remote = await loadCloudProfile();
-          if (remote) family = remote;
-          else if (family?.onboardedAt && isPendingImport(family.onboardedAt)) { await saveCloudProfile(family); clearPendingImport(); }
-          else family = null;
+          family = remote;
           existing = await loadCloudConversations(); savedIds = await loadCloudSaved();
         }
         if (!family?.onboardedAt) { router.replace("/"); return; }
@@ -57,6 +61,18 @@ export function AgentShopping() {
   const lastIntent = [...(active?.turns ?? [])].reverse().find((turn) => turn.role === "assistant" && turn.intent)?.intent ?? null;
   const recentRecommendations = [...(active?.turns ?? [])].reverse().find((turn) => turn.recommendations?.length)?.recommendations ?? [];
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [active?.turns.length, busy]);
+
+  useEffect(() => {
+    try { setDismissed(localStorage.getItem("family-ai:link-invite-dismissed") === "1"); } catch { /* storage unavailable */ }
+    if (cloudEnabled) void isAnonymousUser().then(setInvite).catch(() => {});
+  }, []);
+  function dismissInvite() { setDismissed(true); try { localStorage.setItem("family-ai:link-invite-dismissed", "1"); } catch { /* storage unavailable */ } }
+
+  /** Inline edit from the family panel (already stamped + validated there). */
+  function updateProfile(next: FamilyProfile) {
+    setProfile(next); saveProfile(next); trackEvent("family_profile_updated", { source: "panel" });
+    if (cloudEnabled) void saveCloudProfile(next).catch(() => setError("Chưa lưu được hồ sơ lên máy chủ."));
+  }
 
   function persist(next: Conversation[]) { setConversations(next); saveConversations(next); }
   async function saveItem(id: string) {
@@ -98,8 +114,9 @@ export function AgentShopping() {
   const child = profile?.children[0];
   return <div className="agent-app shopping-app"><div className="agent-decoration one" aria-hidden="true"/><div className="agent-decoration two" aria-hidden="true"/>
     <div className="agent-rail"><button className="agent-logo" onClick={startNew} aria-label="Cuộc trò chuyện mới">f<span>.</span></button><span className="rail-line"/><button className="rail-new" onClick={startNew} title="Cuộc trò chuyện mới" aria-label="Cuộc trò chuyện mới">＋</button><span className="rail-caption">FAMILY AI</span></div>
-    <main className="agent-center shopping-center"><div className="agent-header"><span className="agent-status"><span className="status-dot"/> {mode === "ai" ? "AI đang hỗ trợ" : "Agent đang sẵn sàng"}</span><button className="agent-history-trigger" onClick={() => void send("Cho tôi xem lịch sử trò chuyện")}>Lịch sử ↗</button></div>
-      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">TRỢ LÝ MUA SẮM CHO GIA ĐÌNH</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child?.name ? `Tôi đã nhớ bé ${child.name}${child.weightKg ? `, ${child.weightKg} kg` : ""}. ` : ""}Cứ nói điều bạn cần. Tôi sẽ tìm, so sánh và đưa nội dung phù hợp tới đây.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestions.map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMILY AI</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.recommendations?.length ? <div className="agent-results">{turn.recommendations.map((item, index) => <AgentProductCard key={item.product.id} item={item} rank={index + 1} saved={saved.includes(item.product.id)} onSave={() => void saveItem(item.product.id)} onDetails={() => void send(`Xem chi tiết ${item.product.canonicalName}`)} conversationId={active.id}/>)}</div> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div><div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
+    <main className="agent-center shopping-center"><div className="agent-header"><span className="agent-status"><span className="status-dot"/> {mode === "ai" ? "AI đang hỗ trợ" : "Agent đang sẵn sàng"}</span><span className="agent-header-actions"><Link className="agent-history-trigger" href="/?update=1">Cập nhật hồ sơ</Link> <button className="agent-history-trigger" onClick={() => void send("Cho tôi xem lịch sử trò chuyện")}>Lịch sử ↗</button></span></div>
+      {invite && !dismissed && (saved.length > 0 || recentRecommendations.length > 0) && <div className="ob-link-banner" role="note"><span>Lưu hồ sơ gia đình để dùng trên thiết bị khác.</span><span><Link href="/sign-in?link=1">Lưu bằng email</Link> <button onClick={dismissInvite} aria-label="Ẩn lời mời">✕</button></span></div>}
+      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">TRỢ LÝ MUA SẮM CHO GIA ĐÌNH</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child?.name ? `Tôi đã nhớ bé ${child.name}${child.weightKg ? `, ${child.weightKg} kg` : ""}. ` : ""}Cứ nói điều bạn cần. Tôi sẽ tìm, so sánh và đưa nội dung phù hợp tới đây.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestions.map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMILY AI</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.recommendations?.length ? <div className="agent-results">{turn.recommendations.map((item, index) => <AgentProductCard key={item.product.id} item={item} rank={index + 1} saved={saved.includes(item.product.id)} onSave={() => void saveItem(item.product.id)} onDetails={() => void send(`Xem chi tiết ${item.product.canonicalName}`)} conversationId={active.id}/>)}</div> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div><div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
       {error && <p className="agent-error agent-stage-error">{error}</p>}
       <div className="agent-bottom-note">Gợi ý dựa trên mức phù hợp, không dùng hoa hồng để xếp hạng. {products.some((item) => item.isDemo) ? "Đang dùng dữ liệu minh họa." : "Giá có thể thay đổi tại nơi bán."}</div>
     </main>
@@ -116,8 +133,8 @@ function AgentProductCard({ item, rank, saved, onSave, onDetails, conversationId
   return <article className="agent-product"><div className="agent-product-top"><span>{rank === 1 ? "PHÙ HỢP NHẤT" : `LỰA CHỌN ${rank}`}</span><button onClick={onSave} aria-label={saved ? "Bỏ lưu sản phẩm" : "Lưu sản phẩm"}>{saved ? "♥" : "♡"}</button></div><div className="agent-product-visual"><span>✳</span></div><div className="agent-product-main"><small>{item.product.brand}</small><h3>{item.product.canonicalName}</h3><p className="agent-product-score"><strong>{item.score}%</strong> phù hợp</p><ul>{item.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul><p className="agent-product-price">{vnd(offer.price)} <span>· {variant.quantity} miếng</span></p>{item.tradeoff && <p className="agent-tradeoff">{item.tradeoff}</p>}<div className="agent-product-actions"><button onClick={onDetails}>Xem chi tiết</button><a href={`/go/${offer.id}?session=${encodeURIComponent(conversationId)}`}>{item.product.isDemo ? "Bước mua thử" : "Xem nơi bán"} ↗</a></div></div></article>;
 }
 
-function AgentViewPanel({ view, profile, products, saved, conversations, recent, onAsk, onConversation, onSave }: { view: AgentView; profile: FamilyProfile | null; products: Product[]; saved: string[]; conversations: Conversation[]; recent: Recommendation[]; onAsk: (value: string) => void; onConversation: (id: string) => void; onSave: (id: string) => void }) {
-  if (view.kind === "family") return <div className="agent-data-panel"><h3>Hồ sơ gia đình</h3><div className="agent-family-list">{profile?.children.length ? profile.children.map((child) => <div key={child.id}><strong>{child.name ? `Bé ${child.name}` : "Bé"}</strong><span>{child.weightKg ? `${child.weightKg} kg` : "Chưa có cân nặng"} · {child.diaperSize ? `size ${child.diaperSize}` : "chưa rõ size"}</span></div>) : <p>Chưa có thông tin của bé.</p>}<div><strong>Ưu tiên</strong><span>{PRICE_PREFERENCE_LABELS[profile?.pricePreference ?? "balanced"]} · {profile?.maxBudget ? vnd(profile.maxBudget) : "ngân sách linh hoạt"}</span></div></div><p className="agent-panel-foot">Bạn có thể nói “đổi ngân sách thành 350k” hoặc “bé Gold hiện nặng 11kg”.</p></div>;
+function AgentViewPanel({ view, profile, products, saved, conversations, recent, onAsk, onConversation, onSave, onProfileEdit }: { view: AgentView; profile: FamilyProfile | null; products: Product[]; saved: string[]; conversations: Conversation[]; recent: Recommendation[]; onAsk: (value: string) => void; onConversation: (id: string) => void; onSave: (id: string) => void; onProfileEdit: (next: FamilyProfile) => void }) {
+  if (view.kind === "family") return <div className="agent-data-panel">{profile ? <FamilyContextPanel profile={profile} title="Hồ sơ gia đình" onEdit={onProfileEdit}/> : <p>Chưa có thông tin gia đình.</p>}<p className="agent-panel-foot">Bạn cũng có thể nói “đổi ngân sách thành 350k” hoặc “bé Gold hiện nặng 11kg”.</p></div>;
   if (view.kind === "history") return <div className="agent-data-panel"><h3>Cuộc trò chuyện gần đây</h3><div className="agent-list">{conversations.map((item) => <button key={item.id} onClick={() => onConversation(item.id)}><strong>{item.title}</strong><span>{new Date(item.updatedAt).toLocaleDateString("vi-VN")}</span></button>)}</div></div>;
   if (view.kind === "help") return <div className="agent-data-panel"><h3>Bạn có thể hỏi tôi</h3><div className="agent-list">{["Tìm bỉm cho bé 10kg dưới 400k", "So sánh các lựa chọn vừa gợi ý", "Cho tôi xem sản phẩm đã lưu", "Cho tôi xem hồ sơ gia đình"].map((item) => <button key={item} onClick={() => onAsk(item)}>{item}<span>↗</span></button>)}</div></div>;
   const items = view.kind === "saved" ? products.filter((item) => saved.includes(item.id)) : view.kind === "product" ? products.filter((item) => item.id === view.productId) : view.kind === "compare" ? recent.map((item) => item.product).slice(0, 3) : products.slice(0, 8);

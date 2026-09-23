@@ -94,7 +94,8 @@ export function extractRules(message: string, now = new Date()): Extraction {
   result.washingMachine = /cửa trước|cửa ngang|lồng ngang/.test(lower) ? "front" : /cửa trên|lồng đứng/.test(lower) ? "top" : /không có máy giặt|giặt tay|không dùng máy/.test(lower) ? "none" : null;
 
   // A hedge just before a child's measurement makes it tentative: confirm before saving.
-  const hedged = (index: number | undefined) => index !== undefined && HEDGE.test(lower.slice(Math.max(0, index - 16), index));
+  // The hedge must sit in the same clause: "chắc tầm 10kg, size L" hedges the weight, not the size.
+  const hedged = (index: number | undefined) => index !== undefined && HEDGE.test(lower.slice(Math.max(0, index - 16), index).split(/[,;.]/).at(-1) ?? "");
   result.uncertainFields = [
     ...(weight && hedged(weight.index) ? ["weightKg"] : []),
     ...(size && hedged(size.index) ? ["diaperSize"] : []),

@@ -247,3 +247,19 @@ test("'tên bé là X' được nhận là tên và bị che trước khi gửi 
   await converse(["tên bé là gold nhé, 10kg"], { ...fresh(), adultsCount: 2, aiConsent: true }, mockChat({ weightKg: 10 }, seen));
   assert.equal(seen.some((payload) => /gold/i.test(payload)), false);
 });
+
+test("tóm tắt chỉ nêu điều người dùng đã nói; lời ghi nhận nêu rõ giá trị", async () => {
+  const { profileSummary } = await import("../src/lib/ai/onboarding/templates.ts");
+  const result = await converse(["2 người lớn, 1 bé", "Bé Gold 10kg size L", "Không có gì đặc biệt", "Ưu tiên chống tràn, dưới 400k"]);
+  assert.match(result.reply, /ưu tiên hạn chế tràn/);
+  const summary = profileSummary(result.profile).join(" | ");
+  assert.match(summary, /Ưu tiên: hạn chế tràn, tối đa 400\.000đ/);
+  assert.doesNotMatch(summary, /Cân bằng/);
+  const home = await converse(["Cửa trước"], result.profile);
+  assert.match(home.reply, /máy giặt cửa trước/);
+});
+
+test("từ rào không vượt qua dấu phẩy sang giá trị khác", () => {
+  assert.deepEqual(extractRules("Bé Gold chắc tầm 10kg, size L").uncertainFields, ["weightKg"]);
+  assert.deepEqual(extractRules("chắc tầm 10kg, 14 tháng").uncertainFields, ["weightKg"]);
+});

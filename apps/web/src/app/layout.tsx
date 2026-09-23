@@ -8,6 +8,7 @@ import "@fontsource/be-vietnam-pro/800.css";
 import "./globals.css";
 import "./experience.css";
 import "./agent-workspace.css";
+import "./onboarding-agent.css";
 
 export const metadata: Metadata = {
   title: "Family AI | Chọn đồ cho gia đình",

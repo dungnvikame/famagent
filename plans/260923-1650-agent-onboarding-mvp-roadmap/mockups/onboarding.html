@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Onboarding Agent Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1d3430;--muted:#667b75;--cream:#f7f8f3;--paper:#fff;--mint:#d8eee1;--mint-2:#eef7f0;--green:#256b55;--green-d:#244f3a;--line:#dce7de;--warn:#fff6e5;--warn-line:#f0d9a8;--warn-ink:#7a5a1f;--note:#b8232c}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1ea;color:var(--ink);font-family:'Be Vietnam Pro',Arial,sans-serif;line-height:1.55}
+header.doc{max-width:1320px;margin:0 auto;padding:28px 20px 8px}
+header.doc h1{margin:0 0 4px;font-size:24px;letter-spacing:-.5px}
+header.doc p{margin:0;color:var(--muted);font-size:14px;max-width:820px}
+.tabs{max-width:1320px;margin:14px auto 0;padding:0 20px;display:flex;gap:8px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:999px;padding:8px 14px;font:600 13px inherit;font-family:inherit;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--green);border-color:var(--green);color:#fff}
+.stage{max-width:1320px;margin:18px auto 40px;padding:0 20px;display:grid;grid-template-columns:1fr;gap:24px;align-items:start}
+.frames{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px;align-items:start}
+.frame-label{font-size:11px;font-weight:800;letter-spacing:1.2px;color:#7c9186;text-transform:uppercase;margin:0 0 6px}
+/* ---------- Desktop app ---------- */
+.desk{background:#fbfffb;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:grid;grid-template-columns:52px minmax(0,1fr) 270px;height:640px;box-shadow:0 10px 30px #1d34301a}
+.rail{border-right:1px solid var(--line);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:14px;background:#fff}
+.logo{width:32px;height:32px;border-radius:9px;background:var(--green-d);color:#fff;display:grid;place-items:center;font-weight:800;letter-spacing:-2px}
+.logo span{color:#c0ead1}
+.chat{display:flex;flex-direction:column;min-width:0}
+.chat-top{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--line);font-size:12px;color:#53745f;font-weight:600}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#34a85b;margin-right:7px;box-shadow:0 0 0 4px #dff5e3}
+.progress{display:flex;gap:6px;align-items:center}
+.progress i{width:26px;height:5px;border-radius:3px;background:var(--line)}
+.progress i.on{background:var(--green)}.progress i.now{background:#8fc9a8}
+.thread{flex:1;overflow:auto;padding:20px 22px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:78%;padding:11px 14px;border-radius:14px;font-size:14px}
+.msg.agent{background:#fff;border:1px solid var(--line);border-top-left-radius:4px}
+.msg.user{align-self:flex-end;background:var(--green);color:#fff;border-top-right-radius:4px}
+.msg small{display:block;color:var(--muted);font-size:11px;margin-top:4px}
+.typing{display:flex;gap:4px;padding:12px 14px;background:#fff;border:1px solid var(--line);border-radius:14px;width:58px}
+.typing b{width:6px;height:6px;border-radius:50%;background:#9fc8b0;animation:bl 1.2s infinite}
+.typing b:nth-child(2){animation-delay:.2s}.typing b:nth-child(3){animation-delay:.4s}
+@keyframes bl{0%,80%,100%{opacity:.3}40%{opacity:1}}
+@media (prefers-reduced-motion:reduce){.typing b{animation:none}}
+.chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 22px 10px}
+.chip{border:1px solid #cfe2d4;background:#fff;color:var(--green);border-radius:999px;padding:7px 12px;font:600 13px inherit;font-family:inherit}
+.chip.primary{background:var(--green);color:#fff;border-color:var(--green)}
+.composer{margin:0 22px 14px;border:1px solid #cfe0d3;border-radius:14px;background:#fff;padding:10px 12px;display:flex;gap:10px;align-items:end}
+.composer span{flex:1;color:#9aaba1;font-size:14px}
+.composer button{border:0;background:var(--green);color:#fff;border-radius:10px;padding:8px 12px;font:700 13px inherit;font-family:inherit}
+.consent{margin:0 22px 14px;font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:flex-start}
+.consent input{margin-top:3px}
+.confirm-card{align-self:flex-start;max-width:86%;background:var(--warn);border:1px solid var(--warn-line);color:var(--warn-ink);border-radius:14px;padding:12px 14px;font-size:14px}
+.confirm-card strong{color:#5c4312}
+.confirm-card .row{display:flex;gap:8px;margin-top:10px}
+.review{align-self:stretch;background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.review h4{margin:0 0 8px;font-size:15px}
+.review dl{display:grid;grid-template-columns:130px 1fr;gap:6px 12px;margin:0 0 14px;font-size:13px}
+.review dt{color:var(--muted)}
+.review .actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{border:0;border-radius:10px;padding:9px 14px;font:700 13px inherit;font-family:inherit}
+.btn.primary{background:var(--green);color:#fff}.btn.ghost{background:#f1f6f2;color:var(--green)}.btn.danger{background:none;color:#9a4b3c;text-decoration:underline;padding-left:4px}
+.where{font-size:12px;color:var(--muted);margin:10px 0 0}
+/* ---------- Context panel ---------- */
+.panel{border-left:1px solid var(--line);background:#fff;padding:16px;overflow:auto}
+.panel h3{margin:0 0 2px;font-size:14px}
+.panel .sub{margin:0 0 12px;font-size:12px;color:var(--muted)}
+.group{border-top:1px solid var(--line);padding:10px 0}
+.group h5{margin:0 0 6px;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#7c9186;display:flex;justify-content:space-between}
+.group h5 em{font-style:normal;color:var(--green);font-weight:700;letter-spacing:0;text-transform:none}
+.field{display:flex;justify-content:space-between;gap:8px;font-size:13px;padding:4px 6px;border-radius:7px}
+.field span{color:var(--muted)}
+.field b{font-weight:600;text-align:right}
+.field.empty b{color:#a9b8af;font-weight:400}
+.field.fresh{background:#e6f5ea;animation:fr 1.6s ease-out}
+@keyframes fr{from{background:#bfe6cb}to{background:#e6f5ea}}
+@media (prefers-reduced-motion:reduce){.field.fresh{animation:none}}
+.field.pending{background:var(--warn)}.field.pending b{color:var(--warn-ink)}
+.field .edit{border:0;background:none;color:var(--green);font-size:11px;font-weight:700;padding:0 0 0 6px;cursor:pointer}
+.field.editing{background:#f3f8f4;outline:2px solid #bfe0cb}
+.field.editing input{width:70px;border:1px solid #bcd7c4;border-radius:6px;padding:2px 6px;font:inherit;font-size:13px}
+.src{font-size:10px;color:#8aa093;margin-left:4px}
+/* ---------- Mobile ---------- */
+.phone{width:340px;height:640px;border:10px solid #1d3430;border-radius:34px;overflow:hidden;background:#fbfffb;display:flex;flex-direction:column;box-shadow:0 10px 30px #1d34301f}
+.m-top{padding:10px 14px;border-bottom:1px solid var(--line);background:#fff}
+.m-top .row{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#53745f;font-weight:600}
+.m-ctx{margin-top:8px;background:var(--mint-2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:12px;display:flex;justify-content:space-between;gap:8px}
+.m-ctx b{font-weight:600}.m-ctx u{color:var(--green);text-decoration:none;font-weight:700;white-space:nowrap}
+.phone .thread{padding:14px}
+.phone .msg{max-width:88%;font-size:13.5px}
+.phone .chips{padding:0 14px 8px}
+.phone .composer{margin:0 14px 10px}
+.phone .consent{margin:0 14px 10px;font-size:11px}
+.phone .review dl{grid-template-columns:110px 1fr}
+/* ---------- Notes ---------- */
+.notes{background:#fff;border:1px solid var(--line);border-radius:16px;padding:16px}
+.notes ol{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))!important}
+.notes h2{margin:0 0 10px;font-size:15px}
+.notes ol{margin:0;padding-left:0;list-style:none;display:grid;gap:10px}
+.notes li{font-size:13px;display:grid;grid-template-columns:22px 1fr;gap:8px}
+.notes li i{font-style:normal;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--note);color:#fff;font-size:11px;font-weight:800}
+.notes li small{display:block;color:var(--muted);font-size:11.5px}
+.pin{display:inline-grid;place-items:center;width:18px;height:18px;border-radius:50%;background:var(--note);color:#fff;font-size:10px;font-weight:800;vertical-align:middle;margin-left:4px}
+.state:not(.active){display:none!important}
+.thread>.state,.chips>.state{display:contents}
+@media (max-width:1100px){.frames{grid-template-columns:1fr}.phone{margin:0 auto}}
+@media (max-width:1180px){.stage{grid-template-columns:1fr}.notes{position:static}}
+@media (max-width:900px){.frames{grid-template-columns:1fr}.desk{display:none}.phone{margin:auto}.frame-label.d{display:none}}
+</style>
+</head>
+<body>
+<header class="doc">
+  <h1>Onboarding Agent — mockup để duyệt (Phase 4, D9)</h1>
+  <p>Mockup tĩnh dùng đúng token hiện có của app (xanh #256b55, mint, Be Vietnam Pro). Chọn trạng thái để xem desktop và mobile. Số đỏ đối chiếu với ghi chú bên phải và tiêu chí nghiệm thu của Phase 4.</p>
+</header>
+
+<div class="tabs" role="tablist" aria-label="Trạng thái">
+  <button role="tab" aria-selected="true" data-state="s1">1 · Mở đầu</button>
+  <button role="tab" aria-selected="false" data-state="s2">2 · Giữa hội thoại</button>
+  <button role="tab" aria-selected="false" data-state="s3">3 · Xác nhận giá trị mơ hồ</button>
+  <button role="tab" aria-selected="false" data-state="s4">4 · Xem lại &amp; bắt đầu</button>
+</div>
+
+<div class="stage">
+<div class="frames">
+  <div>
+    <p class="frame-label d">Desktop · 1280</p>
+    <div class="desk">
+      <div class="rail"><div class="logo">f<span>.</span></div></div>
+      <div class="chat">
+        <div class="chat-top">
+          <span><span class="dot"></span>Family AI đang lắng nghe</span>
+          <!-- progress by slot group -->
+          <span class="progress" aria-label="Tiến độ theo nhóm">
+            <span class="state active" data-s="s1"><i class="now"></i><i></i><i></i><i></i><i></i></span>
+            <span class="state" data-s="s2"><i class="on"></i><i class="on"></i><i class="now"></i><i></i><i></i></span>
+            <span class="state" data-s="s3"><i class="on"></i><i class="now"></i><i></i><i></i><i></i></span>
+            <span class="state" data-s="s4"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i></span>
+            <span class="pin">3</span>
+          </span>
+        </div>
+        <div class="thread">
+          <div class="state active" data-s="s1">
+            <div class="msg agent">Chào bạn 👋 Mình là Family AI. Trước khi chọn đồ, mình muốn hiểu gia đình bạn một chút để gợi ý đúng size và ngân sách — khoảng 1–2 phút, câu nào chưa muốn trả lời cứ bỏ qua.<span class="pin">1</span></div>
+            <div class="msg agent">Nhà mình có mấy người lớn và mấy bé?</div>
+          </div>
+          <div class="state" data-s="s2">
+            <div class="msg agent">Nhà mình có mấy người lớn và mấy bé?</div>
+            <div class="msg user">2 vợ chồng, 1 bé</div>
+            <div class="msg agent">Cảm ơn bạn. Bé hiện nặng khoảng bao nhiêu kg, đang dùng bỉm size nào? Cho mình biết thêm tên gọi và tuổi nếu tiện.</div>
+            <div class="msg user">Bé Gold 10kg, 14 tháng, size L</div>
+            <div class="msg agent">Mình đã ghi nhận tên gọi Gold, 14 tháng tuổi, cân nặng 10 kg, size L. Khi chọn đồ cho bé Gold, có lưu ý gì không — ví dụ da nhạy cảm, dễ hăm? Bé đang dùng hoặc muốn tránh thương hiệu nào?<small>≤ 2 câu hỏi mỗi lượt</small></div>
+            <div class="typing" aria-label="Family AI đang soạn"><b></b><b></b><b></b></div>
+          </div>
+          <div class="state" data-s="s3">
+            <div class="msg agent">Bé hiện nặng khoảng bao nhiêu kg, đang dùng bỉm size nào?</div>
+            <div class="msg user">Bé Gold chắc tầm 10kg, size L</div>
+            <div class="confirm-card" role="group" aria-label="Xác nhận thông tin">Mình đã ghi nhận tên gọi Gold, size L. Mình ghi <strong>cân nặng 10 kg</strong> nhé? Bấm “Đúng” để lưu hoặc nói lại số chính xác.<span class="pin">4</span>
+              <div class="row"><button class="chip primary">Đúng</button><button class="chip">Sửa lại</button></div>
+            </div>
+          </div>
+          <div class="state" data-s="s4">
+            <div class="msg user">Cửa trước</div>
+            <div class="review" aria-label="Tóm tắt hồ sơ">
+              <h4>Mình đã hiểu gia đình bạn<span class="pin">6</span></h4>
+              <dl>
+                <dt>Hộ gia đình</dt><dd>2 người lớn</dd>
+                <dt>Bé Gold</dt><dd>14 tháng · 10 kg · size L · da nhạy cảm · đang dùng Bobby</dd>
+                <dt>Ưu tiên</dt><dd>Hạn chế tràn · tối đa 400.000đ</dd>
+                <dt>Thiết bị</dt><dd>Máy giặt cửa trước</dd>
+              </dl>
+              <div class="actions"><button class="btn primary">Bắt đầu tư vấn →</button><button class="btn ghost">Sửa thông tin</button><button class="btn danger">Xóa hết và làm lại</button></div>
+              <p class="where">Lưu trên trình duyệt này (bản thử). Bạn có thể sửa hoặc xóa bất cứ lúc nào ở trang Gia đình.</p>
+            </div>
+          </div>
+        </div>
+        <div class="chips">
+          <span class="state active" data-s="s1"><button class="chip">2 người lớn, 1 bé</button> <button class="chip">2 người lớn, 2 bé</button> <button class="chip">Bỏ qua</button><span class="pin">2</span></span>
+          <span class="state" data-s="s2"><button class="chip">Da nhạy cảm</button> <button class="chip">Không có gì đặc biệt</button> <button class="chip">Bỏ qua</button></span>
+          <span class="state" data-s="s3"></span>
+          <span class="state" data-s="s4"><button class="chip">Bắt đầu</button> <button class="chip">Sửa ngân sách</button></span>
+        </div>
+        <div class="composer"><span>Trả lời Family AI… ví dụ “Bé Gold 10kg, size L”</span><button>Gửi ↗</button></div>
+        <label class="consent state active" data-s="s1"><input type="checkbox"> <span>Cho phép gửi câu trả lời tới nhà cung cấp AI để hiểu tốt hơn (tên bé được thay bằng mã khi nhận ra được). Không bật vẫn dùng được theo quy tắc.<span class="pin">7</span></span></label>
+      </div>
+      <aside class="panel" aria-label="Family AI đang hiểu">
+        <h3>Family AI đang hiểu<span class="pin">5</span></h3>
+        <p class="sub">Bấm vào dòng bất kỳ để sửa — không cần chat.</p>
+        <div class="group"><h5>Hộ gia đình</h5>
+          <div class="field state active empty" data-s="s1"><span>Người lớn</span><b>Chưa có</b></div>
+          <div class="field state fresh" data-s="s2"><span>Người lớn</span><b>2</b></div>
+          <div class="field state" data-s="s3"><span>Người lớn</span><b>2</b></div>
+          <div class="field state" data-s="s4"><span>Người lớn</span><b>2</b></div>
+        </div>
+        <div class="group"><h5>Bé <em class="state" data-s="s2">Gold</em><em class="state" data-s="s3">Gold</em><em class="state" data-s="s4">Gold</em></h5>
+          <div class="field state active empty" data-s="s1"><span>Cân nặng / size</span><b>Chưa có</b></div>
+          <div class="field state fresh" data-s="s2"><span>Cân nặng</span><b>10 kg<span class="src">bạn nhập</span></b></div>
+          <div class="field state fresh" data-s="s2"><span>Size · tuổi</span><b>L · 14 tháng</b></div>
+          <div class="field state pending" data-s="s3"><span>Cân nặng</span><b>~10 kg · chờ xác nhận</b></div>
+          <div class="field state editing" data-s="s3"><span>Size</span><b><input value="L" aria-label="Sửa size"> <button class="edit">Lưu</button></b></div>
+          <div class="field state" data-s="s4"><span>Cân nặng</span><b>10 kg<span class="src">đã xác nhận</span></b></div>
+          <div class="field state" data-s="s4"><span>Lưu ý</span><b>Da nhạy cảm · Bobby</b></div>
+          <div class="field state active empty" data-s="s1"><span>Lưu ý da, thương hiệu</span><b>Chưa có</b></div>
+          <div class="field state empty" data-s="s2"><span>Lưu ý da, thương hiệu</span><b>Đang hỏi…</b></div>
+        </div>
+        <div class="group"><h5>Ưu tiên</h5>
+          <div class="field state active empty" data-s="s1"><span>Giá · ngân sách</span><b>Chưa có</b></div>
+          <div class="field state empty" data-s="s2"><span>Giá · ngân sách</span><b>Chưa có</b></div>
+          <div class="field state empty" data-s="s3"><span>Giá · ngân sách</span><b>Chưa có</b></div>
+          <div class="field state" data-s="s4"><span>Ngân sách</span><b>≤ 400.000đ · hạn chế tràn</b></div>
+        </div>
+        <div class="group"><h5>Thiết bị</h5>
+          <div class="field state active empty" data-s="s1"><span>Máy giặt</span><b>Chưa có</b></div>
+          <div class="field state empty" data-s="s2"><span>Máy giặt</span><b>Chưa có</b></div>
+          <div class="field state empty" data-s="s3"><span>Máy giặt</span><b>Chưa có</b></div>
+          <div class="field state" data-s="s4"><span>Máy giặt</span><b>Cửa trước</b></div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <div>
+    <p class="frame-label">Mobile · 375</p>
+    <div class="phone">
+      <div class="m-top">
+        <div class="row"><span><span class="dot"></span>Family AI</span>
+          <span class="state active" data-s="s1">1/5</span><span class="state" data-s="s2">3/5</span><span class="state" data-s="s3">2/5</span><span class="state" data-s="s4">Xong</span></div>
+        <div class="m-ctx"><span>
+          <b class="state active" data-s="s1">Chưa có thông tin</b>
+          <b class="state" data-s="s2">2 người lớn · Gold 10 kg · L</b>
+          <b class="state" data-s="s3">2 người lớn · Gold ~10 kg?</b>
+          <b class="state" data-s="s4">Gold 10 kg · L · ≤ 400k</b>
+          </span><u>Xem &amp; sửa ▾</u><span class="pin">5</span></div>
+      </div>
+      <div class="thread">
+        <div class="state active" data-s="s1">
+          <div class="msg agent">Chào bạn 👋 Mình muốn hiểu gia đình bạn một chút để gợi ý đúng size và ngân sách — khoảng 1–2 phút.</div>
+          <div class="msg agent">Nhà mình có mấy người lớn và mấy bé?</div>
+        </div>
+        <div class="state" data-s="s2">
+          <div class="msg user">Bé Gold 10kg, 14 tháng, size L</div>
+          <div class="msg agent">Mình đã ghi nhận Gold, 14 tháng, 10 kg, size L. Bé có lưu ý gì về da, hay thương hiệu nào muốn dùng hoặc tránh?</div>
+        </div>
+        <div class="state" data-s="s3">
+          <div class="msg user">Bé Gold chắc tầm 10kg, size L</div>
+          <div class="confirm-card">Mình ghi <strong>cân nặng 10 kg</strong> nhé?<div class="row"><button class="chip primary">Đúng</button><button class="chip">Sửa lại</button></div></div>
+        </div>
+        <div class="state" data-s="s4">
+          <div class="review"><h4>Mình đã hiểu gia đình bạn</h4>
+            <dl><dt>Bé Gold</dt><dd>14 tháng · 10 kg · L</dd><dt>Ưu tiên</dt><dd>Hạn chế tràn · ≤ 400k</dd></dl>
+            <div class="actions"><button class="btn primary">Bắt đầu tư vấn →</button><button class="btn ghost">Sửa</button></div></div>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="state active" data-s="s1"><button class="chip">2 người lớn, 1 bé</button> <button class="chip">Bỏ qua</button></span>
+        <span class="state" data-s="s2"><button class="chip">Da nhạy cảm</button> <button class="chip">Không có gì</button></span>
+      </div>
+      <div class="composer"><span>Trả lời Family AI…</span><button>↗</button></div>
+      <label class="consent state active" data-s="s1"><input type="checkbox"> <span>Cho phép dùng AI (tên bé được thay bằng mã).</span></label>
+    </div>
+  </div>
+</div>
+
+<aside class="notes" aria-label="Ghi chú">
+  <h2>Ghi chú thiết kế</h2>
+  <ol>
+    <li><i>1</i><div>Mở đầu nói rõ <b>vì sao hỏi</b> và thời gian (~1–2 phút); không có hero/landing.<small>P4: mở đầu + ước lượng thời gian</small></div></li>
+    <li><i>2</i><div>Chip trả lời nhanh lấy từ <code>quickReplies</code> của server; luôn có “Bỏ qua”.<small>P4: quick-reply chips · spec v1 §9 ưu tiên dạng lựa chọn</small></div></li>
+    <li><i>3</i><div>Tiến độ theo <b>5 nhóm</b> (hộ gia đình → bé → lưu ý → ưu tiên → thiết bị), không phải bước cứng.<small>P4: tiến độ theo nhóm slot</small></div></li>
+    <li><i>4</i><div>Giá trị mơ hồ hiện thẻ vàng + [Đúng] [Sửa lại]; chưa lưu cho đến khi xác nhận.<small>D14 · spec v1 §3</small></div></li>
+    <li><i>5</i><div>Panel “Family AI đang hiểu”: dòng vừa cập nhật sáng lên, dòng trống ghi “Chưa có”, bấm để sửa trực tiếp; nhãn nguồn “bạn nhập / đã xác nhận”. Mobile: thanh gọn mở rộng được. Panel này dùng lại ở /shop.<small>P4: context panel, sửa inline · D11 nguồn gốc</small></div></li>
+    <li><i>6</i><div>Review có cấu trúc + Bắt đầu / Sửa / Xóa hết; nói rõ lưu ở đâu.<small>P4: review · PRODUCT §4 sửa/xóa</small></div></li>
+    <li><i>7</i><div>Đồng ý AI ngay đầu, mặc định tắt; nói rõ tên bé được che nhưng là best-effort.<small>Consent · spec v1 §6.2</small></div></li>
+  </ol>
+  <p style="font-size:12px;color:var(--muted);margin:14px 0 0">A11y: thread <code>aria-live</code>, chip là button, focus về ô nhập sau mỗi lượt, tôn trọng reduced-motion. Mobile ≥360px không cuộn ngang.</p>
+</aside>
+</div>
+
+<script>
+// Switch mockup state (tabs are the only interaction).
+document.querySelectorAll('[role=tab]').forEach((tab) => tab.addEventListener('click', () => {
+  document.querySelectorAll('[role=tab]').forEach((t) => t.setAttribute('aria-selected', String(t === tab)));
+  document.querySelectorAll('.state').forEach((el) => el.classList.toggle('active', el.dataset.s === tab.dataset.state));
+}));
+</script>
+</body>
+</html>
