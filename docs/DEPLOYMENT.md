@@ -80,7 +80,7 @@ Chi tiết cột và quy tắc: [DATA.md](DATA.md).
    | Biến | Giá trị |
    |---|---|
    | `AI_ENABLED` | `true` |
-   | `LLM_PROVIDERS` | `gemini` (hoặc `gemini,groq` nếu có thêm key Groq làm dự phòng) |
+   | `LLM_PROVIDERS` | `groq,gemini` (Groq nhanh ~1 giây, ổn định hơn gói miễn phí Gemini; Gemini làm dự phòng) — hoặc chỉ `gemini` |
    | `GEMINI_API_KEY` | key vừa tạo |
    | `GEMINI_MODEL` | một hoặc nhiều model, cách nhau dấu phẩy, thử lần lượt khi model bị quá tải (503); vd `gemini-3.6-flash,gemini-flash-latest`. `gemini-2.5-flash` đã ngừng cho người dùng mới |
 3. Redeploy. AI chỉ được gọi khi người dùng tích ô đồng ý gửi nội dung tới nhà cung cấp AI; lỗi, hết hạn mức hoặc timeout → tự dùng quy tắc. Mỗi tài khoản có hạn mức giờ: chat 60, onboarding 20, so sánh 30.
@@ -105,7 +105,7 @@ Chi tiết cột và quy tắc: [DATA.md](DATA.md).
 | `AI_ENABLED` | Không | Không | `true` để bật AI |
 | `LLM_PROVIDERS` | Không | Không | vd `gemini,groq` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Khi dùng Gemini | **Không** | |
-| `GROQ_API_KEY`, `GROQ_MODEL` | Tùy chọn | **Không** | Dự phòng khi Gemini lỗi/hết quota |
+| `GROQ_API_KEY`, `GROQ_MODEL` | Tùy chọn | **Không** | console.groq.com; vd `openai/gpt-oss-120b,qwen/qwen3.8-27b` (`llama-3.3-70b-versatile` đã gỡ) |
 
 ## 7. Việc định kỳ
 

@@ -25,7 +25,8 @@ export function templateSummary(intent: ShoppingIntent, candidateCount: number, 
   return `Mình tìm được ${candidateCount} sản phẩm phù hợp${who}${context ? ` (${context})` : ""}. Đây là ${items.length} lựa chọn nên xem trước.${tradeoff ? ` ${tradeoff}.` : ""}`;
 }
 
-const FORBIDDEN = /tốt nhất|rẻ nhất thị trường|giá thấp nhất thị trường|best|số 1|cam kết|chữa|điều trị|an toàn tuyệt đối/i;
+// "rank" is an internal field name the model sometimes echoes ("(rank 1)"); never user-facing.
+const FORBIDDEN = /tốt nhất|rẻ nhất thị trường|giá thấp nhất thị trường|best|số 1|cam kết|chữa|điều trị|an toàn tuyệt đối|\brank\b/i;
 // Product claims the model might add; allowed only when the same words appear in the facts.
 const CLAIMS = ["siêu mỏng", "mỏng nhất", "không mùi", "kháng khuẩn", "hữu cơ", "organic", "chống hăm", "an toàn", "dịu nhẹ", "thấm hút tốt", "mềm mại", "thoáng khí", "chính hãng", "giảm giá", "khuyến mãi", "freeship", "giao nhanh", "được yêu thích", "bán chạy"];
 const numbers = (text: string) => (text.match(/\d+(?:[.,]\d+)*/g) ?? []).map((item) => item.replace(/[.,]/g, ""));
@@ -78,7 +79,7 @@ export async function composeSummary(intent: ShoppingIntent, candidateCount: num
   const facts = factSheet(intent, candidateCount, items);
   const result = await chat<{ summary: string; followUpQuestion: string | null }>({
     name: "recommendation_summary", schema,
-    system: "Bạn tóm tắt kết quả gợi ý bỉm cho phụ huynh Việt Nam bằng 2–3 câu ngắn, xưng 'mình'. Chỉ dùng dữ kiện trong JSON; không thêm giá, số liệu, đánh giá hay tính năng khác; không nói 'tốt nhất'; không đổi thứ tự xếp hạng; không tạo link. followUpQuestion: tối đa 1 câu hỏi gợi ý bước tiếp (vd so sánh) hoặc null.",
+    system: "Bạn tóm tắt kết quả gợi ý bỉm cho phụ huynh Việt Nam bằng 2–3 câu ngắn, xưng 'mình'. Chỉ dùng dữ kiện trong JSON; không thêm giá, số liệu, đánh giá hay tính năng khác; không nói 'tốt nhất'; không đổi thứ tự xếp hạng; không viết chữ 'rank' hay số thứ hạng; không tạo link. followUpQuestion: tối đa 1 câu hỏi gợi ý bước tiếp (vd so sánh) hoặc null.",
     messages: [{ role: "user", content: facts }],
   });
   const text = result ? [result.data.summary.trim(), result.data.followUpQuestion?.trim()].filter(Boolean).join(" ") : "";
