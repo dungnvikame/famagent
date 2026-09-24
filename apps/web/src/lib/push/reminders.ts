@@ -1,24 +1,26 @@
-// "Sắp hết" push reminders (phase 4): which items to remind about today. Pure; the cron route loads data and sends.
+// Proactive reminders (core journey spec §7): which attention insights become a push today. Same engine as Home, so
+// "Đừng nhắc việc này nữa" / "Chưa cần" silence the push too. Pure; the cron routes load data and send.
+import { silenced, type Insight, type InsightFeedback } from "../attention/engine.ts";
+import type { FamilyPolicy } from "../policy/family-policy.ts";
 import type { ItemEstimate } from "../shopping/items.ts";
 
-export const PUSH_WINDOW_DAYS = 3;
-/** An item estimated as out is reminded at most this many times in two weeks (then the family has seen it). */
+/** An item estimated as out is pushed at most this many times in two weeks (then the family has seen it). */
 export const MAX_OUT_REMINDERS = 3;
-export interface Reminder { itemId: string; title: string; body: string; url: string; tag: string }
+export const PUSH_PER_DAY = 2;
+export interface Reminder { key: string; title: string; body: string; url: string; tag: string }
 
-/**
- * Known items at ≤3 days left, not reminded today, soonest first, at most `limit` per family per day.
- * `recent` counts reminders per item in the last 14 days, so an item left at "hết" is not pushed every day forever.
- */
-export function remindersFor(estimates: ItemEstimate[], sentToday: ReadonlySet<string>, limit = 2, recent: ReadonlyMap<string, number> = new Map()): Reminder[] {
-  return estimates.filter((estimate) => estimate.known && estimate.daysLeft !== null && estimate.daysLeft <= PUSH_WINDOW_DAYS && !sentToday.has(estimate.item.id)
-      && !(estimate.daysLeft === 0 && (recent.get(estimate.item.id) ?? 0) >= MAX_OUT_REMINDERS))
-    .slice(0, limit)
-    .map((estimate) => ({
-      itemId: estimate.item.id,
-      title: estimate.daysLeft === 0 ? `${estimate.item.name} có thể đã hết` : `${estimate.item.name} còn khoảng ${estimate.daysLeft} ngày`,
-      body: `${estimate.lastPackPrice ? `Lần trước ${Math.round(estimate.lastPackPrice / 1000)}K/gói${estimate.item.merchant ? ` ở ${estimate.item.merchant}` : ""}. ` : ""}Mở FamAgent để ghi “Đã mua” hoặc báo “còn nhiều”.`,
-      url: "/shopping",
-      tag: `low-${estimate.item.id}`,
-    }));
+export interface PushContext { feedback: InsightFeedback[]; sentToday: ReadonlySet<string>; recent: ReadonlyMap<string, number>; today: string; policy: FamilyPolicy; estimates: ItemEstimate[] }
+
+/** Stock at ≤ the policy's push threshold, unusual category spend, bills due today/tomorrow — at most 2 a day. */
+export function remindersFor(insights: Insight[], context: PushContext, limit = PUSH_PER_DAY): Reminder[] {
+  return insights.filter((insight) => {
+    if (silenced(insight.key, context.feedback, context.today) || context.sentToday.has(insight.key)) return false;
+    if (insight.kind === "stock_low") {
+      const estimate = context.estimates.find((entry) => entry.item.id === insight.subjectId);
+      if (!estimate || estimate.daysLeft === null || estimate.daysLeft > context.policy.lowStockPushDays) return false;
+      return !(estimate.daysLeft === 0 && (context.recent.get(insight.key) ?? 0) >= MAX_OUT_REMINDERS);
+    }
+    if (insight.kind === "bill_due") return insight.badge === "Nay" || insight.badge === "1d";
+    return insight.kind === "category_spike";
+  }).slice(0, limit).map((insight) => ({ key: insight.key, title: insight.title, body: insight.detail, url: insight.cta.href.startsWith("/") ? insight.cta.href : "/home", tag: insight.key }));
 }
