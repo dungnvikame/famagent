@@ -20,7 +20,7 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
     </div>
     <ul className="ob-review-list">{profileSummary(profile).map((line) => <li key={line}><IconCheck size={15} /> {line}</li>)}</ul>
     <div className="ob-review-actions">
-      <button type="button" className="ob-btn primary" disabled={busy} onClick={onStart}>{busy ? "Đang lưu…" : "Bắt đầu tư vấn →"}</button>
+      <button type="button" className="ob-btn primary" disabled={busy} onClick={onStart}>{busy ? "Đang lưu…" : "Xong, vào nhà mình →"}</button>
       <button type="button" className="ob-btn ghost" disabled={busy} onClick={onEdit}>Sửa thông tin</button>
       <button type="button" className="ob-btn danger" disabled={busy} onClick={onReset}>Xóa hết và làm lại</button>
     </div>

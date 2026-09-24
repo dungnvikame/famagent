@@ -1,4 +1,4 @@
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
+import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, MERCHANTS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
 
 // Limits keep stored context small and to what product selection needs (PRODUCT.md §4).
 const MAX_LIST = 10;
@@ -35,7 +35,16 @@ function validOnboarding(value: unknown): boolean {
   return state.version === 2 && slots(state.completedSlots) && slots(state.skippedSlots);
 }
 
-const isoTime = (value: unknown) => typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
+function validHousehold(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const h = value as Record<string, unknown>;
+  return optional(h.setup, inList(HOUSEHOLD_SETUPS))
+    && optional(h.focus, enumList(HOUSEHOLD_FOCUS))
+    && optional(h.monthlySpend, number(1_000_000, 1_000_000_000, true))
+    && optional(h.merchants, enumList(MERCHANTS));
+}
+
+const isoTime =(value: unknown) => typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));
 
 function validFieldMeta(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -77,6 +86,7 @@ export function validProfile(value: unknown): value is FamilyProfile {
     && optional(p.avoidedIngredients, textList)
     && optional(appliances, (item) => typeof item === "object" && item !== null && optional((item as Record<string, unknown>).washingMachine, inList(WASHING_MACHINES)))
     && optional(p.onboarding, validOnboarding)
+    && optional(p.household, validHousehold)
     && optional(p.fieldMeta, validFieldMeta)
     && p.children.every(validChild);
 }

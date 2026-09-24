@@ -31,7 +31,13 @@ export function MoneyPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải sổ thu chi."); }
   }, [month]);
   useEffect(() => { void reload(month); }, [month, reload]);
-  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((profile) => setChildren(profile?.children ?? [])).catch(() => {}); }, []);
+  const [spendHint, setSpendHint] = useState<number | undefined>();
+  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((profile) => { setChildren(profile?.children ?? []); setSpendHint(profile?.household?.monthlySpend); }).catch(() => {}); }, []);
+  // Onboarding asked for a rough monthly spend: use it as the plan once, until the family sets its own.
+  useEffect(() => {
+    if (!bundle || bundle.settings.monthlyPlan || !spendHint) return;
+    void saveMoneySettings({ ...bundle.settings, monthlyPlan: spendHint }).then(() => reload()).catch(() => {});
+  }, [bundle, spendHint, reload]);
 
   const summary = bundle ? summarizeMonth(bundle) : null;
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };

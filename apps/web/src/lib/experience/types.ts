@@ -51,8 +51,25 @@ export interface OnboardingState {
   skippedSlots: string[];
 }
 
+export const HOUSEHOLD_SETUPS = ["couple", "single_parent", "multigen", "expecting"] as const;
+export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care"] as const;
+export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
+export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
+
+/** Household context from onboarding (spec v2 §5 Family Graph): what the family wants help with and how it lives. */
+export interface HouseholdContext {
+  setup?: (typeof HOUSEHOLD_SETUPS)[number];
+  /** What the family asked FamAgent to help with first; orders Home and suggestions. */
+  focus?: Array<(typeof HOUSEHOLD_FOCUS)[number]>;
+  /** Rough monthly household spend (VND); seeds the Money plan until the family sets one. */
+  monthlySpend?: number;
+  /** Where the family usually buys for the kids. */
+  merchants?: Array<(typeof MERCHANTS)[number]>;
+}
+
 export interface FamilyProfile {
   id: string;
+  household?: HouseholdContext;
   familyName?: string;
   adultsCount?: number;
   children: ChildProfile[];
