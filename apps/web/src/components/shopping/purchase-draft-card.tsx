@@ -16,10 +16,12 @@ export interface CatalogLink { productId: string; variantId?: string; offerId?: 
  * The one confirmation card for every purchase capture (chat, quick entry, photo, "Đã mua", plan, ledger link):
  * prefilled from the draft, the family fixes what is wrong, then one tap writes purchase + ledger expense + item.
  */
-export function PurchaseDraftCard({ draft, items, familyChildren, source, catalog, linkTransactionId, defaultChildId, title = "Ghi lần mua", onSaved, onCancel }: {
+export function PurchaseDraftCard({ draft, items, familyChildren, source, catalog, linkTransactionId, defaultChildId, title = "Ghi lần mua", summary, onSaved, onCancel }: {
   draft: PurchaseDraft; items: ShoppingItem[]; familyChildren: ChildProfile[]; source: PurchaseSource; catalog?: CatalogLink; linkTransactionId?: string; title?: string;
   /** Child the purchase is for when the caller knows (a recommendation for bé Gold). */
   defaultChildId?: string;
+  /** One-line reading ("Merries L64 cho Gold, 369K"): shows "Đúng / Sửa" first; the form opens on "Sửa". */
+  summary?: string;
   onSaved: (purchase: Purchase, item: ShoppingItem) => void; onCancel?: () => void;
 }) {
   const active = items.filter((item) => item.status !== "outgrown");
@@ -37,6 +39,7 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
   const [childId, setChildId] = useState(defaultChildId ?? existing?.childId ?? familyChildren[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(!summary);
 
   function pick(id: string) {
     setItemId(id);
@@ -50,10 +53,12 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
 
   async function submit() {
     const paid = parseVnd(amount); const count = Number(packs); const size = Number(packSize);
-    if (paid === null || paid < 0) { setError("Nhập số tiền đã trả (ví dụ 350k)."); return; }
-    if (!(Number.isInteger(count) && count >= 1 && count <= 50)) { setError("Số gói từ 1 đến 50."); return; }
-    if (!(Number.isInteger(size) && size >= 1)) { setError(`Nhập số ${unit || "đơn vị"} trong mỗi gói.`); return; }
-    if (!existing && !name.trim()) { setError("Nhập tên món."); return; }
+    // "Đúng" with something missing opens the form on the missing field instead of guessing.
+    const fail = (message: string) => { setError(message); setEditing(true); };
+    if (paid === null || paid < 0) { fail("Nhập số tiền đã trả (ví dụ 350k)."); return; }
+    if (!(Number.isInteger(count) && count >= 1 && count <= 50)) { fail("Số gói từ 1 đến 50."); return; }
+    if (!(Number.isInteger(size) && size >= 1)) { fail(`Nhập số ${unit || "đơn vị"} trong mỗi gói.`); return; }
+    if (!existing && !name.trim()) { fail("Nhập tên món."); return; }
     const kid = forChild && childId ? childId : undefined;
     const item: ShoppingItem = existing
       ? { ...existing, packSize: size, merchant: merchant.trim() || existing.merchant, productId: existing.productId ?? catalog?.productId, brand: existing.brand ?? catalog?.brand }
@@ -69,6 +74,12 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
   }
 
   const total = (Number(packs) || 1) * (Number(packSize) || 0);
+  if (!editing && summary) return <div className="app-card draft-card draft-summary" role="group" aria-label={title}>
+    <p>Tôi hiểu đây là <b>{summary}</b>. Đúng không?</p>
+    <small>Sẽ ghi vào Tiền nhóm {forChild ? "Con" : "Mua sắm"} và cập nhật tồn của món{existing ? "" : " mới"}.</small>
+    {error && <p className="form-error" role="alert">{error}</p>}
+    <span className="purchase-actions"><button type="button" className="app-btn" disabled={busy} onClick={() => void submit()}>{busy ? "Đang ghi…" : "Đúng"}</button><button type="button" className="app-btn ghost" onClick={() => setEditing(true)}>Sửa</button>{onCancel && <button type="button" className="ledger-link" onClick={onCancel}>Bỏ</button>}</span>
+  </div>;
   return <form className="app-card draft-card" aria-label={title} onSubmit={(event) => { event.preventDefault(); void submit(); }}>
     <b>{title}</b>
     <label>Món<select value={itemId} onChange={(event) => pick(event.target.value)}>

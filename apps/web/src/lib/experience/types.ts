@@ -78,12 +78,17 @@ export const SCREEN_TIME = ["none", "lt1h", "1to2h", "gt2h"] as const;
 export const READING_FREQ = ["daily", "sometimes", "rarely"] as const;
 export const SAFETY_MEASURES = ["stairs", "outlets", "chemicals", "vehicle", "none"] as const;
 export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
+/** How the family likes to spend and shop; becomes the Family Policy (lib/policy/family-policy). */
+export const HOUSEHOLD_STYLES = ["saving", "balanced", "convenience"] as const;
+export type HouseholdStyle = (typeof HOUSEHOLD_STYLES)[number];
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
 
 /** Household context from onboarding (spec v2 §5 Family Graph): what the family wants help with and how it lives. */
 export interface HouseholdContext {
   setup?: (typeof HOUSEHOLD_SETUPS)[number];
+  /** Tiết kiệm / Cân bằng / Tiện lợi (onboarding) → Family Policy. */
+  style?: HouseholdStyle;
   /** What the family asked FamAgent to help with first; orders Home and suggestions. */
   focus?: Array<(typeof HOUSEHOLD_FOCUS)[number]>;
   /** Rough monthly household spend (VND); seeds the Money plan until the family sets one. */
@@ -149,6 +154,7 @@ export interface FamilyProfile {
 }
 
 import type { PurchaseDraft } from "../shopping/capture.ts";
+import type { Decision } from "../money/decision.ts";
 
 /** Intents the agent recognises (spec v1 §7). MVP handles discover/compare/update_family; the rest answer "coming soon". */
 export const INTENT_TYPES = ["discover", "compare", "reorder", "check_replenishment", "monthly_basket", "price_check", "update_family", "unknown"] as const;
@@ -234,6 +240,9 @@ export interface ChatTurn {
   purchaseDraft?: PurchaseDraft;
   /** Set once the draft was confirmed, so reopening the conversation never logs it twice. */
   purchaseSaved?: string;
+  /** "Muốn mua robot hút bụi 8 triệu" → financial fit + 3 options (spec §6). */
+  decision?: Decision;
+  decisionDone?: string;
 }
 
 export type AgentView = { kind: "family" | "saved" | "catalog" | "compare" | "product" | "history" | "help"; productId?: string };
@@ -259,4 +268,5 @@ export interface ChatResponse {
   profile?: FamilyProfile;
   notesRecorded?: string[];
   purchaseDraft?: PurchaseDraft;
+  decision?: Decision;
 }

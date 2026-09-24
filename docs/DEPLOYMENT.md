@@ -124,7 +124,7 @@ Chi tiết cột và quy tắc: [DATA.md](DATA.md).
 
 ## 7. Việc định kỳ
 
-**Nhắc “sắp hết” (Vercel Cron):** `vercel.json` gọi `/api/cron/reminders` lúc 01:00 UTC (08:00 giờ VN). Cần `DATABASE_URL`, cặp khóa VAPID và `CRON_SECRET`; thiếu thì route trả 503 và nút bật nhắc bị ẩn. Mỗi món tối đa 1 nhắc/ngày (`push_log`); đăng ký hết hạn (404/410) tự xóa. Đọc ảnh đơn hàng dùng cùng chuỗi provider AI (cần model có vision, vd Gemini) và hạn mức 20 ảnh/giờ.
+**Nhắc chủ động (Vercel Cron):** `vercel.json` gọi `/api/cron/reminders` lúc 01:00 UTC (08:00 giờ VN) — sắp hết, chi bất thường theo nhóm, hóa đơn đến hạn, tối đa 2 nhắc/ngày/nhà, bỏ qua mục gia đình đã “Chưa cần”/“Đừng nhắc” — và `/api/cron/weekly` lúc 12:00 UTC Chủ nhật (19:00 VN) cho Bản tin tuần (`/home/week`). Cần `DATABASE_URL`, cặp khóa VAPID và `CRON_SECRET`; thiếu thì route trả 503 và nút bật nhắc bị ẩn. Mỗi mục tối đa 1 nhắc/ngày (`notification_log`, migration 0015); đăng ký hết hạn (404/410) tự xóa. Đọc ảnh đơn hàng dùng cùng chuỗi provider AI (cần model có vision, vd Gemini) và hạn mức 20 ảnh/giờ.
 
 **Thứ tự triển khai Mua sắm mới (plan 260924-1431):** `pg_dump` → áp migration `202609240012`–`202609240014` → deploy app. Migration giữ `purchases.item_id` nullable nên bản app cũ vẫn chạy trong lúc chờ deploy.
 

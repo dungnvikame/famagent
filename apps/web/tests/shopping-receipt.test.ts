@@ -29,21 +29,35 @@ test("trả lời sai dạng bị loại; ngày tương lai về hôm nay; chỉ
   assert.equal(isImageDataUrl("https://example.com/a.jpg"), false);
 });
 
-test("nhắc: món ≤ 3 ngày, chưa nhắc hôm nay, tối đa 2", () => {
+test("nhắc: từ attention engine — sắp hết theo ngưỡng policy, chi bất thường, tôn trọng phản hồi, tối đa 2/ngày", async () => {
+  const { allInsights, feedbackFor } = await import("../src/lib/attention/engine.ts");
+  const { familyPolicy } = await import("../src/lib/policy/family-policy.ts");
   const now = new Date(2026, 8, 24, 9);
   const items = ["a", "b", "c", "d"].map((id): ShoppingItem => ({ ...merries, id, name: `Món ${id}` }));
   const purchases = [["a", 10], ["b", 20], ["c", 5], ["d", 64]].map(([itemId, unitCount]) => ({ id: crypto.randomUUID(), itemId: itemId as string, productName: "x", amount: 100_000, packs: 1, unitCount: unitCount as number, purchasedOn: "2026-09-23" }));
   const estimates = estimateItems(items, purchases, () => 6, now);
-  const reminders = remindersFor(estimates, new Set(["c"]));
-  assert.deepEqual(reminders.map((reminder) => reminder.itemId), ["a", "b"]);
-  assert.match(reminders[0].title, /Món a còn khoảng 0 ngày|Món a có thể đã hết/);
-  assert.equal(remindersFor(estimates, new Set(["a", "b", "c"])).length, 0);
+  const policy = familyPolicy(null);
+  const insights = allInsights({ profile: null, conversations: [], month: null, history: [], goals: [], estimates, plan: [], counts: { transactions: 0, items: 4 } }, policy, now);
+  const base = { feedback: [], sentToday: new Set<string>(), recent: new Map<string, number>(), today: "2026-09-24", policy, estimates };
+  assert.deepEqual(remindersFor(insights, base).map((reminder) => reminder.key), ["stock_low:a", "stock_low:c"]);
+  assert.deepEqual(remindersFor(insights, { ...base, feedback: [feedbackFor("stock_low:c", "mute", now)] }).map((reminder) => reminder.key), ["stock_low:a", "stock_low:b"]);
+  assert.deepEqual(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:c"]), recent: new Map([["stock_low:a", 3]]) }).map((reminder) => reminder.key), ["stock_low:b"]);
+  assert.ok(!remindersFor(insights, base).some((reminder) => reminder.key === "stock_low:d"), "64 miếng còn >3 ngày");
 });
 
-test("món đã hết chỉ được nhắc tối đa 3 lần trong 2 tuần", () => {
+test("review 260924-1609: giới hạn 2 nhắc mỗi ngày tính cả lần chạy trước; chi bất thường tối đa 1 lần/tuần", async () => {
+  const { allInsights } = await import("../src/lib/attention/engine.ts");
+  const { familyPolicy } = await import("../src/lib/policy/family-policy.ts");
   const now = new Date(2026, 8, 24, 9);
-  const out = estimateItems([merries], [{ id: "p", itemId: "i1", productName: "x", amount: 1, packs: 1, unitCount: 6, purchasedOn: "2026-09-20" }], () => 6, now);
-  assert.equal(out[0].daysLeft, 0);
-  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 2]])).length, 1);
-  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 3]])).length, 0);
+  const items = ["a", "b", "c"].map((id): ShoppingItem => ({ ...merries, id, name: `Món ${id}` }));
+  const purchases = ["a", "b", "c"].map((itemId) => ({ id: crypto.randomUUID(), itemId, productName: "x", amount: 100_000, packs: 1, unitCount: 5, purchasedOn: "2026-09-23" }));
+  const estimates = estimateItems(items, purchases, () => 6, now);
+  const policy = familyPolicy(null);
+  const insights = allInsights({ profile: null, conversations: [], month: null, history: [], goals: [], estimates, plan: [], counts: { transactions: 0, items: 3 } }, policy, now);
+  const base = { feedback: [], recent: new Map<string, number>(), today: "2026-09-24", policy, estimates };
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:a"]) }).length, 1);
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:a", "stock_low:b"]) }).length, 0);
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["weekly_brief:2026-09-24"]) }).length, 2);
+  const spike = { key: "category_spike:Ăn uống", kind: "category_spike" as const, tone: "info" as const, badge: "+32%", title: "x", detail: "y", source: "z", cta: { label: "Xem", href: "/money" }, priority: 65 };
+  assert.equal(remindersFor([spike], { ...base, sentToday: new Set(), sentThisWeek: new Set([spike.key]) }).length, 0);
 });

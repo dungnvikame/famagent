@@ -1,88 +1,96 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "@/components/app-shell/use-account";
-import { buildBrief, type FamilyBrief } from "@/lib/brief/build-brief";
-import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved } from "@/lib/experience/cloud";
-import { getConversations, getProfile, getSavedProducts } from "@/lib/experience/storage";
-import type { Conversation, FamilyProfile } from "@/lib/experience/types";
-import { loadMoney } from "@/lib/money/client";
-import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
-import { loadShopping } from "@/lib/shopping/item-client";
-import { checkCandidate, StockCheck } from "@/components/shopping/stock-check";
-import type { StockCheck as StockCheckRow } from "@/lib/shopping/items";
-import { estimateItems, itemRateResolver, type ItemEstimate } from "@/lib/shopping/items";
-import { DailyTasks } from "./daily-tasks";
-import { localDay } from "@/lib/brief/daily-tasks";
+import { DATA_CHANGED } from "@/components/inbox/inbox";
+import { StockCheck } from "@/components/shopping/stock-check";
+import { buildAttention, FEEDBACK_LABELS, FEEDBACK_VERDICTS, type Attention, type FeedbackVerdict, type Insight, type InsightFeedback } from "@/lib/attention/engine";
+import { loadFeedback, sendFeedback } from "@/lib/attention/feedback-client";
+import { loadSnapshot, type LoadedState } from "@/lib/attention/snapshot-client";
+import { familyPolicy } from "@/lib/policy/family-policy";
 
-/** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
+/**
+ * Home = Attention Feed (core journey spec §3): no dashboard — "nhà mình đang có gì đáng chú ý?". At most three cards,
+ * each with its source, one action and feedback that changes what FamAgent shows; then what is going fine.
+ */
 export function FamilyBriefPage() {
   const router = useRouter();
   const account = useAccount();
-  const [profile, setProfile] = useState<FamilyProfile | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [savedCount, setSavedCount] = useState(0);
-  const [money, setMoney] = useState<MonthSummary | null>(null);
-  const [loggedToday, setLoggedToday] = useState(false);
-  const [stock, setStock] = useState<ItemEstimate[]>([]);
-  const [checks, setChecks] = useState<StockCheckRow[]>([]);
-  const [shoppingTick, setShoppingTick] = useState(0);
+  const [state, setState] = useState<LoadedState | null>(null);
+  const [feedback, setFeedback] = useState<InsightFeedback[]>([]);
   const [error, setError] = useState("");
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const [family, existing, saved] = cloudEnabled
-          ? await Promise.all([loadCloudProfile(), loadCloudConversations(), loadCloudSaved()])
-          : [getProfile(), getConversations(), getSavedProducts()];
-        if (cancelled) return;
-        if (!family?.onboardedAt) { router.replace("/onboarding"); return; }
-        setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
-        // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
-        loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); const today = localDay(new Date()); setLoggedToday(bundle.transactions.some((tx) => tx.occurredOn === today)); }).catch(() => {});
-        loadShopping().then((shopping) => { if (!cancelled) { setStock(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks)); setChecks(shopping.checks); } }).catch(() => {});
-      } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
-    }
-    void load();
-    return () => { cancelled = true; };
-  }, [router, shoppingTick]);
+  const load = useCallback(async () => {
+    try {
+      const [loaded, answers] = await Promise.all([loadSnapshot(account.name), loadFeedback().catch(() => [])]);
+      if (!loaded.snapshot.profile?.onboardedAt) { router.replace("/onboarding"); return; }
+      setState(loaded); setFeedback(answers); setError("");
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); }
+  }, [account.name, router]);
+  useEffect(() => { void load(); }, [load]);
+  useEffect(() => { const refresh = () => void load(); window.addEventListener(DATA_CHANGED, refresh); return () => window.removeEventListener(DATA_CHANGED, refresh); }, [load]);
 
-  if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
-  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock });
-  const known = stock.filter((item) => item.known);
-  const candidate = checkCandidate(stock, (itemId) => checks.filter((check) => check.itemId === itemId).map((check) => check.checkedOn).sort().at(-1), localDay(new Date()));
-  const child = profile?.children[0];
+  if (!state) return <div className="app-page" aria-busy="true"><p className="app-sub">{error || "Đang xem nhà mình có gì đáng chú ý…"}</p></div>;
+  const policy = familyPolicy(state.snapshot.profile);
+  const home: Attention = buildAttention(state.snapshot, policy, feedback);
 
-  return <div className="app-page">
-    <div><h1>{brief.greeting}</h1><p className="app-sub">{brief.subtitle}</p></div>
-    {error && <p className="form-error">{error}</p>}
+  async function answer(insight: Insight, verdict: FeedbackVerdict) {
+    try { const entry = await sendFeedback(insight.key, verdict); setFeedback((current) => [...current.filter((item) => item.key !== entry.key), entry]); }
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được phản hồi."); }
+  }
 
-    <section className="app-section" aria-labelledby="brief-att"><h2 id="brief-att">Cần chú ý</h2>
-      <div className="brief-att">{brief.attention.map((card) => <div className="app-card brief-card" key={card.id}><span className={`ic ${card.tone}`} aria-hidden="true">{card.badge}</span><div className="t"><b>{card.title}</b><small>{card.detail}</small></div><Link className={`app-btn${card.tone === "warn" ? "" : " ghost"}`} href={card.cta.href}>{card.cta.label}</Link></div>)}</div>
-    </section>
+  return <div className="app-page home-feed">
+    <div><h1>{home.greeting}</h1><p className="app-sub">{home.subtitle}</p></div>
+    {error && <p className="form-error" role="alert">{error}</p>}
 
-    {profile && <DailyTasks profile={profile} loggedToday={loggedToday} />}
-
-    <div className="app-grid2">
-      <section className="app-section" aria-labelledby="brief-money"><h2 id="brief-money">Tiền tháng này</h2>
-        <div className="app-card"><div className="app-grid2"><div className="brief-kpi"><small>Đã chi</small><b>{money?.expense ? shortVnd(money.expense) : "—"}</b></div><div className="brief-kpi"><small>Kế hoạch</small><b>{money?.plan ? shortVnd(money.plan) : "—"}</b></div></div>
-          {money?.plan ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round(money.expense / money.plan * 100))}%` }} className={money.expense > money.plan ? "over" : undefined} /></span> : null}
-          <p className="app-sub" style={{ marginTop: 10 }}>{money && money.transactionCount ? <>{money.expectedExpense ? `Dự kiến cuối tháng chi ${shortVnd(money.expectedExpense)}` : `${money.transactionCount} khoản tháng này`}{money.plan && money.remainingOfPlan !== undefined ? ` · còn ${shortVnd(money.remainingOfPlan)} trong kế hoạch` : ""}. </> : "Chưa có giao dịch nào. "}<Link className="brief-link" href="/money">Mở Tiền →</Link></p></div>
-      </section>
-      <section className="app-section" aria-labelledby="brief-shop"><h2 id="brief-shop">Mua sắm</h2>
-        <div className="app-card">{known.length ? <div className="app-rows brief-upcoming">{known.slice(0, 2).map((estimate) => <div key={estimate.item.id}><span><b>{estimate.item.name}</b><small>{estimate.daysLeft === 0 ? "ước tính đã hết" : `còn ~${estimate.daysLeft} ngày`}</small></span></div>)}</div>
-          : <p className="app-sub" style={{ marginTop: 0 }}>{child ? `Ghi lần mua đồ cho ${child.name ? `bé ${child.name}` : "bé"} để FamAgent tính ngày hết và nhắc mua lại.` : "Ghi lần mua để FamAgent tính ngày hết và nhắc mua lại."}</p>}
-          {candidate && <StockCheck estimate={candidate} onDone={() => setShoppingTick((value) => value + 1)} />}
-          <p className="app-sub" style={{ marginTop: 10 }}><Link className="brief-link" href="/shopping">Mở kế hoạch mua sắm →</Link></p></div>
-      </section>
-    </div>
-
-    {brief.insights.length > 0 && <section className="app-section" aria-labelledby="brief-ins"><h2 id="brief-ins">FamAgent nhận thấy</h2>
-      <div className="brief-att">{brief.insights.map((item, index) => <div className="app-card brief-insight" key={index}><span className="app-orb" aria-hidden="true" /><div><p>{item.text}</p><small>{item.source}{item.href && <> · <Link className="brief-link" href={item.href}>Hỏi thêm</Link></>}</small></div></div>)}</div>
+    {home.attention.length > 0 && <section className="app-section" aria-labelledby="home-att"><h2 id="home-att">Cần chú ý</h2>
+      <div className="brief-att">{home.attention.map((insight) => <InsightCard key={insight.key} insight={insight} state={state} onAnswer={(verdict) => void answer(insight, verdict)} onChanged={() => void load()} />)}</div>
     </section>}
+
+    {home.starters.length > 0 && <section className="app-section" aria-labelledby="home-start"><h2 id="home-start">Bắt đầu</h2>
+      <div className="brief-att">{home.starters.map((step) => <div className="app-card brief-card" key={step.id}><span className="ic info" aria-hidden="true">＋</span><div className="t"><b>{step.title}</b><small>{step.detail}</small></div><Link className="app-btn ghost" href={step.href}>{step.cta}</Link></div>)}</div>
+    </section>}
+
+    {home.fine.length > 0 && <section className="app-section" aria-labelledby="home-fine"><h2 id="home-fine">Đang ổn</h2>
+      <ul className="app-card home-fine">{home.fine.map((line) => <li key={line}>{line}</li>)}</ul>
+    </section>}
+
+    <p className="app-sub money-foot"><Link className="brief-link" href="/home/week">Xem bản tin tuần của nhà mình →</Link></p>
+  </div>;
+}
+
+/** One attention card: title, detail, source, one CTA and "⋯" feedback. "Không đúng" on stock asks "còn không?". */
+function InsightCard({ insight, state, onAnswer, onChanged }: { insight: Insight; state: LoadedState; onAnswer: (verdict: FeedbackVerdict) => void; onChanged: () => void }) {
+  const [menu, setMenu] = useState(false);
+  // Keyboard: Escape closes the feedback menu; arrows move between its items.
+  function onMenuKey(event: React.KeyboardEvent<HTMLSpanElement>) {
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "Escape") { setMenu(false); (event.currentTarget.previousElementSibling as HTMLElement | null)?.focus(); }
+    if (event.key === "ArrowDown") { event.preventDefault(); buttons[(at + 1) % buttons.length]?.focus(); }
+    if (event.key === "ArrowUp") { event.preventDefault(); buttons[(at - 1 + buttons.length) % buttons.length]?.focus(); }
+  }
+  const [checking, setChecking] = useState(false);
+  const estimate = insight.kind === "stock_low" ? state.snapshot.estimates.find((entry) => entry.item.id === insight.subjectId) : undefined;
+  function pick(verdict: FeedbackVerdict) {
+    setMenu(false);
+    // Feedback must change the state, not only a log: a wrong stock estimate is corrected right here.
+    if (verdict === "wrong" && estimate) { setChecking(true); return; }
+    onAnswer(verdict);
+  }
+  return <div className="app-card brief-card insight-card">
+    <span className={`ic ${insight.tone}`} aria-hidden="true">{insight.badge}</span>
+    <div className="t"><b>{insight.title}</b><small>{insight.detail}</small><small className="insight-source">{insight.source}</small>
+      {checking && estimate && <StockCheck estimate={estimate} onDone={() => { setChecking(false); onAnswer("wrong"); onChanged(); }} />}
+    </div>
+    <span className="insight-actions">
+      <Link className={`app-btn${insight.tone === "warn" ? "" : " ghost"}`} href={insight.cta.href}>{insight.cta.label}</Link>
+      <span className="insight-more">
+        <button type="button" className="ledger-link" aria-haspopup="menu" aria-expanded={menu} aria-label={`Phản hồi về: ${insight.title}`} onClick={() => setMenu((open) => !open)}>⋯</button>
+        {menu && <span className="insight-menu" role="menu" onKeyDown={onMenuKey} ref={(node) => { node?.querySelector("button")?.focus(); }}>{FEEDBACK_VERDICTS.map((verdict) => <button key={verdict} type="button" role="menuitem" onClick={() => pick(verdict)}>{FEEDBACK_LABELS[verdict]}</button>)}</span>}
+      </span>
+    </span>
   </div>;
 }
