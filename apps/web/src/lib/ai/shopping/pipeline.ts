@@ -29,7 +29,7 @@ const COMING_SOON: Partial<Record<ShoppingIntent["intentType"], string>> = {
   price_check: "Theo dõi giá đang được phát triển. Mình có thể tìm các lựa chọn đang có trong ngân sách của bạn.",
 };
 
-function emptyIntent(previous: ShoppingIntent | null): ShoppingIntent {
+export function emptyIntent(previous: ShoppingIntent | null = null): ShoppingIntent {
   return previous ?? { schemaVersion: "1", intentType: "unknown", requiredAttributes: {}, constraints: {}, preferences: {}, fieldEvidence: {}, ambiguity: [] };
 }
 

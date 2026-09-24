@@ -13,13 +13,17 @@ import { RecommendationCard } from "@/components/recommendation-card";
 import { compareToken, MAX_COMPARE } from "@/lib/catalog/compare";
 import { formatWeight } from "@/lib/onboarding/questions";
 import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved, saveCloudConversation, saveCloudProfile, setCloudSaved } from "@/lib/experience/cloud";
+import { answerMoney, detectMoneyQuestion } from "@/lib/money/answer";
+import { loadMoney } from "@/lib/money/client";
+import { monthKey, summarizeMonth } from "@/lib/money/summary";
+import { emptyIntent } from "@/lib/ai/shopping/pipeline";
 
 /** First-screen prompts built from the profile, so a new user sees what to ask and that the agent already knows the child. */
 function suggestionsFor(profile: FamilyProfile | null): string[] {
   const child = profile?.children[0];
   const who = child?.name ? `bé ${child.name}` : "bé";
   const budget = profile?.maxBudget ? ` dưới ${Math.round(profile.maxBudget / 1000)}k` : "";
-  return [`Tìm bỉm ban đêm cho ${who}${budget}`, `Loại nào tiết kiệm nhất cho ${who}?`, "Cho tôi xem hồ sơ gia đình"];
+  return [`Tìm bỉm ban đêm cho ${who}${budget}`, "Tháng này nhà mình tiêu thế nào?", "Khoản nào sắp đến hạn?"];
 }
 function newConversation(): Conversation { return { id: crypto.randomUUID(), title: "Cuộc trò chuyện mới", turns: [], updatedAt: new Date().toISOString() }; }
 
@@ -107,9 +111,15 @@ export function AgentShopping() {
     persist(next); trackEvent("ai_message_sent", { conversationId: activeId });
     try {
       if (cloudEnabled) await saveCloudConversation(next.find((item) => item.id === activeId)!);
-      const response = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId }) });
-      if (!response.ok) { const failure = await response.json().catch(() => ({})) as { error?: string }; throw new Error(failure.error || "Chưa thể xử lý yêu cầu."); }
-      const result = await response.json() as ChatResponse;
+      // Coordinator, money side: in demo mode the ledger lives in this browser, so the answer is built here
+      // with the same templates the server uses for signed-in users (/api/chat).
+      const moneyQuestion = !cloudEnabled ? detectMoneyQuestion(input) : null;
+      const result: ChatResponse = moneyQuestion
+        ? await loadMoney(monthKey(new Date())).then((bundle): ChatResponse => ({ ...answerMoney(moneyQuestion, summarizeMonth(bundle), input), intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" }))
+        : await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId }) }).then(async (response) => {
+          if (!response.ok) { const failure = await response.json().catch(() => ({})) as { error?: string }; throw new Error(failure.error || "Chưa thể xử lý yêu cầu."); }
+          return response.json() as Promise<ChatResponse>;
+        });
       setMode(result.mode);
       if (result.profile) { setProfile(result.profile); saveProfile(result.profile); trackEvent("family_profile_updated"); }
       const agentTurn: ChatTurn = { id: crypto.randomUUID(), role: "assistant", text: result.text, createdAt: new Date().toISOString(), intent: result.intent, recommendations: result.recommendations, candidateCount: result.candidateCount, candidateProductIds: result.candidateProductIds, rankingVersion: result.rankingVersion, view: result.view, choices: result.choices };

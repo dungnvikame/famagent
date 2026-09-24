@@ -1,13 +1,16 @@
 import { NextResponse } from "next/server";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { upgradeIntent } from "@/lib/ai/shopping/context-merger";
-import { runShoppingTurn } from "@/lib/ai/shopping/pipeline";
+import { emptyIntent, runShoppingTurn } from "@/lib/ai/shopping/pipeline";
+import { answerMoney, detectMoneyQuestion } from "@/lib/money/answer";
+import { loadBundle } from "@/lib/money/store-server";
+import { monthKey, summarizeMonth } from "@/lib/money/summary";
 import { getProducts } from "@/lib/catalog/repository";
 import { persistShoppingTurn, type PersistError } from "@/lib/experience/chat-persistence";
 import { profileFromRow } from "@/lib/experience/profile-mapper";
 import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
 import { validProfile } from "@/lib/experience/validate";
-import type { FamilyProfile, ShoppingIntent } from "@/lib/experience/types";
+import type { ChatResponse, FamilyProfile, ShoppingIntent } from "@/lib/experience/types";
 import { authenticated, authConfigured } from "@/lib/supabase/server";
 
 const persistErrors: Record<PersistError, string> = { profile: "Không thể cập nhật hồ sơ", children: "Không thể cập nhật thông tin bé", intent: "Không thể lưu yêu cầu", session: "Không thể lưu phiên gợi ý", items: "Không thể lưu kết quả gợi ý", trace: "Không thể lưu nhật ký" };
@@ -43,6 +46,16 @@ export async function POST(request: Request) {
     const { data: allowed, error: limitError } = await account.client.rpc("consume_request_quota", { p_endpoint: "chat", p_limit: 60 });
     if (limitError) return NextResponse.json({ error: "Không thể kiểm tra giới hạn sử dụng" }, { status: 503 });
     if (allowed !== true) return NextResponse.json({ error: "Bạn đã dùng hết 60 lượt tư vấn trong một giờ. Vui lòng thử lại sau." }, { status: 429 });
+  }
+
+  // Family Coordinator (spec v2 §18): finance questions are answered from the ledger by rules, no LLM.
+  const moneyQuestion = detectMoneyQuestion(body.message);
+  if (moneyQuestion && account) {
+    const bundle = await loadBundle(account.client, account.user.id, monthKey(new Date()));
+    if (!bundle) return NextResponse.json({ error: "Không thể tải sổ thu chi" }, { status: 500 });
+    const answer = answerMoney(moneyQuestion, summarizeMonth(bundle), body.message);
+    const response: ChatResponse = { ...answer, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" };
+    return NextResponse.json(response);
   }
 
   // Local/demo mode has no user id: budget AI turns per IP (dev only; x-forwarded-for is spoofable).
