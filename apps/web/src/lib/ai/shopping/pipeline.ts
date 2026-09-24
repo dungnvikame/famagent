@@ -23,17 +23,29 @@ export interface ShoppingTurnResult {
 }
 
 const COMING_SOON: Partial<Record<ShoppingIntent["intentType"], string>> = {
-  reorder: "Mua lại theo lần trước sẽ có khi FamAgent ghi nhận được lịch sử mua. Hiện mình có thể tìm lại loại phù hợp theo cân nặng và ngân sách.",
-  check_replenishment: "Theo dõi lượng còn và nhắc mua lại đang được phát triển. Bạn có thể cho mình biết cần tìm gì ngay bây giờ.",
   monthly_basket: "Giỏ hàng tháng đang được phát triển. Hiện mình giúp chọn bỉm cho bé theo cân nặng và ngân sách.",
   price_check: "Theo dõi giá đang được phát triển. Mình có thể tìm các lựa chọn đang có trong ngân sách của bạn.",
 };
+
+/** What the family has bought and how much is estimated left (from lib/shopping/purchases); drives reorder / replenishment answers. */
+export interface StockLine { productName: string; brand?: string; daysLeft: number; remaining: number; lastPurchasedOn: string }
+
+/** Reorder / "còn không?" answered from purchase history; without history, fall back to discovery with an honest note. */
+function replenishmentReply(intentType: ShoppingIntent["intentType"], stock: StockLine[]): { text: string; choices: string[] } | null {
+  if (intentType !== "reorder" && intentType !== "check_replenishment") return null;
+  if (!stock.length) return { text: intentType === "reorder" ? "Mình chưa có lần mua nào được ghi để mua lại. Khi bạn bấm “Đã mua” trên một gợi ý, lần sau chỉ cần nói “mua lại” là đủ. Giờ mình tìm theo hồ sơ bé nhé?" : "Mình chưa theo dõi món nào — bấm “Đã mua” trên sản phẩm sau khi mua để mình ước tính ngày hết và nhắc bạn.", choices: ["Tìm bỉm cho bé"] };
+  const low = stock.filter((item) => item.daysLeft <= 7);
+  const lines = stock.slice(0, 3).map((item) => `${item.productName}: ${item.daysLeft === 0 ? "ước tính đã hết" : `còn khoảng ${item.daysLeft} ngày (~${item.remaining} miếng)`}`);
+  if (intentType === "check_replenishment") return { text: `${lines.join(". ")}.${low.length ? ` Nên mua lại ${low.map((item) => item.productName).join(", ")} trong tuần này.` : " Chưa cần mua thêm."}`, choices: low.length ? low.slice(0, 2).map((item) => `Mua lại ${item.productName}`) : ["Tìm bỉm cho bé"] };
+  const target = low[0] ?? stock[0];
+  return { text: `Lần trước bạn mua ${target.productName} (${target.lastPurchasedOn.slice(8)}/${target.lastPurchasedOn.slice(5, 7)}), hiện ${target.daysLeft === 0 ? "ước tính đã hết" : `còn khoảng ${target.daysLeft} ngày`}. Mình tìm lại đúng loại này hay xem lựa chọn tương tự rẻ hơn?`, choices: [`Tìm ${target.brand ?? target.productName}`, "Xem lựa chọn tương tự", "Đổi size lớn hơn"] };
+}
 
 export function emptyIntent(previous: ShoppingIntent | null = null): ShoppingIntent {
   return previous ?? { schemaVersion: "1", intentType: "unknown", requiredAttributes: {}, constraints: {}, preferences: {}, fieldEvidence: {}, ambiguity: [] };
 }
 
-export async function runShoppingTurn(input: { message: string; profile: FamilyProfile | null; previousIntent: ShoppingIntent | null; products: Product[]; allowAi: boolean; now?: number }, chat = chatJson): Promise<ShoppingTurnResult> {
+export async function runShoppingTurn(input: { message: string; profile: FamilyProfile | null; previousIntent: ShoppingIntent | null; products: Product[]; allowAi: boolean; now?: number; stock?: StockLine[] }, chat = chatJson): Promise<ShoppingTurnResult> {
   const trace: TraceStep[] = [];
   let clock = Date.now();
   const step = (state: string, detail?: TraceStep["detail"]) => { const now = Date.now(); trace.push({ state, ms: now - clock, ...(detail ? { detail } : {}) }); clock = now; };
@@ -67,6 +79,8 @@ export async function runShoppingTurn(input: { message: string; profile: FamilyP
   const reply = base(intent, mode);
 
   // Clarification: at most one question per turn, choices first (spec v1 §9).
+  const replenishment = replenishmentReply(intent.intentType, input.stock ?? []);
+  if (replenishment) { step("CLARIFICATION_REQUIRED", { reason: intent.intentType }); return done({ ...reply, ...replenishment }, "CLARIFICATION_REQUIRED"); }
   const soon = COMING_SOON[intent.intentType];
   if (soon) { step("CLARIFICATION_REQUIRED", { reason: intent.intentType }); return done({ ...reply, text: soon, choices: ["Tìm bỉm cho bé"] }, "CLARIFICATION_REQUIRED"); }
   if (intent.categoryId === "unsupported") { step("CLARIFICATION_REQUIRED", { reason: "unsupported_category" }); return done({ ...reply, text: "Hiện mình đang hoàn thiện tư vấn bỉm. Các danh mục khác sẽ được mở sau khi dữ liệu sản phẩm được kiểm tra.", choices: ["Tìm bỉm cho bé"] }, "CLARIFICATION_REQUIRED"); }

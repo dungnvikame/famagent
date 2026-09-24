@@ -89,11 +89,18 @@ test("thương hiệu vừa muốn vừa bị tránh → hỏi lại trước kh
   assert.match(response.text, /muốn tránh/);
 });
 
-test("intent chưa hỗ trợ trả lời 'đang phát triển', không gợi ý", async () => {
+test("mua lại: chưa có lịch sử → giải thích cách ghi 'Đã mua'; có lịch sử → nêu lần mua trước và còn bao lâu", async () => {
   const { response } = await turn("Mua lại bỉm như lần trước");
   assert.equal(response.intent.intentType, "reorder");
   assert.equal(response.recommendations.length, 0);
-  assert.match(response.text, /lịch sử mua/);
+  assert.match(response.text, /chưa có lần mua nào/);
+  const stock = [{ productName: "Merries L64", brand: "Merries", daysLeft: 3, remaining: 18, lastPurchasedOn: "2026-09-12" }];
+  const withHistory = await turn("Mua lại bỉm như lần trước", { stock });
+  assert.match(withHistory.response.text, /Lần trước bạn mua Merries L64 \(12\/09\), hiện còn khoảng 3 ngày/);
+  assert.deepEqual(withHistory.response.choices?.[0], "Tìm Merries");
+  const check = await turn("Bỉm sắp hết chưa?", { stock });
+  assert.equal(check.response.intent.intentType, "check_replenishment");
+  assert.match(check.response.text, /Merries L64: còn khoảng 3 ngày \(~18 miếng\)\. Nên mua lại Merries L64 trong tuần này\./);
 });
 
 test("thứ tự sản phẩm không đổi khi chỉ thay dữ liệu hoa hồng (spec v1 §24.4)", () => {

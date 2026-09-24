@@ -8,11 +8,12 @@ import type { ProductOffer } from "@/lib/catalog/types";
 import type { Recommendation } from "@/lib/experience/types";
 import { trackEvent } from "@/lib/experience/storage";
 import { DiaperIllustration } from "@/components/diaper-illustration";
+import { MarkPurchased } from "@/components/shopping/mark-purchased";
 
-interface Props { item: Recommendation; /** Current catalog copy of the offer; null = catalog loaded and the offer is no longer in stock. */ liveOffer?: ProductOffer | null; rank: number; saved: boolean; comparing: boolean; compareFull: boolean; conversationId: string; onSave: () => void; onDetails: () => void; onCompare: () => void }
+interface Props { item: Recommendation; /** Current catalog copy of the offer; null = catalog loaded and the offer is no longer in stock. */ liveOffer?: ProductOffer | null; rank: number; saved: boolean; comparing: boolean; compareFull: boolean; conversationId: string; /** Child the request was for; "Đã mua" books the expense under them. */ childId?: string; onSave: () => void; onDetails: () => void; onCompare: () => void }
 
 /** Recommendation card (spec §10, §48, v1 §11.5): no %, "Phù hợp nhất" not "tốt nhất", sourced reasons only. */
-export function RecommendationCard({ item, liveOffer, rank, saved, comparing, compareFull, conversationId, onSave, onDetails, onCompare }: Props) {
+export function RecommendationCard({ item, liveOffer, rank, saved, comparing, compareFull, conversationId, childId, onSave, onDetails, onCompare }: Props) {
   const variant = item.product.variants.find((entry) => entry.id === item.variantId);
   // Conversations are stored with the offer as it was; prefer the current catalog copy so a re-verified price keeps its CTA.
   const storedOffer = variant?.offers.find((entry) => entry.id === item.offerId);
@@ -43,6 +44,7 @@ export function RecommendationCard({ item, liveOffer, rank, saved, comparing, co
       <div className="agent-product-actions">
         <button onClick={onCompare} aria-pressed={comparing} disabled={!comparing && compareFull} title={!comparing && compareFull ? "So sánh tối đa 3 sản phẩm" : undefined}>{comparing ? "✓ Đang so sánh" : "So sánh"}</button>
         <button onClick={onDetails}>Chi tiết</button>
+        <MarkPurchased target={{ productId: item.product.id, productName: item.product.canonicalName, brand: item.product.brand, variantId: variant.id, offerId: offer.id, merchant: offer.merchantName, price: offer.price, piecesPerPack: variant.quantity, childId }} />
         {fresh
           ? <a href={`/go/${offer.id}?session=${encodeURIComponent(conversationId)}`} onClick={() => trackEvent("offer_clicked", { offerId: offer.id, productId: item.product.id, rank })}>{demo ? "Mua thử" : "Xem nơi bán"} ↗</a>
           : <span className="agent-stale" title={gone ? "Nơi bán này hiện không còn hàng" : "Giá quá 48 giờ chưa được xác minh lại"}>{gone ? "Hết hàng" : "Giá cũ"}</span>}

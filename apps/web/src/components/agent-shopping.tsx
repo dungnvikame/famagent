@@ -16,7 +16,11 @@ import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved,
 import { answerMoney, detectMoneyQuestion } from "@/lib/money/answer";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, summarizeMonth } from "@/lib/money/summary";
-import { emptyIntent } from "@/lib/ai/shopping/pipeline";
+import { emptyIntent, type StockLine } from "@/lib/ai/shopping/pipeline";
+import type { MonthSummary } from "@/lib/money/summary";
+import { loadPurchases } from "@/lib/shopping/purchase-client";
+import { budgetHint, estimateStock } from "@/lib/shopping/purchases";
+import { rateResolver } from "@/components/shopping/tracking-list";
 
 /** First-screen prompts built from the profile, so a new user sees what to ask and that the agent already knows the child. */
 function suggestionsFor(profile: FamilyProfile | null): string[] {
@@ -43,6 +47,10 @@ export function AgentShopping() {
   const [compare, setCompare] = useState<string[]>([]);
   // Phone: the conversation list slides over the thread.
   const [convsOpen, setConvsOpen] = useState(false);
+  // Cross-module context (spec v2 §14, §38): month money summary for budget hints, stock for reorder answers.
+  const [money, setMoney] = useState<MonthSummary | null>(null);
+  const [stock, setStock] = useState<StockLine[]>([]);
+  const pendingPrefill = useRef<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,10 +70,14 @@ export function AgentShopping() {
         const catalog = await catalogResponse.json() as { products: Product[] };
         if (cancelled) return;
         saveProfile(family); setProfile(family); setProducts(catalog.products); setSaved(savedIds);
-        // Deep link from Home ("FamAgent đang chờ bạn trả lời") opens that conversation.
-        const wanted = new URLSearchParams(window.location.search).get("c");
-        const first = existing.find((item) => item.id === wanted) ?? existing[0] ?? newConversation();
-        setConversations(existing.length ? existing : [first]); setActiveId(first.id);
+        // Deep links: ?c= opens a conversation (Home "đang chờ bạn trả lời"); ?q= starts a new one with that message ("Mua lại …").
+        const params = new URLSearchParams(window.location.search);
+        const wanted = params.get("c"); const prefill = params.get("q")?.trim().slice(0, 300);
+        const first = prefill ? newConversation() : existing.find((item) => item.id === wanted) ?? existing[0] ?? newConversation();
+        setConversations(prefill || !existing.length ? [first, ...existing] : existing); setActiveId(first.id);
+        if (prefill) { pendingPrefill.current = prefill; window.history.replaceState(null, "", "/agent"); }
+        loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
+        loadPurchases().then((purchases) => { if (!cancelled) setStock(estimateStock(purchases, rateResolver(family)).map((item) => ({ productName: item.productName, brand: item.brand, daysLeft: item.daysLeft, remaining: item.remaining, lastPurchasedOn: item.lastPurchase.purchasedOn }))); }).catch(() => {});
       } catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); }
     }
     void load();
@@ -77,6 +89,8 @@ export function AgentShopping() {
   const lastIntent = [...(active?.turns ?? [])].reverse().find((turn) => turn.role === "assistant" && turn.intent)?.intent ?? null;
   const recentRecommendations = [...(active?.turns ?? [])].reverse().find((turn) => turn.recommendations?.length)?.recommendations ?? [];
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [active?.turns.length, busy]);
+  // Send the ?q= message once the profile, catalog and conversation are in place.
+  useEffect(() => { if (pendingPrefill.current && profile && active && products.length && !busy) { const text = pendingPrefill.current; pendingPrefill.current = null; void send(text); } }, [profile, active, products.length, busy]); // eslint-disable-line react-hooks/exhaustive-deps -- send is recreated each render; guard runs once via the ref
 
 
   /** Inline edit from the family panel (already stamped + validated there). */
@@ -116,7 +130,7 @@ export function AgentShopping() {
       const moneyQuestion = !cloudEnabled ? detectMoneyQuestion(input) : null;
       const result: ChatResponse = moneyQuestion
         ? await loadMoney(monthKey(new Date())).then((bundle): ChatResponse => ({ ...answerMoney(moneyQuestion, summarizeMonth(bundle), input), intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" }))
-        : await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId }) }).then(async (response) => {
+        : await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId, stock: cloudEnabled ? undefined : stock }) }).then(async (response) => {
           if (!response.ok) { const failure = await response.json().catch(() => ({})) as { error?: string }; throw new Error(failure.error || "Chưa thể xử lý yêu cầu."); }
           return response.json() as Promise<ChatResponse>;
         });
@@ -137,6 +151,15 @@ export function AgentShopping() {
     if (cloudEnabled) void saveCloudConversation(conversation).catch(() => setError("Chưa lưu được cuộc trò chuyện mới."));
   }
   const child = profile?.children[0];
+  /** Child a turn was for (by the intent's member ref) so "Đã mua" books the expense under them. */
+  const childFor = (turn: ChatTurn) => (profile?.children.find((item) => item.name && item.name === turn.intent?.householdMemberRef) ?? child)?.id;
+  /** Budget line under the results (spec v2 §14): the top pick's price against the "Con" budget / month plan. */
+  const hintFor = (turn: ChatTurn) => {
+    const top = turn.recommendations?.[0]; const price = top && liveOffers.get(top.offerId)?.price;
+    if (!money || !top || !price || money.transactionCount === 0) return null;
+    const text = budgetHint(price, money.byCategory.find((line) => line.category === "Con"), money.remainingOfPlan);
+    return text ? <p className={`agent-budget-hint${text.startsWith("Trong ngân sách") || text.startsWith("Sau khoản") ? " ok" : ""}`}><span aria-hidden="true">₫</span><span>{text} <Link href="/money">Xem Tiền</Link></span></p> : null;
+  };
   // What the agent is using right now (spec v1: show the context it acts on; edit via "Cập nhật hồ sơ").
   const contextChips = [
     child ? [`Bé ${child.name ?? ""}`.trim(), child.weightKg ? formatWeight(child.weightKg) : null, child.diaperSize ? `size ${child.diaperSize}` : null].filter(Boolean).join(" · ") : null,
@@ -151,7 +174,7 @@ export function AgentShopping() {
     </aside>
     <main className="agent-center shopping-center"><div className="agent-header"><span className="agent-status"><button type="button" className="agent-history-trigger agent-convs-toggle" onClick={() => setConvsOpen((open) => !open)} aria-expanded={convsOpen} aria-controls="agent-convs">Hội thoại</button><span className="status-dot"/> {mode === "ai" ? "AI đang hỗ trợ" : profile && !profile.aiConsent ? <>Đang dùng quy tắc · <button type="button" className="agent-inline-toggle" onClick={() => updateProfile({ ...profile, aiConsent: true, updatedAt: new Date().toISOString() })}>Bật AI</button></> : "FamAgent đang sẵn sàng"}</span><span className="agent-header-actions"><Link className="agent-history-trigger" href="/family">Hồ sơ gia đình</Link></span></div>{contextChips.length > 0 && <div className="agent-context" aria-label="Thông tin agent đang dùng">{contextChips.map((chip) => <span key={chip}>{chip}</span>)}</div>}
       
-      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">HỎI FAMAGENT</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child ? `Mình đã nhớ ${child.name ? `bé ${child.name}` : "bé"}${child.weightKg ? ` · ${formatWeight(child.weightKg)}` : ""}${profile?.maxBudget ? ` · ngân sách ≤ ${vnd(profile.maxBudget)}` : ""}. ` : ""}Hỏi mình như đang nhắn tin — mình sẽ lọc theo hồ sơ, giải thích vì sao và chỉ nơi bán. Bạn có thể bấm một gợi ý bên dưới để bắt đầu.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestionsFor(profile).map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMAGENT</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.role === "assistant" && turn.choices?.length && turn.id === active.turns.at(-1)?.id ? <div className="agent-choices" role="group" aria-label="Trả lời nhanh">{turn.choices.map((choice) => <button type="button" key={choice} disabled={busy} onClick={() => void send(choice)}>{choice}</button>)}</div> : null}{turn.recommendations?.length ? <><div className="agent-results">{turn.recommendations.map((item, index) => <RecommendationCard key={item.product.id} item={item} liveOffer={products.length ? liveOffers.get(item.offerId) ?? null : undefined} rank={index + 1} saved={saved.includes(item.product.id)} comparing={compare.some((entry) => entry.startsWith(`${item.product.id}:`))} compareFull={compare.length >= MAX_COMPARE} onSave={() => void saveItem(item.product.id)} onDetails={() => openDetails(item)} onCompare={() => toggleCompare(item)} conversationId={active.id}/>)}</div><p className="agent-disclosure">{AFFILIATE_DISCLOSURE}</p></> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div>{compare.length > 0 && <div className="agent-compare-bar" role="region" aria-label="So sánh"><span>{compare.length < 2 ? "Chọn thêm 1–2 sản phẩm để so sánh" : `Đã chọn ${compare.length} sản phẩm`}</span><span><button onClick={() => setCompare([])}>Bỏ chọn</button>{compare.length >= 2 && <Link href={`/compare?items=${encodeURIComponent(compare.join(","))}`} onClick={() => trackEvent("compare_started", { count: compare.length })}>So sánh ↗</Link>}</span></div>}<div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
+      {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">HỎI FAMAGENT</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child ? `Mình đã nhớ ${child.name ? `bé ${child.name}` : "bé"}${child.weightKg ? ` · ${formatWeight(child.weightKg)}` : ""}${profile?.maxBudget ? ` · ngân sách ≤ ${vnd(profile.maxBudget)}` : ""}. ` : ""}Hỏi mình như đang nhắn tin — mình sẽ lọc theo hồ sơ, giải thích vì sao và chỉ nơi bán. Bạn có thể bấm một gợi ý bên dưới để bắt đầu.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestionsFor(profile).map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMAGENT</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.role === "assistant" && turn.choices?.length && turn.id === active.turns.at(-1)?.id ? <div className="agent-choices" role="group" aria-label="Trả lời nhanh">{turn.choices.map((choice) => <button type="button" key={choice} disabled={busy} onClick={() => void send(choice)}>{choice}</button>)}</div> : null}{turn.recommendations?.length ? <><div className="agent-results">{turn.recommendations.map((item, index) => <RecommendationCard key={item.product.id} item={item} liveOffer={products.length ? liveOffers.get(item.offerId) ?? null : undefined} rank={index + 1} saved={saved.includes(item.product.id)} comparing={compare.some((entry) => entry.startsWith(`${item.product.id}:`))} compareFull={compare.length >= MAX_COMPARE} onSave={() => void saveItem(item.product.id)} onDetails={() => openDetails(item)} onCompare={() => toggleCompare(item)} conversationId={active.id} childId={childFor(turn)}/>)}</div>{hintFor(turn)}<p className="agent-disclosure">{AFFILIATE_DISCLOSURE}</p></> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div>{compare.length > 0 && <div className="agent-compare-bar" role="region" aria-label="So sánh"><span>{compare.length < 2 ? "Chọn thêm 1–2 sản phẩm để so sánh" : `Đã chọn ${compare.length} sản phẩm`}</span><span><button onClick={() => setCompare([])}>Bỏ chọn</button>{compare.length >= 2 && <Link href={`/compare?items=${encodeURIComponent(compare.join(","))}`} onClick={() => trackEvent("compare_started", { count: compare.length })}>So sánh ↗</Link>}</span></div>}<div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
       {error && <p className="agent-error agent-stage-error">{error}</p>}
       <div className="agent-bottom-note">Gợi ý dựa trên mức phù hợp, không dùng hoa hồng để xếp hạng. {products.some((item) => item.isDemo) ? "Đang dùng dữ liệu minh họa." : "Giá có thể thay đổi tại nơi bán."}</div>
     </main>

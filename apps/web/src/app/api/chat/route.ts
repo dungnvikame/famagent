@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { isAiConfigured } from "@/lib/ai/llm";
 import { upgradeIntent } from "@/lib/ai/shopping/context-merger";
-import { emptyIntent, runShoppingTurn } from "@/lib/ai/shopping/pipeline";
+import { emptyIntent, runShoppingTurn, type StockLine } from "@/lib/ai/shopping/pipeline";
+import { childAgeMonths } from "@/lib/experience/profile-mapper";
+import { loadPurchases } from "@/lib/shopping/purchase-store-server";
+import { defaultDailyRate, estimateStock } from "@/lib/shopping/purchases";
 import { answerMoney, detectMoneyQuestion } from "@/lib/money/answer";
 import { loadBundle } from "@/lib/money/store-server";
 import { monthKey, summarizeMonth } from "@/lib/money/summary";
@@ -17,7 +20,7 @@ const persistErrors: Record<PersistError, string> = { profile: "Không thể c�
 
 // Thin route: auth + rate limit → shopping pipeline (lib/ai/shopping) → persistence.
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null) as { message?: unknown; profile?: unknown; previousIntent?: unknown; conversationId?: unknown } | null;
+  const body = await request.json().catch(() => null) as { message?: unknown; profile?: unknown; previousIntent?: unknown; conversationId?: unknown; stock?: unknown } | null;
   if (!body || typeof body.message !== "string" || !body.message.trim() || body.message.length > 1000) {
     return NextResponse.json({ error: "Yêu cầu không hợp lệ" }, { status: 400 });
   }
@@ -62,7 +65,15 @@ export async function POST(request: Request) {
   // Short-circuit so the counter only moves when an AI call would actually be made.
   const allowAi = Boolean(profile?.aiConsent) && isAiConfigured() && (Boolean(account) || allowInMemory(`chat:${request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local"}`, Date.now(), 60));
   const products = await getProducts();
-  const result = await runShoppingTurn({ message: body.message.trim(), profile, previousIntent, products, allowAi });
+  // Purchase history feeds reorder / "còn không?" answers; demo mode sends its browser-side estimate.
+  let stock: StockLine[] = [];
+  if (account) {
+    const purchases = await loadPurchases(account.client, account.user.id);
+    if (purchases) stock = estimateStock(purchases, (purchase) => { const child = profile?.children.find((item) => item.id === purchase.childId) ?? profile?.children[0]; return defaultDailyRate(child ? childAgeMonths(child) : undefined); }).map((item) => ({ productName: item.productName, brand: item.brand, daysLeft: item.daysLeft, remaining: item.remaining, lastPurchasedOn: item.lastPurchase.purchasedOn }));
+  } else if (Array.isArray(body.stock)) {
+    stock = body.stock.filter((item): item is StockLine => typeof item === "object" && item !== null && typeof (item as StockLine).productName === "string" && typeof (item as StockLine).daysLeft === "number").slice(0, 20);
+  }
+  const result = await runShoppingTurn({ message: body.message.trim(), profile, previousIntent, products, allowAi, stock });
 
   if (account && conversationId) {
     const failed = await persistShoppingTurn(account.client, account.user.id, conversationId, result);

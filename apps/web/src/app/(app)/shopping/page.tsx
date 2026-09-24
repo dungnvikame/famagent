@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { ProductCard } from "@/components/product-card";
 import { SavedProducts } from "@/components/saved-products";
+import { TrackingList } from "@/components/shopping/tracking-list";
 import { filterProducts, parseFilters } from "@/lib/catalog/filter";
 import { getProducts, isDemoMode } from "@/lib/catalog/repository";
 
 export const metadata = { title: "FamAgent | Mua sắm" };
 
 type Search = Record<string, string | string[] | undefined>;
-const TABS = [{ id: "search", label: "Tìm & so sánh" }, { id: "saved", label: "Đã lưu" }, { id: "tracking", label: "Đang theo dõi" }] as const;
+const TABS = [{ id: "tracking", label: "Đang theo dõi" }, { id: "search", label: "Tìm & so sánh" }, { id: "history", label: "Đã mua" }, { id: "saved", label: "Đã lưu" }] as const;
 type Tab = (typeof TABS)[number]["id"];
 
 /** Shopping (spec v2 §13, §37): search/compare now; saved list; consumption tracking + purchase history arrive with the cross-module phase. */
@@ -22,7 +23,8 @@ export default async function ShoppingPage({ searchParams }: { searchParams: Pro
   const brands = [...new Set(all.map((product) => product.brand))].sort();
   const tabs = <div className="app-tabs" role="tablist">{TABS.map((item) => <Link key={item.id} role="tab" aria-selected={item.id === tab} className={item.id === tab ? "on" : undefined} href={item.id === "search" ? "/shopping" : `/shopping?tab=${item.id}`}>{item.label}</Link>)}</div>;
   if (tab === "saved") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Sản phẩm bạn đánh dấu để xem lại.</p></div></div>{tabs}<SavedProducts embedded /></div>;
-  if (tab === "tracking") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Đồ tiêu hao và ước tính còn bao nhiêu ngày.</p></div></div>{tabs}<div className="app-card app-empty"><strong>Chưa theo dõi món nào</strong><p style={{ margin: 0 }}>Khi bạn đánh dấu “đã mua” một sản phẩm, FamAgent sẽ ghi vào Tiền, ước tính ngày hết và nhắc mua lại trên Trang chủ.</p><Link className="app-btn ghost" href="/agent">Hỏi FamAgent tìm đồ →</Link></div></div>;
+  if (tab === "tracking") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Đồ tiêu hao và ước tính còn bao nhiêu ngày — mua một lần, FamAgent nhớ giúp.</p></div></div>{tabs}<TrackingList mode="tracking" /></div>;
+  if (tab === "history") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Những lần mua đã ghi; mỗi lần là một khoản chi trong Tiền.</p></div></div>{tabs}<TrackingList mode="history" /></div>;
   return <div className="container catalog-page">
     <div className="page-heading"><div><h1>Mua sắm</h1><p>Tìm lựa chọn phù hợp với bé và mức giá bạn muốn. Đang có: bỉm cho bé.</p></div><span className="count-pill">{products.length} sản phẩm</span></div>
     {tabs}

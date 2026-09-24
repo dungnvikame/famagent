@@ -2,6 +2,7 @@ import type { Conversation, FamilyProfile } from "../experience/types.ts";
 import { childAgeMonths } from "../experience/profile-mapper.ts";
 import { formatWeight } from "../onboarding/questions.ts";
 import { shortVnd, type MonthSummary } from "../money/summary.ts";
+import { runningLow, type StockEstimate } from "../shopping/purchases.ts";
 
 /**
  * Family Brief (spec v2 §16–17): what needs attention, built from data the app already has.
@@ -34,6 +35,8 @@ export interface BriefInput {
   displayName?: string;
   /** Current-month money summary when the ledger is available (null = not loaded / not signed in). */
   money?: MonthSummary | null;
+  /** Consumption estimates from purchase history (Shopping side of the event stream). */
+  stock?: StockEstimate[];
   now?: Date;
 }
 
@@ -56,10 +59,15 @@ export function greetingFor(now: Date, name?: string): string {
   return name ? `${part}, ${name}` : part;
 }
 
-export function buildBrief({ profile, conversations, savedCount, displayName, money = null, now = new Date() }: BriefInput): FamilyBrief {
+export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], now = new Date() }: BriefInput): FamilyBrief {
   const attention: BriefCard[] = [];
   const insights: BriefInsight[] = [];
   const children = profile?.children ?? [];
+
+  // The magic moment (spec v2 §40): running low is known before anyone remembers to check.
+  for (const item of runningLow(stock).slice(0, 2)) {
+    attention.push({ id: `low-${item.productId}`, tone: item.daysLeft <= 3 ? "warn" : "info", badge: item.daysLeft === 0 ? "Hết" : `${item.daysLeft}d`, title: item.daysLeft === 0 ? `${item.productName} ước tính đã hết` : `${item.productName} còn khoảng ${item.daysLeft} ngày`, detail: `Ước tính từ ${item.purchaseCount} lần mua (gần nhất ${item.lastPurchase.purchasedOn.slice(8)}/${item.lastPurchase.purchasedOn.slice(5, 7)}) và ${item.dailyRate} miếng/ngày${item.rateSource === "default" ? " theo tuổi bé" : ""}.`, cta: { label: "Mua lại", href: `/agent?q=${encodeURIComponent(`Mua lại ${item.productName}`)}` } });
+  }
 
   for (const child of children) {
     const who = child.name ? `bé ${child.name}` : "bé";
