@@ -1,43 +1,18 @@
-import Link from "next/link";
-import { ProductCard } from "@/components/product-card";
-import { SavedProducts } from "@/components/saved-products";
-import { TrackingList } from "@/components/shopping/tracking-list";
-import { filterProducts, parseFilters } from "@/lib/catalog/filter";
-import { getProducts, isDemoMode } from "@/lib/catalog/repository";
+import { redirect } from "next/navigation";
+import { ShoppingPlanPage } from "@/components/shopping/shopping-plan-page";
 
 export const metadata = { title: "FamAgent | Mua sắm" };
 
 type Search = Record<string, string | string[] | undefined>;
-const TABS = [{ id: "tracking", label: "Đang theo dõi" }, { id: "search", label: "Tìm & so sánh" }, { id: "history", label: "Đã mua" }, { id: "saved", label: "Đã lưu" }] as const;
-type Tab = (typeof TABS)[number]["id"];
 
-/** Shopping (spec v2 §13, §37): search/compare now; saved list; consumption tracking + purchase history arrive with the cross-module phase. */
+/** Shopping = the family's own plan and behaviour; the catalog lives at /shopping/find. Old tab links still resolve. */
 export default async function ShoppingPage({ searchParams }: { searchParams: Promise<Search> }) {
   const params = await searchParams;
-  const tab: Tab = TABS.some((item) => item.id === params.tab) ? params.tab as Tab : "search";
-  const query = new URLSearchParams();
-  for (const [key, value] of Object.entries(params)) if (typeof value === "string" && key !== "tab") query.set(key, value);
-  const filters = parseFilters(query);
-  const all = await getProducts();
-  const products = filterProducts(all, filters);
-  const brands = [...new Set(all.map((product) => product.brand))].sort();
-  const tabs = <div className="app-tabs" role="tablist">{TABS.map((item) => <Link key={item.id} role="tab" aria-selected={item.id === tab} className={item.id === tab ? "on" : undefined} href={item.id === "search" ? "/shopping" : `/shopping?tab=${item.id}`}>{item.label}</Link>)}</div>;
-  if (tab === "saved") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Sản phẩm bạn đánh dấu để xem lại.</p></div></div>{tabs}<SavedProducts embedded /></div>;
-  if (tab === "tracking") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Đồ tiêu hao và ước tính còn bao nhiêu ngày — mua một lần, FamAgent nhớ giúp.</p></div></div>{tabs}<TrackingList mode="tracking" /></div>;
-  if (tab === "history") return <div className="app-page"><div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Những lần mua đã ghi; mỗi lần là một khoản chi trong Tiền.</p></div></div>{tabs}<TrackingList mode="history" /></div>;
-  return <div className="container catalog-page">
-    <div className="page-heading"><div><h1>Mua sắm</h1><p>Tìm lựa chọn phù hợp với bé và mức giá bạn muốn. Đang có: bỉm cho bé.</p></div><span className="count-pill">{products.length} sản phẩm</span></div>
-    {tabs}
-    {isDemoMode() && <div className="notice"><strong>Đang xem dữ liệu minh họa.</strong> Tên, thông số và giá chỉ để thử giao diện. Chưa có liên kết mua hàng.</div>}
-    <div className="catalog-layout"><aside className="filter-panel"><h2>Lọc sản phẩm</h2><form action="/shopping" method="get">
-      <label>Cân nặng của bé (kg)<input name="weightKg" type="number" min="1" max="30" step="0.1" placeholder="Ví dụ: 10" defaultValue={filters.weightKg ?? ""} /></label>
-      <label>Kích cỡ<select name="size" defaultValue={filters.size ?? ""}><option value="">Tất cả size</option>{["NB", "S", "M", "L", "XL", "XXL"].map((size) => <option key={size}>{size}</option>)}</select></label>
-      <label>Giá tối đa (đ)<input name="maxPrice" type="number" min="1" step="1000" placeholder="Ví dụ: 400000" defaultValue={filters.maxPrice ?? ""} /></label>
-      <label>Thương hiệu<select name="brand" defaultValue={filters.brand ?? ""}><option value="">Tất cả thương hiệu</option>{brands.map((brand) => <option key={brand}>{brand}</option>)}</select></label>
-      <button className="button primary full" type="submit">Áp dụng bộ lọc</button><Link className="clear-link" href="/shopping">Xóa bộ lọc</Link>
-    </form></aside><section className="results" aria-label="Danh sách sản phẩm"><div className="results-heading"><h2>Sản phẩm phù hợp</h2><p>Sắp xếp theo giá gói thấp nhất đang có hàng</p></div>
-      {products.length ? <div className="product-grid">{products.map((product) => <ProductCard key={product.id} product={product} filters={filters} />)}</div> : <div className="empty-state"><h3>Chưa có sản phẩm phù hợp</h3><p>Thử mở rộng mức giá hoặc bỏ một bộ lọc.</p><Link href="/shopping">Xem tất cả sản phẩm</Link></div>}
-    </section></div>
-  </div>;
+  if (params.tab === "saved") redirect("/shopping/find#saved");
+  if (params.tab === "search" || typeof params.weightKg === "string" || typeof params.size === "string" || typeof params.maxPrice === "string" || typeof params.brand === "string") {
+    const query = new URLSearchParams();
+    for (const [key, value] of Object.entries(params)) if (typeof value === "string" && key !== "tab") query.set(key, value);
+    redirect(`/shopping/find${query.size ? `?${query}` : ""}`);
+  }
+  return <ShoppingPlanPage />;
 }
-

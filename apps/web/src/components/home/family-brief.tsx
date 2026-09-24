@@ -11,9 +11,8 @@ import type { Conversation, FamilyProfile } from "@/lib/experience/types";
 import { formatWeight } from "@/lib/onboarding/questions";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
-import { loadPurchases } from "@/lib/shopping/purchase-client";
-import { estimateStock, type StockEstimate } from "@/lib/shopping/purchases";
-import { rateResolver } from "@/components/shopping/tracking-list";
+import { loadShopping } from "@/lib/shopping/item-client";
+import { estimateItems, itemRateResolver, type ItemEstimate } from "@/lib/shopping/items";
 import { DailyTasks } from "./daily-tasks";
 import { localDay } from "@/lib/brief/daily-tasks";
 
@@ -26,7 +25,7 @@ export function FamilyBriefPage() {
   const [savedCount, setSavedCount] = useState(0);
   const [money, setMoney] = useState<MonthSummary | null>(null);
   const [loggedToday, setLoggedToday] = useState(false);
-  const [stock, setStock] = useState<StockEstimate[]>([]);
+  const [stock, setStock] = useState<ItemEstimate[]>([]);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -42,7 +41,7 @@ export function FamilyBriefPage() {
         setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
         // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
         loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); const today = localDay(new Date()); setLoggedToday(bundle.transactions.some((tx) => tx.occurredOn === today)); }).catch(() => {});
-        loadPurchases().then((purchases) => { if (!cancelled) setStock(estimateStock(purchases, rateResolver(family))); }).catch(() => {});
+        loadShopping().then((shopping) => { if (!cancelled) setStock(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family))); }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
     void load();
@@ -51,7 +50,8 @@ export function FamilyBriefPage() {
 
   if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
   const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock });
-  const tracked = stock[0];
+  const known = stock.filter((item) => item.known);
+  const tracked = known[0];
   const latest = conversations[0];
   const child = profile?.children[0];
 
@@ -74,7 +74,7 @@ export function FamilyBriefPage() {
       <section className="app-section" aria-labelledby="brief-shop"><h2 id="brief-shop">Mua sắm</h2>
         <div className="app-card"><div className="brief-kv">
           <span>Đang tư vấn cho</span><em>{child ? `${child.name ? `bé ${child.name}` : "bé"}${child.weightKg ? ` · ${formatWeight(child.weightKg)}` : ""}${child.diaperSize ? ` · size ${child.diaperSize}` : ""}` : "Chưa có bé trong hồ sơ"}</em>
-          <span>Đang theo dõi</span><em>{tracked ? `${tracked.productName} · ${tracked.daysLeft === 0 ? "ước tính đã hết" : `còn ~${tracked.daysLeft} ngày`}${stock.length > 1 ? ` (+${stock.length - 1})` : ""}` : "Chưa có — bấm “Đã mua” sau khi mua"}</em>
+          <span>Đang theo dõi</span><em>{tracked ? `${tracked.item.name} · ${tracked.daysLeft === 0 ? "ước tính đã hết" : `còn ~${tracked.daysLeft} ngày`}${known.length > 1 ? ` (+${known.length - 1})` : ""}` : "Chưa có — bấm “Đã mua” sau khi mua"}</em>
           <span>Đã lưu</span><em>{savedCount ? `${savedCount} sản phẩm` : "Chưa có"}</em>
           <span>Gần đây</span><em>{latest ? latest.title : "Chưa có cuộc trò chuyện"}</em>
         </div><p className="app-sub" style={{ marginTop: 10 }}><Link className="brief-link" href="/shopping">Mở Mua sắm →</Link></p></div>

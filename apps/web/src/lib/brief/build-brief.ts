@@ -2,7 +2,7 @@ import type { Conversation, FamilyProfile } from "../experience/types.ts";
 import { childAgeMonths } from "../experience/profile-mapper.ts";
 import { formatWeight } from "../onboarding/questions.ts";
 import { shortVnd, type MonthSummary } from "../money/summary.ts";
-import { runningLow, type StockEstimate } from "../shopping/purchases.ts";
+import { runningLow, type ItemEstimate } from "../shopping/items.ts";
 
 /**
  * Family Brief (spec v2 §16–17): what needs attention, built from data the app already has.
@@ -35,8 +35,8 @@ export interface BriefInput {
   displayName?: string;
   /** Current-month money summary when the ledger is available (null = not loaded / not signed in). */
   money?: MonthSummary | null;
-  /** Consumption estimates from purchase history (Shopping side of the event stream). */
-  stock?: StockEstimate[];
+  /** Stock estimates per household item (Shopping side of the event stream). */
+  stock?: ItemEstimate[];
   now?: Date;
 }
 
@@ -65,8 +65,11 @@ export function buildBrief({ profile, conversations, savedCount, displayName, mo
   const children = profile?.children ?? [];
 
   // The magic moment (spec v2 §40): running low is known before anyone remembers to check.
-  for (const item of runningLow(stock).slice(0, 2)) {
-    attention.push({ id: `low-${item.productId}`, tone: item.daysLeft <= 3 ? "warn" : "info", badge: item.daysLeft === 0 ? "Hết" : `${item.daysLeft}d`, title: item.daysLeft === 0 ? `${item.productName} ước tính đã hết` : `${item.productName} còn khoảng ${item.daysLeft} ngày`, detail: `Ước tính từ ${item.purchaseCount} lần mua (gần nhất ${item.lastPurchase.purchasedOn.slice(8)}/${item.lastPurchase.purchasedOn.slice(5, 7)}) và ${item.dailyRate} miếng/ngày${item.rateSource === "default" ? " theo tuổi bé" : ""}.`, cta: { label: "Mua lại", href: `/agent?q=${encodeURIComponent(`Mua lại ${item.productName}`)}` } });
+  for (const estimate of runningLow(stock).slice(0, 2)) {
+    const { item, daysLeft, lastPurchase } = estimate;
+    const days = daysLeft ?? 0;
+    const source = estimate.rateSource === "learned" ? " theo nhịp dùng của nhà mình" : estimate.rateSource === "default" ? " (ước tính)" : "";
+    attention.push({ id: `low-${item.id}`, tone: days <= 3 ? "warn" : "info", badge: days === 0 ? "Hết" : `${days}d`, title: days === 0 ? `${item.name} ước tính đã hết` : `${item.name} còn khoảng ${days} ngày`, detail: `Từ ${estimate.purchaseCount} lần mua${lastPurchase ? ` (gần nhất ${lastPurchase.purchasedOn.slice(8)}/${lastPurchase.purchasedOn.slice(5, 7)})` : ""}, ${Math.round(estimate.dailyRate * 10) / 10} ${item.unit}/ngày${source}.`, cta: { label: "Mua lại", href: item.productId ? `/agent?q=${encodeURIComponent(`Mua lại ${item.name}`)}` : "/shopping" } });
   }
 
   for (const child of children) {

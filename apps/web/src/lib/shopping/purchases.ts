@@ -1,9 +1,15 @@
-// Purchase history + consumption estimate (SPEC_V2 §13, §38): "Merries L64 bought 12/09 → ~4 days left".
-// Pure functions; persistence lives in purchase-store-server.ts (Supabase) and purchase-client.ts (browser).
+// Purchase history (SPEC_V2 §13, §38) and the Finance side of PURCHASE_COMPLETED. Stock estimates per household item
+// live in items.ts. Pure functions; persistence lives in purchase-store-server.ts (Supabase) and purchase-client.ts.
+
+export const PURCHASE_SOURCES = ["catalog", "chat", "quick", "ledger", "photo", "plan"] as const;
+export type PurchaseSource = (typeof PURCHASE_SOURCES)[number];
 
 export interface Purchase {
   id: string;
-  productId: string;
+  /** Household item this purchase restocks (lib/shopping/items). Optional only for legacy browser rows. */
+  itemId?: string;
+  /** Catalog product, when bought from a FamAgent recommendation or product page. */
+  productId?: string;
   productName: string;
   brand?: string;
   variantId?: string;
@@ -12,38 +18,22 @@ export interface Purchase {
   /** VND paid in total. */
   amount: number;
   packs: number;
-  /** Total pieces added (packs × pieces per pack). */
+  /** Total units added (packs × units per pack). */
   unitCount: number;
   /** YYYY-MM-DD */
   purchasedOn: string;
   childId?: string;
-  /** Pieces per day override; undefined = default by child age. */
+  /** Legacy per-purchase rate; the family's rate now lives on the item. */
   dailyRate?: number;
   /** Linked ledger entry (Finance) when the event was processed. */
   transactionId?: string;
+  /** Where the purchase was captured. */
+  source?: PurchaseSource;
 }
 
-export interface StockEstimate {
-  productId: string;
-  productName: string;
-  brand?: string;
-  /** Pieces estimated on hand right now (≥ 0). */
-  remaining: number;
-  dailyRate: number;
-  /** Whole days until the estimate reaches zero; 0 = out. */
-  daysLeft: number;
-  /** YYYY-MM-DD */
-  runsOutOn: string;
-  lastPurchase: Purchase;
-  purchaseCount: number;
-  /** Confidence: "default" rate by age vs. "set" by the user. */
-  rateSource: "default" | "set";
-}
-
-const DAY_MS = 86_400_000;
 export const REORDER_WINDOW_DAYS = 7;
 
-/** Diaper changes per day by age — conservative averages used until the family sets its own rate. */
+/** Diaper changes per day by age — conservative averages used until the family's own history says otherwise. */
 export function defaultDailyRate(ageMonths?: number): number {
   if (ageMonths === undefined) return 6;
   if (ageMonths < 3) return 9;
@@ -52,36 +42,6 @@ export function defaultDailyRate(ageMonths?: number): number {
   if (ageMonths < 24) return 5;
   return 4;
 }
-
-const localDate = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-const dayStart = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
-
-/**
- * Stock per product: pieces bought since the first purchase minus consumption since that day. Multiple
- * purchases stack (buying twice in a month means a bigger pile, not a reset). Consumption before the
- * first purchase is unknown, so the estimate starts from zero stock on that day.
- */
-export function estimateStock(purchases: Purchase[], rateFor: (purchase: Purchase) => number, now = new Date()): StockEstimate[] {
-  const byProduct = new Map<string, Purchase[]>();
-  for (const purchase of purchases) byProduct.set(purchase.productId, [...(byProduct.get(purchase.productId) ?? []), purchase]);
-  const today = dayStart(localDate(now));
-  const out: StockEstimate[] = [];
-  for (const [productId, items] of byProduct) {
-    const sorted = [...items].sort((a, b) => a.purchasedOn.localeCompare(b.purchasedOn));
-    const last = sorted.at(-1)!;
-    const rate = last.dailyRate ?? rateFor(last);
-    const bought = sorted.reduce((acc, item) => acc + item.unitCount, 0);
-    const days = Math.max(0, Math.floor((today.getTime() - dayStart(sorted[0].purchasedOn).getTime()) / DAY_MS));
-    const remaining = Math.max(0, Math.round(bought - days * rate));
-    const daysLeft = Math.floor(remaining / rate);
-    const runsOut = new Date(today.getTime() + daysLeft * DAY_MS);
-    out.push({ productId, productName: last.productName, brand: last.brand, remaining, dailyRate: rate, daysLeft, runsOutOn: localDate(runsOut), lastPurchase: last, purchaseCount: sorted.length, rateSource: last.dailyRate ? "set" : "default" });
-  }
-  return out.sort((a, b) => a.daysLeft - b.daysLeft);
-}
-
-/** Items to surface on Home/Shopping: running low within the reorder window (or already out). */
-export const runningLow = (estimates: StockEstimate[]) => estimates.filter((item) => item.daysLeft <= REORDER_WINDOW_DAYS);
 
 /** Ledger entry created by PURCHASE_COMPLETED (Finance side of the event). */
 export function transactionForPurchase(purchase: Purchase, forChild: boolean, id: string) {
