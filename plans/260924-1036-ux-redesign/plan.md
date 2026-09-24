@@ -1,6 +1,6 @@
 # FamAgents Alpha — thiết kế lại luồng, điều hướng và bộ nhớ theo Spec v2
 
-Ngày: 24/09/2026 · Nguồn: [docs/SPEC_V2_FAMILY_OS.md](../../docs/SPEC_V2_FAMILY_OS.md) (định hướng), [SPEC_V1](../../docs/SPEC_V1_PURCHASING_AGENT.md) (kỹ thuật Shopping) · Trạng thái: **chờ duyệt kiến trúc**.
+Ngày: 24/09/2026 · Nguồn: [docs/SPEC_V2_FAMILY_OS.md](../../docs/SPEC_V2_FAMILY_OS.md) (định hướng), [SPEC_V1](../../docs/SPEC_V1_PURCHASING_AGENT.md) (kỹ thuật Shopping) · Trạng thái: **Đợt 1–4 đã lên main** (`8a7d83a` khung & Home · `54dd44a` + `e0b1823` Tiền & Coordinator · `545b8eb` liên module · Đợt 4 bộ nhớ & chống lặp); migration 0007–0009 đã áp dụng lên Supabase. Còn Đợt 5 (rà soát).
 
 ## 1. Audit trải nghiệm hiện tại (24/09)
 

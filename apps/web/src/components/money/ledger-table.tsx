@@ -42,11 +42,11 @@ export function LedgerTable({ transactions, categories, familyChildren, month, o
   }
 
   const fields = (existing?: MoneyTransaction) => <>
-    <td><input type="date" aria-label="Ngày" value={draft.occurredOn} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} /></td>
-    <td><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
-    <td><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
-    <td><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
-    <td><input aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td data-label="Ngày"><input type="date" aria-label="Ngày" value={draft.occurredOn} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} /></td>
+    <td data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
+    <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
+    <td data-label="Số tiền"><input aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td className="ledger-child"><label><input type="checkbox" checked={draft.forChild} onChange={(event) => setDraft({ ...draft, forChild: event.target.checked })} /> <span>Cho con</span></label></td>
     <td className="ledger-actions"><button type="button" className="app-btn" disabled={busy} onClick={() => void submit(existing)}>{existing ? "Lưu" : "Thêm"}</button>{existing && <button type="button" className="ledger-link" onClick={() => { setEditing(null); setDraft(blank(month)); }}>Hủy</button>}</td>
   </>;
@@ -57,12 +57,12 @@ export function LedgerTable({ transactions, categories, familyChildren, month, o
       <tbody>
         {!editing && <tr className="ledger-new">{fields()}</tr>}
         {transactions.map((item) => editing === item.id ? <tr className="ledger-new" key={item.id}>{fields(item)}</tr> : <tr key={item.id} className={`ledger-row kind-${item.kind}`}>
-          <td>{dayLabel(item.occurredOn)}</td>
-          <td><span className="ledger-content">{item.content}</span>{item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
-          <td><span className={`ledger-kind ${item.kind}`}>{MONEY_KIND_LABELS[item.kind]}</span></td>
-          <td>{item.category}</td>
-          <td className="num">{item.kind === "expense" ? "−" : item.kind === "saving" && item.amount < 0 ? "+" : item.kind === "saving" ? "→" : "+"}{vnd(Math.abs(item.amount))}</td>
-          <td className="ledger-child">{item.forChild ? "✓" : ""}</td>
+          <td data-label="Ngày">{dayLabel(item.occurredOn)}</td>
+          <td data-label="Nội dung"><span className="ledger-content">{item.content}</span>{item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
+          <td data-label="Loại"><span className={`ledger-kind ${item.kind}`}>{MONEY_KIND_LABELS[item.kind]}</span></td>
+          <td data-label="Nhóm">{item.category}</td>
+          <td className="num" data-label="Số tiền">{item.kind === "expense" ? "−" : item.kind === "saving" && item.amount < 0 ? "+" : item.kind === "saving" ? "→" : "+"}{vnd(Math.abs(item.amount))}</td>
+          <td className="ledger-child" data-label="Cho con">{item.forChild ? "Cho con" : ""}</td>
           <td className="ledger-actions"><button type="button" className="ledger-link" onClick={() => { setEditing(item.id); setDraft(toDraft(item)); setError(""); }}>Sửa</button><button type="button" className="ledger-link danger" onClick={() => { if (window.confirm(`Xóa “${item.content}”?`)) void onDelete(item.id); }}>Xóa</button></td>
         </tr>)}
         {!transactions.length && <tr><td colSpan={7} className="ledger-empty">Chưa có khoản nào trong tháng này. Gõ vào dòng trên rồi Enter — như Excel.</td></tr>}

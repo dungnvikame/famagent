@@ -75,3 +75,23 @@
 .agent-product-actions .mark-purchased>button{width:100%;min-height:0;padding:9px 5px;font-size:10px;border-radius:8px}
 .agent-budget-hint{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#4a4468;background:#fff3d6;border:1px solid #f4dca6;border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.5}
 .agent-budget-hint.ok{background:var(--ok-bg);border-color:#b8e6d3}
+
+/* Phone: the ledger becomes stacked cards (no horizontal scroll, 44px targets). */
+@media(max-width:640px){
+  .ledger-wrap{overflow:visible;background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .ledger,.ledger tbody,.ledger tr,.ledger td{display:block;min-width:0;width:auto}
+  .ledger thead{display:none}
+  .ledger tr{background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:10px 14px;margin-bottom:10px;box-shadow:var(--shadow-sm);position:relative}
+  .ledger td{padding:4px 0;border:0}
+  .ledger td[data-label="Ngày"]{font-size:12px;color:var(--muted)}
+  .ledger-row td[data-label="Nội dung"]{font-weight:700;font-size:15px;padding-right:110px}
+  .ledger-row td.num{position:absolute;top:26px;right:14px;font-size:15px}
+  .ledger-row td[data-label="Loại"],.ledger-row td[data-label="Nhóm"],.ledger-row td[data-label="Cho con"]{display:inline-block;margin-right:8px;font-size:12px;color:var(--muted)}
+  .ledger-row td[data-label="Cho con"]:empty{display:none}
+  .ledger-row td.ledger-actions{text-align:left;padding-top:6px}
+  .ledger-new td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:#7a6fb0;margin-bottom:3px;letter-spacing:.04em;text-transform:uppercase}
+  .ledger-new td.ledger-child::before,.ledger-new td.ledger-actions::before{display:none}
+  .ledger-new td.ledger-child,.ledger-new td.ledger-actions{text-align:left;padding-top:8px}
+  .ledger-new td.ledger-actions .app-btn{width:100%}
+  .ledger-empty{padding:18px 0!important}
+}
