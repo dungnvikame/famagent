@@ -5,7 +5,11 @@ import { emptyIntent, runShoppingTurn, type StockLine } from "@/lib/ai/shopping/
 import { brandsToAvoid, extractNotes } from "@/lib/ai/notes";
 import { loadNotes, recordNotes } from "@/lib/notes/store-server";
 import { loadShoppingState } from "@/lib/shopping/item-store-server";
-import { estimateItems, itemRateResolver, stockLines, type ShoppingItem } from "@/lib/shopping/items";
+import { estimateItems, itemRateResolver, type ShoppingItem } from "@/lib/shopping/items";
+import { reorderLines } from "@/lib/shopping/reorder";
+import { explainMonth } from "@/lib/money/explain";
+import { shiftMonth } from "@/lib/shopping/plan";
+import { reorderDraft } from "@/lib/shopping/capture";
 import { looksLikePurchaseLog, parsePurchase } from "@/lib/shopping/capture";
 import { validItem } from "@/lib/shopping/item-validate";
 import { todayLocal } from "@/lib/money/parse";
@@ -68,9 +72,14 @@ export async function POST(request: Request) {
   // Family Coordinator (spec v2 §18): finance questions are answered from the ledger by rules, no LLM.
   const moneyQuestion = detectMoneyQuestion(body.message);
   if (moneyQuestion && account) {
-    const bundle = await loadBundle(account.client, account.user.id, monthKey(new Date()));
+    // Spec §4: compare with the family's normal pace (up to 3 earlier months) and explain the kids' category from purchases.
+    const month = monthKey(new Date());
+    const [bundle, ...previous] = await Promise.all([0, -1, -2, -3].map((delta) => loadBundle(account!.client, account!.user.id, shiftMonth(month, delta))));
     if (!bundle) return NextResponse.json({ error: "Không thể tải sổ thu chi" }, { status: 500 });
-    const answer = answerMoney(moneyQuestion, summarizeMonth(bundle), body.message);
+    const shopping = await loadShoppingState(account.client, account.user.id);
+    const summary = summarizeMonth(bundle);
+    const explain = explainMonth(summary, bundle.transactions, previous.flatMap((entry) => entry?.transactions ?? []), shopping?.purchases ?? [], shopping?.items ?? []);
+    const answer = answerMoney(moneyQuestion, summary, body.message, explain);
     const response: ChatResponse = { ...answer, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" };
     return NextResponse.json(response);
   }
@@ -83,10 +92,14 @@ export async function POST(request: Request) {
   let stock: StockLine[] = [];
   if (account) {
     const shopping = await loadShoppingState(account.client, account.user.id);
-    if (shopping) stock = stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(profile), new Date(), shopping.checks));
+    if (shopping) stock = reorderLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(profile), new Date(), shopping.checks), shopping.purchases, profile);
   } else if (Array.isArray(body.stock)) {
     stock = body.stock.filter((item): item is StockLine => typeof item === "object" && item !== null && typeof (item as StockLine).productName === "string" && typeof (item as StockLine).daysLeft === "number").slice(0, 20);
   }
+  // "Ghi đã mua lại <món>" (reorder card choice) → the same purchase as last time, on the confirmation card.
+  const again = reorderDraft(body.message, stock, todayLocal());
+  if (again) return NextResponse.json({ text: `Mình ghi lần mua lại ${again.name} giống lần trước — bạn kiểm tra rồi bấm “Ghi lại”.`, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "purchase-capture-v1", mode: "rules", purchaseDraft: again } satisfies ChatResponse);
+
   // Family memory: existing notes steer the turn (health → avoid brand); new notes are recorded from this message.
   const notes = account ? (await loadNotes(account.client, account.user.id)) ?? [] : [];
   // Demo mode keeps notes in the browser and sends the brands to avoid with the message.

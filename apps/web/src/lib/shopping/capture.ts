@@ -87,6 +87,14 @@ export function findDate(folded: string, today: string): { on: string; span?: Sp
   return { on: today };
 }
 
+/** "Ghi đã mua lại <món>" → last purchase of that item again (packs, pack price, merchant), dated today. */
+export function reorderDraft(text: string, stock: Array<{ productName: string; itemId?: string; unit?: string; packSize?: number; lastPackPrice?: number; merchant?: string }>, today: string): PurchaseDraft | null {
+  const match = /^ghi đã mua lại\s+(.+)$/iu.exec(text.trim());
+  const line = match && stock.find((entry) => entry.itemId && entry.productName.toLocaleLowerCase("vi") === match[1].trim().toLocaleLowerCase("vi"));
+  if (!line) return null;
+  return { itemId: line.itemId, name: line.productName, category: "diapers", unit: line.unit ?? "miếng", packs: 1, packSize: line.packSize, amount: line.lastPackPrice, merchant: line.merchant, purchasedOn: today, missing: [] };
+}
+
 /** Parses a purchase sentence into a draft; `items` lets "mua bỉm Merries" restock the family's existing item. */
 export function parsePurchase(text: string, items: ShoppingItem[], today: string): PurchaseDraft {
   const folded = fold(text);

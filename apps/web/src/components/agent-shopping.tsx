@@ -20,7 +20,11 @@ import { emptyIntent, type StockLine } from "@/lib/ai/shopping/pipeline";
 import type { MonthSummary } from "@/lib/money/summary";
 import { loadShopping } from "@/lib/shopping/item-client";
 import { budgetHint } from "@/lib/shopping/purchases";
-import { estimateItems, itemRateResolver, stockLines, type ShoppingItem } from "@/lib/shopping/items";
+import { estimateItems, itemRateResolver, type ShoppingItem } from "@/lib/shopping/items";
+import { reorderLines } from "@/lib/shopping/reorder";
+import type { Purchase } from "@/lib/shopping/purchases";
+import { explainMonth } from "@/lib/money/explain";
+import { shiftMonth } from "@/lib/shopping/plan";
 import { PurchaseDraftCard } from "@/components/shopping/purchase-draft-card";
 import { brandsToAvoid, extractNotes } from "@/lib/ai/notes";
 import { loadNotes, recordLocalNotes } from "@/lib/notes/client";
@@ -54,6 +58,7 @@ export function AgentShopping() {
   const [money, setMoney] = useState<MonthSummary | null>(null);
   const [stock, setStock] = useState<StockLine[]>([]);
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
+  const [shoppingPurchases, setShoppingPurchases] = useState<Purchase[]>([]);
   const pendingPrefill = useRef<string | null>(null);
 
   useEffect(() => {
@@ -81,7 +86,7 @@ export function AgentShopping() {
         setConversations(prefill || !existing.length ? [first, ...existing] : existing); setActiveId(first.id);
         if (prefill) { pendingPrefill.current = prefill; window.history.replaceState(null, "", "/agent"); }
         loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
-        loadShopping().then((shopping) => { if (!cancelled) { setShoppingItems(shopping.items); setStock(stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks))); } }).catch(() => {});
+        loadShopping().then((shopping) => { if (!cancelled) { setShoppingItems(shopping.items); setShoppingPurchases(shopping.purchases); setStock(reorderLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks), shopping.purchases, family)); } }).catch(() => {});
       } catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); }
     }
     void load();
@@ -133,7 +138,7 @@ export function AgentShopping() {
       // with the same templates the server uses for signed-in users (/api/chat).
       const moneyQuestion = !cloudEnabled ? detectMoneyQuestion(input) : null;
       const result: ChatResponse = moneyQuestion
-        ? await loadMoney(monthKey(new Date())).then((bundle): ChatResponse => ({ ...answerMoney(moneyQuestion, summarizeMonth(bundle), input), intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" }))
+        ? await Promise.all([0, -1, -2, -3].map((delta) => loadMoney(shiftMonth(monthKey(new Date()), delta)).catch(() => null))).then(([bundle, ...previous]): ChatResponse => { if (!bundle) throw new Error("Không thể tải sổ thu chi."); const summary = summarizeMonth(bundle); return { ...answerMoney(moneyQuestion, summary, input, explainMonth(summary, bundle.transactions, previous.flatMap((entry) => entry?.transactions ?? []), shoppingPurchases, shoppingItems)), intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" }; })
         : await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId, stock: cloudEnabled ? undefined : stock, items: cloudEnabled ? undefined : shoppingItems, avoidBrands: cloudEnabled ? undefined : brandsToAvoid(await loadNotes()) }) }).then(async (response) => {
           if (!response.ok) { const failure = await response.json().catch(() => ({})) as { error?: string }; throw new Error(failure.error || "Chưa thể xử lý yêu cầu."); }
           const data = await response.json() as ChatResponse;
