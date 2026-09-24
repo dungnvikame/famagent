@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IconCheck, IconSparkle, IconWallet } from "@/components/onboarding/icons";
+import { IconCheck, IconShield, IconSparkle, IconWallet } from "@/components/onboarding/icons";
+import { HEALTH_LABELS } from "@/lib/money/health";
 import { profileSummary } from "@/lib/ai/onboarding/templates";
 import type { FamilyProfile } from "@/lib/experience/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
@@ -45,6 +46,23 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
     {assessment.finance.points.length > 0 && <div className="ob-assess-block">
       <h3><IconWallet size={18} /> Tình hình tài chính</h3>
       <ul>{assessment.finance.points.map((point) => <li key={point}>{point}</li>)}</ul>
+    </div>}
+
+    {assessment.health.score !== undefined && <div className="ob-assess-block fh-block">
+      <h3><IconShield size={18} /> Sức khỏe tài chính: {assessment.health.score}/100 · {HEALTH_LABELS[assessment.health.tier!]}</h3>
+      <p className="ob-assess-why">Theo bộ 8 chỉ số FinHealth (Financial Health Network) — chia thành Chi tiêu, Tiết kiệm, Vay nợ, Kế hoạch.</p>
+      <ul className="fh-grid">{assessment.health.indicators.map((item) => <li key={item.key} className={`fh-item ${item.status}`}>
+        <span className="fh-pillar">{item.pillar}</span><b>{item.label}</b>
+        <span className="fh-status">{item.status === "unknown" ? "Chưa rõ" : HEALTH_LABELS[item.status]}</span>
+        <small>{item.finding}</small>
+      </li>)}</ul>
+    </div>}
+
+    {assessment.health.problems.length > 0 && <div className="ob-assess-block">
+      <h3><IconWallet size={18} /> Vấn đề cần xử lý & cách xử lý</h3>
+      <ol className="fh-problems">{assessment.health.problems.map((item) => <li key={item.key} className={item.status}>
+        <b>{item.problem}</b><span>→ {item.fix}</span>
+      </li>)}</ol>
     </div>}
 
     <div className="ob-assess-block">

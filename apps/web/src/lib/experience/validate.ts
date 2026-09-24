@@ -1,4 +1,4 @@
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
+import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, INCOME_STABILITY, BILL_TIMELINESS, DEBT_TYPES, LONG_TERM_SAVINGS, INSURANCE_TYPES, PLANNING_LEVELS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
 
 // Limits keep stored context small and to what product selection needs (PRODUCT.md §4).
 const MAX_LIST = 10;
@@ -51,6 +51,13 @@ function validHousehold(value: unknown): boolean {
     && optional(h.monthlyDebt, number(0, 10_000_000_000, true))
     && optional(h.emergency, inList(EMERGENCY_LEVELS))
     && optional(h.moneyMethod, inList(MONEY_METHODS))
+    && optional(h.deepDive, (value) => typeof value === "boolean")
+    && optional(h.incomeStability, inList(INCOME_STABILITY))
+    && optional(h.billTimeliness, inList(BILL_TIMELINESS))
+    && optional(h.debtTypes, enumList(DEBT_TYPES))
+    && optional(h.longTermSavings, enumList(LONG_TERM_SAVINGS))
+    && optional(h.insurance, enumList(INSURANCE_TYPES))
+    && optional(h.planning, inList(PLANNING_LEVELS))
     && optional(h.notes, (notes) => !!notes && typeof notes === "object" && !Array.isArray(notes) && Object.keys(notes).length <= 12 && Object.entries(notes as Record<string, unknown>).every(([key, text]) => key.length <= 80 && typeof text === "string" && text.length <= 120));
 }
 

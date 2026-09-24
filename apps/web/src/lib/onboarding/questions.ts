@@ -1,8 +1,8 @@
 // Multiple-choice onboarding (tap, don't type): each question reads its current answer from the profile and
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
-import { CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
+import { BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
-export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền";
+export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền" | "Phân tích";
 export interface Choice { value: string; label: string; hint?: string }
 export interface Question {
   /** Stable id, also recorded in profile.onboarding (≤ 80 chars). */
@@ -241,6 +241,53 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       apply: (p, values) => household(p, { savingGoals: pick(SAVING_GOALS, values) }),
     },
   );
+  questions.push({
+    id: "deep", group: "Phân tích", title: "Bạn có muốn FamAgent phân tích kỹ sức khỏe tài chính của nhà mình không?", help: "Thêm 6 câu (khoảng 1 phút), theo bộ chỉ số sức khỏe tài chính FinHealth. Kết quả: điểm sức khỏe tài chính, vấn đề cần xử lý và cách xử lý.", mode: "single",
+    choices: [{ value: "yes", label: "Có, phân tích kỹ giúp mình", hint: "khuyên dùng" }, { value: "no", label: "Để sau, xem nhận định luôn" }],
+    current: (p) => p.household?.deepDive === undefined ? [] : [p.household.deepDive ? "yes" : "no"],
+    apply: (p, [value]) => household(p, { deepDive: value === "yes" }),
+  });
+  if (profile.household?.deepDive) {
+    const hasDebt = profile.household.monthlyDebt === undefined || profile.household.monthlyDebt > 0;
+    questions.push(
+      {
+        id: "stability", group: "Phân tích", title: "Thu nhập của nhà mình ổn định thế nào?", help: "Thu nhập càng không đều, quỹ dự phòng càng cần dày hơn.", mode: "single",
+        choices: [{ value: "stable_both", label: "Cả hai vợ chồng có lương cố định" }, { value: "stable_one", label: "Một người có lương cố định" }, { value: "irregular", label: "Không đều", hint: "kinh doanh, tự do, hoa hồng, theo mùa vụ" }],
+        current: (p) => p.household?.incomeStability ? [p.household.incomeStability] : [],
+        apply: (p, [value]) => household(p, { incomeStability: pick(INCOME_STABILITY, [value])[0] }),
+      },
+      {
+        id: "bills", group: "Phân tích", title: "12 tháng qua, nhà mình trả hóa đơn, trả góp có đúng hạn không?", mode: "single",
+        choices: [{ value: "always", label: "Luôn đúng hạn" }, { value: "sometimes", label: "Thỉnh thoảng trễ" }, { value: "often_late", label: "Hay bị trễ, phải xoay xở" }],
+        current: (p) => p.household?.billTimeliness ? [p.household.billTimeliness] : [],
+        apply: (p, [value]) => household(p, { billTimeliness: pick(BILL_TIMELINESS, [value])[0] }),
+      },
+      ...(hasDebt ? [{
+        id: "debt-types", group: "Phân tích" as const, title: "Nhà mình đang có những khoản vay nào?", help: "Thẻ tín dụng và vay tiêu dùng thường lãi cao nhất — nên xử lý trước.", mode: "multi" as const, other: { placeholder: "Ví dụ: vay góp vốn kinh doanh" },
+        choices: [{ value: "mortgage", label: "Vay mua nhà" }, { value: "car", label: "Vay mua xe" }, { value: "installment", label: "Trả góp đồ dùng, điện thoại" }, { value: "credit_card", label: "Dư nợ thẻ tín dụng" }, { value: "consumer_loan", label: "Vay tiêu dùng, vay qua app" }, { value: "family", label: "Vay người thân, bạn bè" }],
+        current: (p: FamilyProfile) => p.household?.debtTypes ? [...p.household.debtTypes] : [],
+        apply: (p: FamilyProfile, values: string[]) => household(p, { debtTypes: pick(DEBT_TYPES, values) }),
+      }] : []),
+      {
+        id: "long-term", group: "Phân tích", title: "Ngoài quỹ dự phòng, nhà mình đã tích lũy dài hạn ở đâu?", help: "Chọn tất cả điều đúng.", mode: "multi", other: { placeholder: "Ví dụ: góp hụi, cho vay" },
+        choices: [{ value: "bank_term", label: "Gửi tiết kiệm dài hạn" }, { value: "gold", label: "Vàng" }, { value: "property", label: "Đất, nhà cho thuê" }, { value: "stocks", label: "Chứng khoán, chứng chỉ quỹ" }, { value: "life_insurance", label: "Bảo hiểm nhân thọ có tích lũy" }, { value: "none", label: "Chưa có" }],
+        current: (p) => p.household?.longTermSavings ? [...p.household.longTermSavings] : [],
+        apply: (p, values) => household(p, { longTermSavings: values.includes("none") ? ["none"] : pick(LONG_TERM_SAVINGS, values) }),
+      },
+      {
+        id: "insurance", group: "Phân tích", title: "Nhà mình đã có những bảo hiểm nào?", help: "Bảo hiểm giúp một lần ốm đau hay rủi ro không xóa sạch tiền để dành.", mode: "multi",
+        choices: [{ value: "public_health", label: "Bảo hiểm y tế cho cả nhà" }, { value: "private_health", label: "Bảo hiểm sức khỏe tư nhân" }, { value: "life_main_earner", label: "Bảo hiểm nhân thọ cho người kiếm tiền chính" }, { value: "none", label: "Chưa có" }],
+        current: (p) => p.household?.insurance ? [...p.household.insurance] : [],
+        apply: (p, values) => household(p, { insurance: values.includes("none") ? ["none"] : pick(INSURANCE_TYPES, values) }),
+      },
+      {
+        id: "planning", group: "Phân tích", title: "Nhà mình có kế hoạch tiền bạc cho 1–5 năm tới chưa?", mode: "single",
+        choices: [{ value: "specific", label: "Có, với con số và thời hạn rõ ràng" }, { value: "rough", label: "Có ý tưởng nhưng chưa cụ thể" }, { value: "none", label: "Chưa nghĩ tới" }],
+        current: (p) => p.household?.planning ? [p.household.planning] : [],
+        apply: (p, [value]) => household(p, { planning: pick(PLANNING_LEVELS, [value])[0] }),
+      },
+    );
+  }
   return questions.map(withOther);
 }
 

@@ -145,7 +145,9 @@ export function suggestFrameworks(profile: FamilyProfile): Array<{ id: Framework
   const debtRate = h.monthlyIncome && h.monthlyDebt ? h.monthlyDebt / h.monthlyIncome : 0;
   const out: Array<{ id: FrameworkId; reason: string }> = [];
   const add = (id: FrameworkId, reason: string) => { if (!out.some((item) => item.id === id)) out.push({ id, reason }); };
-  if (pains.has("debt") || debtRate > 0.3) add("baby-steps", "Bạn đang có nợ, trả góp đáng kể");
+  const highInterest = (h.debtTypes ?? []).some((item) => item === "credit_card" || item === "consumer_loan");
+  if (pains.has("debt") || debtRate > 0.36 || highInterest) add("baby-steps", highInterest ? "Có khoản vay lãi cao cần trả dứt trước" : "Bạn đang có nợ, trả góp đáng kể");
+  if (h.incomeStability === "irregular") add("zero-based", "Thu nhập không đều — giao việc cho từng khoản khi tiền về");
   if (pains.has("cant_save")) add("pay-first", "Bạn nói mãi chưa để dành được");
   if (pains.has("unknown_spending") || h.tracking === "none" || h.tracking === "memory") add("kakeibo", "Bạn chưa rõ tiền đi đâu");
   if (pains.has("short_month_end")) add("50-30-20", "Cuối tháng hay hụt — cần giới hạn rõ ràng");

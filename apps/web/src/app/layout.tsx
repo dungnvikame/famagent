@@ -15,6 +15,7 @@ import "./onboarding-wizard.css";
 import "./app-shell.css";
 import "./money.css";
 import "./money-frameworks.css";
+import "./financial-health.css";
 import "./family-notes.css";
 
 // Self-hosted at build time by next/font (no runtime request to Google); Vietnamese subset included.

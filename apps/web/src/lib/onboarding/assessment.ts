@@ -1,5 +1,6 @@
 import { childAgeMonths } from "../experience/profile-mapper.ts";
 import type { FamilyProfile } from "../experience/types.ts";
+import { financialHealth, HEALTH_LABELS, type HealthReport } from "../money/health.ts";
 
 /**
  * First assessment after onboarding: a plain-language read of the family's money situation, a suggested way to
@@ -17,6 +18,8 @@ export interface Assessment {
   steps: AssessmentStep[];
   /** Every number the assessment uses, as text — the only numbers an AI rewrite may mention. */
   facts: string[];
+  /** FinHealth-style check: score, 8 indicators, problems with fixes. */
+  health: HealthReport;
   /** Suggested plan values the app can apply (Money plan, emergency goal). */
   plan: { monthlyPlan?: number; emergencyTarget?: number };
 }
@@ -41,6 +44,8 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   const worries = new Set(h.careWorries ?? []);
   const finance: string[] = [];
   const plan: Assessment["plan"] = {};
+  const health = financialHealth(profile);
+  const months = health.emergencyMonths;
 
   // --- money situation -------------------------------------------------------------------------------------------
   const leftover = income !== undefined && spend !== undefined ? income - spend - debt : undefined;
@@ -54,13 +59,12 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   } else if (spend !== undefined) {
     finance.push(fact(`Chi tiêu khoảng ${money(spend)} mỗi tháng.`));
   }
-  if (debtRate !== undefined && debtRate > 0.3) finance.push(fact(`Trả nợ đang chiếm khoảng ${Math.round(debtRate * 100)}% thu nhập — cao hơn mức an toàn thường dùng là 30%. Nên ưu tiên trả bớt khoản lãi cao và không vay thêm.`));
+  if (debtRate !== undefined && debtRate > 0.36) finance.push(fact(`Trả nợ đang chiếm khoảng ${Math.round(debtRate * 100)}% thu nhập — cao hơn ngưỡng 36% thường dùng để đánh giá nợ an toàn. Nên ưu tiên trả bớt khoản lãi cao và không vay thêm.`));
   if (spend) {
-    const months = h.emergency === "gt6" ? 6 : 6;
     const target = round(spend * months, M);
     plan.emergencyTarget = target;
-    if (h.emergency === "none" || h.emergency === "lt3") finance.push(fact(`Quỹ dự phòng nên bằng khoảng 6 tháng chi tiêu, tức khoảng ${money(target)}. Nhà mình ${h.emergency === "none" ? "chưa có" : "đang có dưới 3 tháng"} — đây nên là mục tiêu để dành đầu tiên.`));
-    else if (h.emergency === "3to6") finance.push(fact(`Quỹ dự phòng đã có 3–6 tháng chi tiêu; nâng dần lên 6 tháng (khoảng ${money(target)}) rồi chuyển sang các mục tiêu dài hơn.`));
+    if (h.emergency === "none" || h.emergency === "lt3") finance.push(fact(`Quỹ dự phòng nên bằng khoảng ${months} tháng chi tiêu, tức khoảng ${money(target)}. Nhà mình ${h.emergency === "none" ? "chưa có" : "đang có dưới 3 tháng"} — đây nên là mục tiêu để dành đầu tiên.`));
+    else if (h.emergency === "3to6") finance.push(fact(`Quỹ dự phòng đã có 3–6 tháng chi tiêu; nâng dần lên ${months} tháng (khoảng ${money(target)}) rồi chuyển sang các mục tiêu dài hơn.`));
     else if (h.emergency === "gt6") finance.push("Quỹ dự phòng đã trên 6 tháng chi tiêu — có thể dồn phần dư cho học hành của các con hoặc mục tiêu lớn.");
   }
 
@@ -104,7 +108,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   else if (children.length) steps.push({ label: "Kiểm tra hồ sơ các con", detail: "Tên, tuổi, cân nặng, lưu ý sức khỏe — FamAgent dùng cho mọi gợi ý.", href: "/family" });
 
   const headline = leftover !== undefined && leftover <= 0 ? "Nhà mình đang chi nhiều hơn khả năng — cần cân lại trước tiên"
-    : pains.has("debt") || (debtRate !== undefined && debtRate > 0.3) ? "Trả nợ đang là gánh nặng lớn nhất — hãy làm nó nhẹ đi trước"
+    : pains.has("debt") || (debtRate !== undefined && debtRate > 0.36) ? "Trả nợ đang là gánh nặng lớn nhất — hãy làm nó nhẹ đi trước"
     : h.emergency === "none" || h.emergency === "lt3" ? "Nền tài chính ổn, nhưng cần một quỹ dự phòng vững hơn"
     : saveRate !== undefined && saveRate >= 0.2 ? "Tài chính khá khỏe — giờ là lúc để tiền làm việc cho các mục tiêu"
     : "Bắt đầu từ việc thấy rõ tiền đi đâu";
@@ -118,6 +122,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   // Every generated line is a fact the AI may restate; child names are replaced so they never reach the provider.
   const names = children.map((child) => child.name).filter((name): name is string => Boolean(name));
   const anonymous = (line: string) => names.reduce((text, name) => text.split(name).join("con"), line);
-  const allFacts = [...new Set([...facts, ...finance, ...care, ...steps.map((step) => `${step.label}. ${step.detail}`)].map(anonymous))];
-  return { headline, note, finance: { points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan };
+  const healthFacts = [health.score !== undefined ? `Điểm sức khỏe tài chính ${health.score}/100 — ${HEALTH_LABELS[health.tier!]}.` : "", ...health.indicators.filter((item) => item.status !== "unknown").map((item) => `${item.label}: ${HEALTH_LABELS[item.status as keyof typeof HEALTH_LABELS]}. ${item.finding}${item.problem ? ` Vấn đề: ${item.problem} Giải pháp: ${item.fix}` : ""}`)].filter(Boolean);
+  const allFacts = [...new Set([...facts, ...finance, ...care, ...healthFacts, ...steps.map((step) => `${step.label}. ${step.detail}`)].map(anonymous))];
+  return { headline, note, finance: { points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan, health };
 }
