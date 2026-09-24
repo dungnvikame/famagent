@@ -67,6 +67,16 @@ export const DEBT_TYPES = ["mortgage", "car", "installment", "credit_card", "con
 export const LONG_TERM_SAVINGS = ["bank_term", "gold", "property", "stocks", "life_insurance", "none"] as const;
 export const INSURANCE_TYPES = ["public_health", "private_health", "life_main_earner", "none"] as const;
 export const PLANNING_LEVELS = ["specific", "rough", "none"] as const;
+/** Child care check (Nurturing Care Framework, lib/care/nurturing) and parenting approaches (lib/care/methods). */
+export const CARE_METHODS = ["easy", "rie", "montessori", "positive-discipline", "emotion-coaching", "french"] as const;
+export const VACCINE_STATUS = ["on_track", "late", "unsure"] as const;
+export const CHECKUP_RECENCY = ["recent", "year", "long"] as const;
+export const NUTRITION_LEVELS = ["varied", "picky", "snacks"] as const;
+export const SLEEP_QUALITY = ["good", "irregular", "short"] as const;
+export const PLAY_TIME = ["gt60", "30to60", "lt30"] as const;
+export const SCREEN_TIME = ["none", "lt1h", "1to2h", "gt2h"] as const;
+export const READING_FREQ = ["daily", "sometimes", "rarely"] as const;
+export const SAFETY_MEASURES = ["stairs", "outlets", "chemicals", "vehicle", "none"] as const;
 export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
@@ -100,6 +110,18 @@ export interface HouseholdContext {
   longTermSavings?: Array<(typeof LONG_TERM_SAVINGS)[number]>;
   insurance?: Array<(typeof INSURANCE_TYPES)[number]>;
   planning?: (typeof PLANNING_LEVELS)[number];
+  /** true = the family opted into the child care check questions. */
+  careDeepDive?: boolean;
+  vaccines?: (typeof VACCINE_STATUS)[number];
+  checkup?: (typeof CHECKUP_RECENCY)[number];
+  nutrition?: (typeof NUTRITION_LEVELS)[number];
+  sleepQuality?: (typeof SLEEP_QUALITY)[number];
+  playTime?: (typeof PLAY_TIME)[number];
+  screenTime?: (typeof SCREEN_TIME)[number];
+  reading?: (typeof READING_FREQ)[number];
+  safety?: Array<(typeof SAFETY_MEASURES)[number]>;
+  /** Parenting approach the family chose. */
+  careMethod?: (typeof CARE_METHODS)[number];
   /** Money framework the family chose (after the onboarding assessment or in Tiền). */
   moneyMethod?: (typeof MONEY_METHODS)[number];
   /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */

@@ -1,6 +1,6 @@
 // Multiple-choice onboarding (tap, don't type): each question reads its current answer from the profile and
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
-import { BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
+import { CHECKUP_RECENCY, NUTRITION_LEVELS, PLAY_TIME, READING_FREQ, SAFETY_MEASURES, SCREEN_TIME, SLEEP_QUALITY, VACCINE_STATUS, BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
 export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền" | "Phân tích";
 export interface Choice { value: string; label: string; hint?: string }
@@ -185,6 +185,34 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
     current: (p) => p.household?.careWorries ? [...p.household.careWorries] : [],
     apply: (p, values) => household(p, { careWorries: pick(CARE_WORRIES, values) }),
   });
+  if (kids) {
+    const single = <T extends string>(id: string, title: string, list: readonly T[], choices: Array<{ value: T; label: string; hint?: string }>, field: keyof HouseholdContext, help?: string): Question => ({
+      id, group: "Các con", title, help, mode: "single", choices,
+      current: (p) => { const value = p.household?.[field]; return typeof value === "string" ? [value] : []; },
+      apply: (p, [value]) => household(p, { [field]: pick(list, [value])[0] }),
+    });
+    questions.push({
+      id: "care-deep", group: "Các con", title: "Bạn có muốn FamAgent đánh giá kỹ việc chăm sóc các con không?", help: "Thêm 8 câu (khoảng 1 phút) theo Khung Chăm sóc Nuôi dưỡng của WHO và UNICEF. Kết quả: điểm chăm sóc, điều cần cải thiện và cách làm.", mode: "single",
+      choices: [{ value: "yes", label: "Có, đánh giá kỹ giúp mình", hint: "khuyên dùng" }, { value: "no", label: "Để sau" }],
+      current: (p) => p.household?.careDeepDive === undefined ? [] : [p.household.careDeepDive ? "yes" : "no"],
+      apply: (p, [value]) => household(p, { careDeepDive: value === "yes" }),
+    });
+    if (profile.household?.careDeepDive) questions.push(
+      single("vaccines", "Sổ tiêm chủng của các con hiện thế nào?", VACCINE_STATUS, [{ value: "on_track", label: "Đủ mũi theo lịch" }, { value: "late", label: "Có mũi đang trễ" }, { value: "unsure", label: "Không nắm rõ" }], "vaccines"),
+      single("checkup", "Lần gần nhất con được cân đo chiều cao, cân nặng là khi nào?", CHECKUP_RECENCY, [{ value: "recent", label: "Trong 3 tháng gần đây" }, { value: "year", label: "3–12 tháng trước" }, { value: "long", label: "Lâu hơn hoặc không nhớ" }], "checkup"),
+      single("sleep", "Con có ngủ đủ và đều giờ không?", SLEEP_QUALITY, [{ value: "good", label: "Ngủ đủ, giờ giấc đều" }, { value: "irregular", label: "Đủ nhưng giờ giấc thất thường" }, { value: "short", label: "Thường thiếu ngủ, hay thức đêm" }], "sleepQuality"),
+      single("nutrition", "Bữa ăn của con thường thế nào?", NUTRITION_LEVELS, [{ value: "varied", label: "Đa dạng, đủ nhóm chất" }, { value: "picky", label: "Kén ăn, ít rau hoặc đạm" }, { value: "snacks", label: "Hay ăn vặt, đồ ngọt, uống sữa thay bữa" }], "nutrition"),
+      single("play", "Mỗi ngày bố mẹ chơi, trò chuyện riêng với con bao lâu (không cầm điện thoại)?", PLAY_TIME, [{ value: "gt60", label: "Trên 1 giờ" }, { value: "30to60", label: "30–60 phút" }, { value: "lt30", label: "Dưới 30 phút" }], "playTime"),
+      single("screen", "Con xem TV, điện thoại, máy tính bảng mỗi ngày bao lâu?", SCREEN_TIME, [{ value: "none", label: "Không xem" }, { value: "lt1h", label: "Dưới 1 giờ" }, { value: "1to2h", label: "1–2 giờ" }, { value: "gt2h", label: "Trên 2 giờ" }], "screenTime"),
+      single("reading", "Nhà mình có đọc sách, kể chuyện cho con không?", READING_FREQ, [{ value: "daily", label: "Hằng ngày" }, { value: "sometimes", label: "Thỉnh thoảng" }, { value: "rarely", label: "Hiếm khi" }], "reading"),
+      {
+        id: "safety", group: "Các con", title: "Nhà mình đã làm những việc an toàn nào cho con?", help: "Chọn tất cả việc đã làm.", mode: "multi",
+        choices: [{ value: "stairs", label: "Chặn cầu thang, ban công, cửa sổ" }, { value: "outlets", label: "Che ổ điện, cố định tủ kệ" }, { value: "chemicals", label: "Cất thuốc, hóa chất lên cao" }, { value: "vehicle", label: "Mũ bảo hiểm trẻ em / ghế ô tô đúng cỡ" }, { value: "none", label: "Chưa làm việc nào" }],
+        current: (p) => p.household?.safety ? [...p.household.safety] : [],
+        apply: (p, values) => household(p, { safety: values.includes("none") ? ["none"] : pick(SAFETY_MEASURES, values) }),
+      },
+    );
+  }
   questions.push(
     {
       id: "housing", group: "Nhà ở", title: "Nhà mình đang ở thế nào?", help: "Nếu thuê nhà, tiền nhà sẽ là khoản cố định trong kế hoạch.", mode: "single",

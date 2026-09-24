@@ -1,4 +1,4 @@
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, INCOME_STABILITY, BILL_TIMELINESS, DEBT_TYPES, LONG_TERM_SAVINGS, INSURANCE_TYPES, PLANNING_LEVELS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
+import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, INCOME_STABILITY, BILL_TIMELINESS, DEBT_TYPES, LONG_TERM_SAVINGS, INSURANCE_TYPES, PLANNING_LEVELS, CARE_METHODS, VACCINE_STATUS, CHECKUP_RECENCY, NUTRITION_LEVELS, SLEEP_QUALITY, PLAY_TIME, SCREEN_TIME, READING_FREQ, SAFETY_MEASURES, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
 
 // Limits keep stored context small and to what product selection needs (PRODUCT.md §4).
 const MAX_LIST = 10;
@@ -58,6 +58,16 @@ function validHousehold(value: unknown): boolean {
     && optional(h.longTermSavings, enumList(LONG_TERM_SAVINGS))
     && optional(h.insurance, enumList(INSURANCE_TYPES))
     && optional(h.planning, inList(PLANNING_LEVELS))
+    && optional(h.careDeepDive, (value) => typeof value === "boolean")
+    && optional(h.vaccines, inList(VACCINE_STATUS))
+    && optional(h.checkup, inList(CHECKUP_RECENCY))
+    && optional(h.nutrition, inList(NUTRITION_LEVELS))
+    && optional(h.sleepQuality, inList(SLEEP_QUALITY))
+    && optional(h.playTime, inList(PLAY_TIME))
+    && optional(h.screenTime, inList(SCREEN_TIME))
+    && optional(h.reading, inList(READING_FREQ))
+    && optional(h.safety, enumList(SAFETY_MEASURES))
+    && optional(h.careMethod, inList(CARE_METHODS))
     && optional(h.notes, (notes) => !!notes && typeof notes === "object" && !Array.isArray(notes) && Object.keys(notes).length <= 12 && Object.entries(notes as Record<string, unknown>).every(([key, text]) => key.length <= 80 && typeof text === "string" && text.length <= 120));
 }
 

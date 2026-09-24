@@ -1,6 +1,7 @@
 import { childAgeMonths } from "../experience/profile-mapper.ts";
 import type { FamilyProfile } from "../experience/types.ts";
 import { financialHealth, HEALTH_LABELS, type HealthReport } from "../money/health.ts";
+import { careHealth, type CareReport } from "../care/nurturing.ts";
 
 /**
  * First assessment after onboarding: a plain-language read of the family's money situation, a suggested way to
@@ -20,6 +21,8 @@ export interface Assessment {
   facts: string[];
   /** FinHealth-style check: score, 8 indicators, problems with fixes. */
   health: HealthReport;
+  /** Nurturing Care check (WHO/UNICEF): score, indicators, problems with fixes. */
+  careCheck: CareReport;
   /** Suggested plan values the app can apply (Money plan, emergency goal). */
   plan: { monthlyPlan?: number; emergencyTarget?: number };
 }
@@ -45,6 +48,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   const finance: string[] = [];
   const plan: Assessment["plan"] = {};
   const health = financialHealth(profile);
+  const careCheck = careHealth(profile, now);
   const months = health.emergencyMonths;
 
   // --- money situation -------------------------------------------------------------------------------------------
@@ -123,6 +127,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   const names = children.map((child) => child.name).filter((name): name is string => Boolean(name));
   const anonymous = (line: string) => names.reduce((text, name) => text.split(name).join("con"), line);
   const healthFacts = [health.score !== undefined ? `Điểm sức khỏe tài chính ${health.score}/100 — ${HEALTH_LABELS[health.tier!]}.` : "", ...health.indicators.filter((item) => item.status !== "unknown").map((item) => `${item.label}: ${HEALTH_LABELS[item.status as keyof typeof HEALTH_LABELS]}. ${item.finding}${item.problem ? ` Vấn đề: ${item.problem} Giải pháp: ${item.fix}` : ""}`)].filter(Boolean);
-  const allFacts = [...new Set([...facts, ...finance, ...care, ...healthFacts, ...steps.map((step) => `${step.label}. ${step.detail}`)].map(anonymous))];
-  return { headline, note, finance: { points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan, health };
+  const careFacts = [careCheck.score !== undefined ? `Điểm chăm sóc con ${careCheck.score}/100 — ${HEALTH_LABELS[careCheck.tier!]}.` : "", ...careCheck.indicators.filter((item) => item.status !== "unknown").map((item) => `${item.label}: ${HEALTH_LABELS[item.status as keyof typeof HEALTH_LABELS]}. ${item.finding}${item.problem ? ` Vấn đề: ${item.problem} Giải pháp: ${item.fix}` : ""}`)].filter(Boolean);
+  const allFacts = [...new Set([...facts, ...finance, ...care, ...healthFacts, ...careFacts, ...steps.map((step) => `${step.label}. ${step.detail}`)].map(anonymous))];
+  return { headline, note, finance: { points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan, health, careCheck };
 }
