@@ -13,6 +13,7 @@ import { createAuthBrowserClient } from "@/lib/supabase/browser";
 import { AccountSection } from "@/components/account-section";
 import { FamilyNotes } from "@/components/family-notes";
 import { CareMethodPanel } from "@/components/care/care-method-panel";
+import { DailyTasks } from "@/components/home/daily-tasks";
 import { familyPolicy, STYLE_LABELS } from "@/lib/policy/family-policy";
 import type { CareMethodId } from "@/lib/care/methods";
 
@@ -114,7 +115,7 @@ export function FamilyEditor() {
         <label>Máy giặt<select value={profile.appliances?.washingMachine ?? ""} onChange={(event) => update({ appliances: event.target.value ? { washingMachine: event.target.value as NonNullable<FamilyProfile["appliances"]>["washingMachine"] } : undefined })}><option value="">Chưa chọn</option><option value="front">Cửa trước</option><option value="top">Cửa trên</option><option value="none">Không dùng máy giặt</option></select></label>
       </div></section>
 
-      {(profile.children.length > 0 || profile.household?.setup === "expecting") && <details className="app-card advanced"><summary>Nâng cao · phương pháp nuôi dạy và kiểm tra chăm sóc</summary><CareMethodPanel profile={profile} onChoose={(id) => void saveCareMethod(id)} /><p className="app-sub"><a className="brief-link" href="/onboarding?update=1&section=care">Làm bài kiểm tra chăm sóc (1 phút)</a></p></details>}
+      {(profile.children.length > 0 || profile.household?.setup === "expecting") && <details className="app-card advanced"><summary>Nâng cao · phương pháp nuôi dạy và kiểm tra chăm sóc</summary><CareMethodPanel profile={profile} onChoose={(id) => void saveCareMethod(id)} /><DailyTasks profile={profile} loggedToday={false} /><p className="app-sub"><a className="brief-link" href="/onboarding?update=1&section=care">Làm bài kiểm tra chăm sóc (1 phút)</a></p></details>}
       <section className="form-card"><div><span className="section-number">05</span><h2>Điều FamAgent đã ghi nhớ</h2><p>Ghi chú rút ra từ các cuộc trò chuyện, gắn nhãn “Ghi nhận” cho tới khi bạn xác nhận.</p></div><FamilyNotes /></section>
       <div className="form-actions"><button className="button primary" type="submit">Lưu hồ sơ</button>{saved && <span>Đã lưu thay đổi.</span>}{error && <span className="form-error">{error}</span>}<Link href="/agent">Hỏi FamAgent →</Link></div></form>
     <AccountSection cloud={cloudEnabled} aiConsent={profile.aiConsent} onAiConsent={(value) => void saveConsent(value)} onErase={() => void erase()} onSignOut={() => void signOut()} /></div>;
