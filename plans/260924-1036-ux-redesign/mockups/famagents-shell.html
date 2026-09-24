@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FamAgent — khung app 5 mục (Spec v2)</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#1f1b2e;--muted:#6f6a8a;--line:#e8e5f3;--primary:#5b4bb7;--primary-2:#7a5cff;--grad:linear-gradient(135deg,#7a5cff,#5b4bb7);--orb:conic-gradient(from 200deg,#ff9f7a,#b59cff,#6fd7b5,#ff9f7a);--glass:#ffffffb8;--gb:#ffffffe6;--ok:#1f7a5a;--okbg:#dff6ee;--warn:#8a5a12;--warnbg:#fff3d6;--bad:#b4413c;--badbg:#fde8e6;--aurora:radial-gradient(60% 50% at 8% 0%,#ffd9c7 0%,transparent 60%),radial-gradient(50% 45% at 96% 8%,#dcd5ff 0%,transparent 60%),radial-gradient(60% 50% at 50% 104%,#cff3e6 0%,transparent 65%)}
+*{box-sizing:border-box;margin:0}body{font-family:"Plus Jakarta Sans",system-ui,sans-serif;background:#f4f2ef;color:var(--ink);padding:20px 16px 60px}
+.top{max-width:1300px;margin:0 auto 14px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}.top h1{font-size:17px;margin-right:auto}
+.top button{border:1px solid #d6d2cc;background:#fff;border-radius:999px;padding:8px 14px;font:600 13px inherit;cursor:pointer}.top button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.note{max-width:1300px;margin:0 auto 14px;font-size:13px;color:#57534e;line-height:1.55}
+.stage{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:22px;align-items:start}
+@media(max-width:1000px){.stage{grid-template-columns:1fr}}
+.frame{border-radius:22px;overflow:hidden;box-shadow:0 30px 60px -30px #0004;background:var(--aurora),#f7f6fb;min-height:800px;container-type:inline-size}
+.phone{border:10px solid #111;border-radius:44px}
+.label{font:600 11px/1 inherit;letter-spacing:.12em;text-transform:uppercase;color:#78716c;margin:0 0 8px 6px}
+.orb{display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 3px #ffffffb3;flex:none}
+.glass{background:var(--glass);backdrop-filter:blur(16px);border:1px solid var(--gb);border-radius:20px;box-shadow:0 18px 36px -28px #4b3fa066}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--grad);color:#fff;border:0;border-radius:999px;padding:10px 16px;font:700 13px inherit;cursor:pointer;white-space:nowrap}
+.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:800px;height:100%}
+.side{background:#ffffff8c;backdrop-filter:blur(16px);border-right:1px solid #ffffffcc;padding:18px 14px;display:flex;flex-direction:column;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:16px;padding:6px 8px 16px}
+.nav a{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:14px;color:#4a4468;font-weight:600;font-size:14px;text-decoration:none}
+.nav a svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.nav a.on{background:#fff;color:var(--primary);box-shadow:0 8px 18px -14px #5b4bb7}
+.side .me{margin-top:auto;display:flex;gap:10px;align-items:center;padding:10px 12px;border-radius:14px;background:#ffffffc0;font-size:12.5px}
+.side .me img{width:34px;height:34px;border-radius:50%;background:#dcd5ff}
+.side .me b{display:block;font-size:13px}.side .me small{color:var(--muted)}
+.main{min-width:0;display:flex;flex-direction:column}
+.bottomnav{display:none}
+@container (max-width:700px){
+  .shell{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}.side{display:none}
+  .bottomnav{display:grid;grid-template-columns:repeat(5,1fr);background:#ffffffd9;backdrop-filter:blur(16px);border-top:1px solid #ffffffcc;padding:8px 4px 14px}
+  .bottomnav a{display:flex;flex-direction:column;align-items:center;gap:4px;font-size:10.5px;font-weight:600;color:#6f6a8a;text-decoration:none;padding:6px 2px;border-radius:12px}
+  .bottomnav a svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .bottomnav a.on{color:var(--primary)}
+  .two,.three{grid-template-columns:1fr!important}.chat{grid-template-columns:1fr!important}.convs{display:none}.hide-sm{display:none!important}
+}
+.page{padding:26px 26px 30px;display:flex;flex-direction:column;gap:18px;overflow:auto}
+.page h2{font-size:26px;font-weight:800;letter-spacing:-.03em}
+.page h3{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7a6fb0;margin-bottom:10px}
+.sub{color:var(--muted);font-size:14px;margin-top:-10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.card{padding:16px}
+.kpi b{display:block;font-size:22px;letter-spacing:-.02em}.kpi small{color:var(--muted);font-size:12px}
+.att{display:flex;gap:12px;align-items:center;padding:14px 16px}
+.att .ic{flex:none;width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:13px}
+.att .t{flex:1;min-width:0}.att b{display:block;font-size:14px}.att small{color:var(--muted);font-size:12.5px}
+.pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px}
+.warnp{background:var(--warnbg);color:var(--warn)}.okp{background:var(--okbg);color:var(--ok)}.badp{background:var(--badbg);color:var(--bad)}
+.bar{height:8px;border-radius:999px;background:#e8e4f6;overflow:hidden;margin:8px 0 4px}.bar span{display:block;height:100%;background:var(--grad);border-radius:inherit}
+.insight{display:flex;gap:12px;align-items:flex-start;padding:16px}
+.insight p{font-size:14px;line-height:1.55}.insight small{display:block;color:var(--muted);margin-top:6px;font-size:12px}
+.row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;font-size:14px;border-top:1px solid var(--line)}.row:first-child{border-top:0}
+.row small{display:block;color:var(--muted);font-size:12px}
+.tabs{display:flex;gap:8px}.tabs span{padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px;background:var(--glass);border:1px solid var(--gb);color:#4a4468}.tabs span.on{background:var(--ink);color:#fff}
+.chat{flex:1;display:grid;grid-template-columns:260px minmax(0,1fr);min-height:0}
+.convs{border-right:1px solid #ffffffcc;padding:18px 14px;display:flex;flex-direction:column;gap:10px}
+.conv{padding:11px 12px;border-radius:14px;background:#ffffffa6;border:1px solid var(--gb);font-size:13px}.conv b{display:block;font-size:13.5px}.conv small{color:var(--muted)}.conv.on{background:#fff;border-color:#c7bcff}
+.convs h4{font-size:11px;letter-spacing:.1em;color:#8a86a3;text-transform:uppercase;margin:8px 4px 0}
+.pane{display:flex;flex-direction:column;min-height:0}
+.thread{flex:1;padding:22px;display:flex;flex-direction:column;gap:14px}
+.me{align-self:flex-end;background:var(--ink);color:#fff;padding:11px 15px;border-radius:18px 18px 6px 18px;font-size:14px;max-width:78%}
+.ai{display:flex;gap:10px;align-items:flex-end}.ai p{background:#fff;border:1px solid var(--gb);padding:11px 15px;border-radius:6px 18px 18px 18px;font-size:14px;line-height:1.55;max-width:600px}
+.qr{display:flex;gap:8px;flex-wrap:wrap;margin-left:40px}.qr span{font-size:12.5px;font-weight:600;padding:8px 13px;border-radius:999px;background:var(--glass);border:1px solid var(--gb);color:#3f3290}
+.composer{margin:0 22px 18px;padding:8px 8px 8px 18px;display:flex;align-items:center;gap:10px;border-radius:999px}.composer span{flex:1;color:#9b97b3;font-size:14.5px}
+.send{width:44px;height:44px;border-radius:50%;background:var(--grad);display:grid;place-items:center;color:#fff}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;margin-top:10px;font-size:13px}.kv span{color:var(--muted)}
+.noteRow{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;font-size:13.5px}.noteRow i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--primary-2);margin-top:6px}.noteRow small{display:block;color:var(--muted);font-size:11.5px;margin-top:3px}.noteRow .x{margin-left:auto;color:#8a86a3;font-size:12px}
+</style>
+</head>
+<body>
+<div class="top"><h1>FamAgent — khung app 5 mục (Spec v2 §34)</h1>
+<button data-s="home" aria-pressed="true">Trang chủ</button><button data-s="money" aria-pressed="false">Tiền</button><button data-s="shopping" aria-pressed="false">Mua sắm</button><button data-s="agent" aria-pressed="false">Trợ lý</button><button data-s="family" aria-pressed="false">Gia đình</button></div>
+<p class="note" id="note"></p>
+<div class="stage"><div><p class="label">Desktop (sidebar)</p><div class="frame" id="desk"></div></div><div><p class="label">Điện thoại (thanh dưới)</p><div class="frame phone" id="mob"></div></div></div>
+<script>
+const I={home:'<svg viewBox="0 0 24 24"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>',money:'<svg viewBox="0 0 24 24"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M8 15h3"/></svg>',shop:'<svg viewBox="0 0 24 24"><path d="M6 8h12l1 12H5z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>',agent:'<svg viewBox="0 0 24 24"><path d="M12 3v3M5 9l-2 1M19 9l2 1"/><rect x="5" y="8" width="14" height="11" rx="4"/><circle cx="10" cy="13" r="1"/><circle cx="14" cy="13" r="1"/></svg>',fam:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M14 20a3.5 3.5 0 0 1 6.5-2"/></svg>'};
+const L=['Trang chủ','Tiền','Mua sắm','Trợ lý','Gia đình'];const K=['home','money','shop','agent','fam'];
+const nav=on=>K.map((k,i)=>`<a href="#" class="${on===k?'on':''}">${I[k]}${L[i]}</a>`).join('');
+const shell=(on,c)=>`<div class="shell"><aside class="side"><div class="brand"><span class="orb"></span>FamAgent</div><nav class="nav">${nav(on)}</nav><div class="me"><img alt=""><span><b>Dũng</b><small>Tài khoản & quyền riêng tư</small></span></div></aside><main class="main">${c}</main><nav class="bottomnav">${nav(on)}</nav></div>`;
+const S={
+home:{note:'Trang chủ = Family Brief (Spec §16): không mở vào chat. “Cần chú ý” là thẻ hành động, mỗi thẻ đúng một CTA. Insight luôn có nguồn (số liệu nào).',html:`<div class="page"><div><h2>Chào buổi sáng, Dũng</h2><p class="sub">Thứ Tư 24/09 · 3 việc đáng chú ý</p></div>
+<section><h3>Cần chú ý</h3><div style="display:grid;gap:10px">
+<div class="glass att"><span class="ic warnp">4d</span><div class="t"><b>Bỉm của Gold còn khoảng 4 ngày</b><small>Ước tính từ lần mua 12/09 (64 miếng) · giá hiện tại thấp hơn lần trước 18K</small></div><span class="btn">Mua lại</span></div>
+<div class="glass att"><span class="ic badp">+7%</span><div class="t"><b>Chi tiêu tháng này cao hơn kế hoạch 7%</b><small>Chủ yếu Ăn ngoài (+700K) và Em bé (+620K)</small></div><span class="btn ghost">Xem vì sao</span></div>
+<div class="glass att"><span class="ic okp">3d</span><div class="t"><b>Internet 450.000đ đến hạn thứ Sáu</b><small>Khoản định kỳ · Nhà ở & hóa đơn</small></div><span class="btn ghost">Đã trả</span></div></div></section>
+<div class="two"><section><h3>Tiền tháng này</h3><div class="glass card"><div class="two"><div class="kpi"><small>Đã chi</small><b>18,2M</b></div><div class="kpi"><small>Kế hoạch</small><b>25M</b></div></div><div class="bar"><span style="width:73%"></span></div><small style="color:var(--muted)">Dự kiến cuối tháng còn <b>6,4M</b> · <a href="#" style="color:var(--primary)">Mở Tiền →</a></small></div></section>
+<section><h3>Mua sắm</h3><div class="glass card"><div class="kv"><span>Đang theo dõi</span><em>Bỉm Merries L · còn ~4 ngày</em><span>Mua gần đây</span><em>Nước giặt 239K · 20/09</em></div><small style="color:var(--muted);display:block;margin-top:10px"><a href="#" style="color:var(--primary)">Mở Mua sắm →</a></small></div></section></div>
+<section><h3>FamAgent nhận thấy</h3><div class="glass insight"><span class="orb"></span><div><p>Nếu giữ chi tiêu tuỳ ý dưới <b>1,2M</b> trong phần còn lại của tháng, gia đình vẫn đạt mục tiêu tiết kiệm 6M.</p><small>Dựa trên 41 giao dịch tháng 9 và ngân sách bạn đặt · <a href="#" style="color:var(--primary)">Hỏi thêm</a></small></div></div></section></div>`},
+money:{note:'Tiền (Spec §8–12): trả lời 5 câu — có bao nhiêu, đi đâu, có vấn đề gì, tương lai thế nào, nên làm gì. Không phải 20 biểu đồ. Nhập tay nhanh + CSV; ngân sách theo nhóm; định kỳ; mục tiêu.',html:`<div class="page"><div style="display:flex;justify-content:space-between;gap:10px;align-items:center"><div><h2>Tháng 9</h2><p class="sub">Ngân sách hộ gia đình</p></div><span class="btn">+ Ghi khoản chi</span></div>
+<div class="glass card"><div class="three"><div class="kpi"><small>Thu</small><b>31,0M</b></div><div class="kpi"><small>Đã chi</small><b>18,2M</b></div><div class="kpi"><small>Còn lại</small><b>12,8M</b></div></div><div class="bar"><span style="width:73%"></span></div><small style="color:var(--muted)">Dự kiến cuối tháng: <b>6,4M</b> · cao hơn pace 1,8M <span class="pill warnp">Cần xem</span></small></div>
+<section><h3>Tiền đang đi đâu</h3><div class="glass">${[['Ăn uống','5,4M','5M','108%','badp'],['Em bé','3,1M','2,5M','124%','badp'],['Nhà ở & hóa đơn','4,2M','4,5M','93%','okp'],['Mua sắm gia đình','2,3M','2M','115%','warnp'],['Đi lại','1,4M','2M','70%','okp']].map(([n,a,b,p,c])=>`<div class="row"><div>${n}<small>${a} / ${b}</small></div><span class="pill ${c}">${p}</span></div>`).join('')}</div></section>
+<div class="two"><section><h3>Sắp tới</h3><div class="glass"><div class="row"><div>Internet<small>Thứ Sáu · định kỳ</small></div><b>450K</b></div><div class="row"><div>Tiền nhà<small>01/10 · định kỳ</small></div><b>8,0M</b></div></div></section>
+<section><h3>Mục tiêu</h3><div class="glass card"><b>Quỹ dự phòng</b><div class="bar"><span style="width:32%"></span></div><small style="color:var(--muted)">32M / 100M · với 6,5M/tháng sẽ đạt sau ~10 tháng</small></div></section></div>
+<div class="glass insight"><span class="orb"></span><div><p>Chi tiêu đang cao hơn pace dự kiến 1,8M — chủ yếu Ăn ngoài (+700K), Em bé (+620K, do mua bỉm hai lần).</p><small><a href="#" style="color:var(--primary)">Hỏi FamAgent về tiền →</a></small></div></div></div>`},
+shopping:{note:'Mua sắm (Spec §13, §37): Đang theo dõi (tiêu hao) → Đã mua → Tìm & so sánh. Đánh dấu “đã mua” tự tạo giao dịch ở Tiền và tồn kho (Spec §38).',html:`<div class="page"><h2>Mua sắm</h2><div class="tabs"><span class="on">Đang theo dõi</span><span>Đã mua</span><span>Tìm & so sánh</span><span>Đã lưu (2)</span></div>
+<div class="glass att"><span class="ic warnp">4d</span><div class="t"><b>Bỉm Merries L64</b><small>Còn ~4 ngày · ~6 miếng/ngày · lần mua 12/09</small></div><span class="btn">Mua lại</span></div>
+<div class="glass att"><span class="ic okp">18d</span><div class="t"><b>Nước giặt Omo 3,8L</b><small>Còn ~18 ngày · 239K ngày 20/09</small></div><span class="btn ghost">Theo dõi</span></div>
+<section><h3>Gợi ý có ngữ cảnh tài chính</h3><div class="glass insight"><span class="orb"></span><div><p>Mua lại Merries L64 ở <b>315.000đ</b> (Shop A) sẽ nằm trong ngân sách Em bé còn lại <b>400K</b> của tháng này. Brand B có giá/miếng thấp hơn 18% nếu bạn muốn tiết kiệm.</p><small><a href="#" style="color:var(--primary)">So sánh 2 lựa chọn →</a></small></div></div></section>
+<section><h3>Đã mua gần đây</h3><div class="glass"><div class="row"><div>Nước giặt Omo 3,8L<small>20/09 · Shopee · đã ghi vào Tiền</small></div><b>239K</b></div><div class="row"><div>Bỉm Merries L64<small>12/09 · Shopee · đã ghi vào Tiền</small></div><b>350K</b></div></div></section></div>`},
+agent:{note:'Trợ lý (Spec §18): một cửa — Family Coordinator tự route câu hỏi Tiền/Mua sắm. Danh sách hội thoại luôn thấy; agent nhớ câu đang hỏi; kết quả dạng thẻ.',html:`<div class="chat"><aside class="convs"><span class="btn" style="justify-content:center">+ Hội thoại mới</span><h4>Hôm nay</h4><div class="conv on"><b>Tháng này tiêu thế nào?</b><small>2 phút trước</small></div><h4>Tuần này</h4><div class="conv"><b>Bỉm đêm cho Gold dưới 350k</b><small>Thứ ba</small></div><div class="conv"><b>So sánh Merries và Moony</b><small>Thứ hai</small></div></aside><section class="pane"><div style="display:flex;gap:10px;align-items:center;padding:16px 22px;border-bottom:1px solid #ffffffcc"><span class="orb"></span><b>FamAgent</b><span class="pill okp" style="margin-left:auto">AI đang hỗ trợ</span></div><div class="thread"><p class="me">Tháng này nhà tôi tiêu thế nào?</p><div class="ai"><span class="orb"></span><p>Đến nay đã chi <b>18,2M</b>, cao hơn pace tháng trước khoảng 9%. Hai nhóm tăng mạnh nhất là <b>Ăn uống</b> và <b>Em bé</b>. Bạn muốn xem nguyên nhân hay tối ưu phần còn lại của tháng?</p></div><div class="qr"><span>Xem nguyên nhân</span><span>Tối ưu phần còn lại</span><span>Xem giao dịch Em bé</span></div><p class="me">Em bé tăng vì sao?</p><div class="ai"><span class="orb"></span><p>Em bé tăng 620K vì tháng này mua bỉm <b>hai lần</b> (12/09 và 21/09) thay vì một; lượng dùng cũng tăng lên ~6 miếng/ngày. Giá Merries lần sau cao hơn lần trước 7%.</p></div></div><div class="composer glass"><span>Hỏi FamAgent về tiền, mua sắm, gia đình…</span><span class="send">↑</span></div></section></div>`},
+family:{note:'Gia đình (Spec §5, §31): Family Graph nhìn thấy được — thành viên, nhà & thiết bị, ưu tiên, điều FamAgent đã ghi nhớ (xóa từng dòng), tài khoản & quyền riêng tư (đăng nhập bằng gì, quyền AI, xóa dữ liệu, đăng xuất).',html:`<div class="page"><h2>Gia đình</h2>
+<section><h3>Thành viên</h3><div class="two"><div class="glass card"><b>Gold</b><small style="color:var(--muted)">6–12 tháng</small><div class="kv"><span>Cân nặng</span><em>11–14 kg</em><span>Size</span><em>L</em><span>Lưu ý</span><em>Da nhạy cảm</em><span>Đang dùng</span><em>Merries</em><span>Tránh</span><em>Huggies</em></div></div><div class="glass card"><b>Dũng & vợ</b><small style="color:var(--muted)">2 người lớn</small><div class="kv"><span>Thu nhập/tháng</span><em>30–40M</em><span>Ngân sách chi</span><em>25M</em></div></div></div></section>
+<section><h3>Nhà & thiết bị</h3><div class="glass card"><div class="kv"><span>Máy giặt</span><em>Cửa trên</em><span>Khoản định kỳ</span><em>Internet 450K · Tiền nhà 8M</em></div></div></section>
+<section><h3>Điều FamAgent đã ghi nhớ</h3><div style="display:grid;gap:8px"><div class="glass noteRow"><i></i><div>Bé Gold bị hăm khi dùng Huggies <span class="pill okp">Bạn xác nhận</span><small>Từ hội thoại 22/09</small></div><span class="x">Xóa</span></div><div class="glass noteRow"><i></i><div>Thường mua bỉm trên Shopee vào đợt sale <span class="pill" style="background:#ece8ff;color:#3f3290">Ghi nhận</span><small>Từ hội thoại 23/09</small></div><span class="x">Xóa</span></div></div></section>
+<section><h3>Tài khoản & quyền riêng tư</h3><div class="glass"><div class="row"><div>Đăng nhập bằng Google<small>dung@gmail.com</small></div><span class="pill okp">Đang hoạt động</span></div><div class="row"><div>Dùng AI để hiểu câu hỏi tốt hơn<small>Tên bé được thay bằng mã trước khi gửi</small></div><b style="color:var(--ok)">Bật</b></div><div class="row"><div>Tải về / xóa toàn bộ dữ liệu</div><b>→</b></div><div class="row"><div>Đăng xuất</div><b>→</b></div></div></section></div>`},
+};
+function show(k){const s=S[k];const html=shell({home:'home',money:'money',shopping:'shop',agent:'agent',family:'fam'}[k],s.html);document.getElementById('desk').innerHTML=html;document.getElementById('mob').innerHTML=html;document.getElementById('note').textContent=s.note;document.querySelectorAll('.top button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.s===k)));}
+document.querySelectorAll('.top button').forEach(b=>b.addEventListener('click',()=>show(b.dataset.s)));show('home');
+</script>
+</body>
+</html>
