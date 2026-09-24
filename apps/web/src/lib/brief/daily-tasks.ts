@@ -20,6 +20,9 @@ export interface DailyTask {
   href?: string;
 }
 
+/** Shape of task ids; the /api/routine route validates against the same pattern. */
+export const TASK_ID = /^[a-z-]+:[a-z0-9-]+:[a-z0-9-]+$/;
+
 const DAY_MS = 86_400_000;
 /** Local day number (days since epoch in local time) — drives the rotation. */
 export const dayIndex = (date: Date) => Math.floor((date.getTime() - date.getTimezoneOffset() * 60_000) / DAY_MS);

@@ -36,6 +36,17 @@ test("việc cải thiện tuần: lấy từ đánh giá chăm con trước, đ
   assert.notEqual(task(new Date(wed.getTime() + 7 * 86_400_000)).id, task(wed).id);
 });
 
+test("mọi id việc đều hợp lệ với API đồng bộ (/api/routine)", async () => {
+  const { TASK_ID } = await import("../src/lib/brief/daily-tasks.ts");
+  const methods = ["easy", "rie", "montessori", "positive-discipline", "emotion-coaching", "french"] as const;
+  const money = ["jars", "50-30-20", "pay-first", "zero-based", "kakeibo", "baby-steps"] as const;
+  const h: HouseholdContext = { careDeepDive: true, sleepQuality: "short", safety: ["none"], monthlyIncome: 20_000_000, monthlySpend: 25_000_000, emergency: "none", longTermSavings: ["none"] };
+  for (let day = 0; day < 14; day++) for (let i = 0; i < methods.length; i++) {
+    const date = new Date(wed.getTime() + day * 86_400_000);
+    for (const task of dailyTasks(base({ ...h, careMethod: methods[i], moneyMethod: money[i] }), date)) assert.match(task.id, TASK_ID, task.id);
+  }
+});
+
 test("chuỗi ngày: tính đến hôm nay, hoặc hôm qua nếu hôm nay chưa làm", () => {
   assert.equal(streak({ "2026-09-21": ["a"], "2026-09-22": ["a"], "2026-09-23": ["b"] }, wed), 3);
   assert.equal(streak({ "2026-09-21": ["a"], "2026-09-22": ["a"] }, wed), 2);
