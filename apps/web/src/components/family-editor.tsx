@@ -13,6 +13,7 @@ import { createAuthBrowserClient } from "@/lib/supabase/browser";
 import { AccountSection } from "@/components/account-section";
 import { FamilyNotes } from "@/components/family-notes";
 import { CareMethodPanel } from "@/components/care/care-method-panel";
+import { familyPolicy, STYLE_LABELS } from "@/lib/policy/family-policy";
 import type { CareMethodId } from "@/lib/care/methods";
 
 const sensitivityLabels: Record<Sensitivity, string> = { sensitive_skin: "Da nhạy cảm", rash_prone: "Dễ hăm", fragrance_free: "Cần không hương liệu" };
@@ -100,6 +101,7 @@ export function FamilyEditor() {
       </div>; })}{profile.children.length < 5 && <button className="add-child" type="button" onClick={addChild}>＋ Thêm bé</button>}</div></section>
 
       <section className="form-card"><div><span className="section-number">03</span><h2>Ưu tiên mua sắm</h2><p>Giúp FamAgent sắp xếp các lựa chọn theo nhu cầu của bạn.</p></div><div className="form-grid">
+        <label>Phong cách của nhà mình<select value={profile.household?.style ?? "balanced"} onChange={(event) => { const style = event.target.value as NonNullable<NonNullable<FamilyProfile["household"]>["style"]>; update({ household: { ...profile.household, style }, pricePreference: ({ saving: "budget", balanced: "balanced", convenience: "value" } as const)[style] }); }}>{(["saving", "balanced", "convenience"] as const).map((value) => <option key={value} value={value}>{STYLE_LABELS[value]}</option>)}</select><small>{familyPolicy(profile).lines.join(" · ")}</small></label>
         <label>Ưu tiên giá<select value={profile.pricePreference} onChange={(event) => update({ pricePreference: event.target.value as FamilyProfile["pricePreference"] })}>{PRICE_PREFERENCES.map((value) => <option key={value} value={value}>{PRICE_PREFERENCE_LABELS[value]}</option>)}</select></label>
         <label>Ưu tiên giao hàng<select value={profile.deliveryPreference ?? ""} onChange={(event) => update({ deliveryPreference: (event.target.value || undefined) as FamilyProfile["deliveryPreference"] })}><option value="">Chưa chọn</option><option value="cheapest">Phí giao thấp</option><option value="fastest">Giao nhanh</option><option value="balanced">Cân bằng</option></select></label>
         <label>Điều quan trọng nhất<select value={profile.mainConcern ?? ""} onChange={(event) => update({ mainConcern: (event.target.value || undefined) as FamilyProfile["mainConcern"] })}><option value="">Chưa chọn</option><option value="night">Dùng ban đêm</option><option value="leak">Hạn chế tràn</option><option value="soft">Mỏng nhẹ</option><option value="sensitive">Da nhạy cảm</option><option value="value">Giá trị theo đơn vị</option></select></label>
@@ -112,7 +114,7 @@ export function FamilyEditor() {
         <label>Máy giặt<select value={profile.appliances?.washingMachine ?? ""} onChange={(event) => update({ appliances: event.target.value ? { washingMachine: event.target.value as NonNullable<FamilyProfile["appliances"]>["washingMachine"] } : undefined })}><option value="">Chưa chọn</option><option value="front">Cửa trước</option><option value="top">Cửa trên</option><option value="none">Không dùng máy giặt</option></select></label>
       </div></section>
 
-      {(profile.children.length > 0 || profile.household?.setup === "expecting") && <CareMethodPanel profile={profile} onChoose={(id) => void saveCareMethod(id)} />}
+      {(profile.children.length > 0 || profile.household?.setup === "expecting") && <details className="app-card advanced"><summary>Nâng cao · phương pháp nuôi dạy và kiểm tra chăm sóc</summary><CareMethodPanel profile={profile} onChoose={(id) => void saveCareMethod(id)} /><p className="app-sub"><a className="brief-link" href="/onboarding?update=1&section=care">Làm bài kiểm tra chăm sóc (1 phút)</a></p></details>}
       <section className="form-card"><div><span className="section-number">05</span><h2>Điều FamAgent đã ghi nhớ</h2><p>Ghi chú rút ra từ các cuộc trò chuyện, gắn nhãn “Ghi nhận” cho tới khi bạn xác nhận.</p></div><FamilyNotes /></section>
       <div className="form-actions"><button className="button primary" type="submit">Lưu hồ sơ</button>{saved && <span>Đã lưu thay đổi.</span>}{error && <span className="form-error">{error}</span>}<Link href="/agent">Hỏi FamAgent →</Link></div></form>
     <AccountSection cloud={cloudEnabled} aiConsent={profile.aiConsent} onAiConsent={(value) => void saveConsent(value)} onErase={() => void erase()} onSignOut={() => void signOut()} /></div>;

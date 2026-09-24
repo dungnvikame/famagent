@@ -18,13 +18,13 @@ const answer = (profile: FamilyProfile, id: string, values: string[]) => {
 test("bộ câu hỏi v5: insight gia đình để đưa ra nhận định, không nhắc sản phẩm", () => {
   const first = buildQuestions(blank(), newId);
   assert.equal(first[0].id, "focus");
-  assert.deepEqual(first.map((q) => q.id), ["focus", "setup", "kids", "care-worry", "care-deep", "housing", "income", "spend", "debt", "emergency", "tracking", "money-pain", "goals", "deep"]);
+  assert.deepEqual(first.map((q) => q.id), ["focus", "setup", "kids", "care-worry", "care-deep", "housing", "income", "spend", "debt", "emergency", "tracking", "money-pain", "goals", "deep", "style"]);
   assert.deepEqual(first.filter((q) => q.other).map((q) => q.id), ["focus", "care-worry", "tracking", "money-pain", "goals"]);
   const one = answer(blank(), "kids", ["1"]);
-  assert.equal(buildQuestions(one, newId).length, 18, "+4 câu cho mỗi con: tên, tuổi, cân nặng (dưới 6 tuổi), sức khỏe");
+  assert.equal(buildQuestions(one, newId).length, 19, "+4 câu cho mỗi con: tên, tuổi, cân nặng (dưới 6 tuổi), sức khỏe");
   const three = answer(one, "kids", ["3"]);
   assert.equal(three.children.length, 3);
-  assert.equal(buildQuestions(three, newId).length, 26);
+  assert.equal(buildQuestions(three, newId).length, 27);
   assert.equal(three.children[0].id, one.children[0].id, "giữ con đã có khi tăng số con");
   assert.equal(answer(three, "kids", ["1"]).children.length, 1);
   const text = JSON.stringify(buildQuestions(one, newId).map((q) => [q.title, q.help, q.choices]));
@@ -102,4 +102,16 @@ test("markQuestion ghi đã trả lời / bỏ qua, không trùng, tối đa 30"
   for (let i = 0; i < 40; i++) profile = markQuestion(profile, `q${i}`, false);
   assert.equal(profile.onboarding!.completedSlots.length, 30);
   assert.ok(validProfile(profile));
+});
+
+test("onboarding 4 bước: nhà mình → thành viên → ưu tiên → phong cách; tiền và chăm con tách riêng", () => {
+  const one = answer(answer(blank(), "setup", ["couple"]), "kids", ["1"]);
+  const id = one.children[0].id;
+  assert.deepEqual(buildQuestions(one, newId, Date.now(), "core").map((q) => q.id), ["setup", "kids", `child-name:${id}`, `child-age:${id}`, `child-weight:${id}`, "focus", "style"]);
+  assert.deepEqual(buildQuestions(one, newId, Date.now(), "core").find((q) => q.id === "focus")!.choices.map((c) => c.label), ["Quản lý tiền", "Quản lý mua sắm", "Giảm việc phải nhớ"]);
+  assert.deepEqual(buildQuestions(one, newId, Date.now(), "money").map((q) => q.id), ["housing", "income", "spend", "debt", "emergency", "tracking", "money-pain", "goals", "deep"]);
+  assert.deepEqual(buildQuestions(one, newId, Date.now(), "care").map((q) => q.id), [`child-care:${id}`, "care-worry", "care-deep"]);
+  const saving = answer(one, "style", ["saving"]);
+  assert.equal(saving.household?.style, "saving"); assert.equal(saving.pricePreference, "budget");
+  assert.equal(answer(one, "style", ["convenience"]).pricePreference, "value");
 });
