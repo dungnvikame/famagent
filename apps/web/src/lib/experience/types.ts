@@ -59,7 +59,7 @@ export const MONEY_PAINS = ["short_month_end", "unknown_spending", "cant_save", 
 export const TRACKING_METHODS = ["none", "spreadsheet", "app", "memory"] as const;
 export const EMERGENCY_LEVELS = ["none", "lt3", "3to6", "gt6"] as const;
 /** Money frameworks the family can pick (definitions in lib/money/frameworks). */
-export const MONEY_METHODS = ["jars", "50-30-20", "pay-first", "zero-based", "kakeibo", "baby-steps"] as const;
+export const MONEY_METHODS = ["jars", "50-30-20", "pay-first", "zero-based", "kakeibo", "baby-steps", "custom"] as const;
 /** Deep financial check (FinHealth-style indicators, lib/money/health). */
 export const INCOME_STABILITY = ["stable_both", "stable_one", "irregular"] as const;
 export const BILL_TIMELINESS = ["always", "sometimes", "often_late"] as const;

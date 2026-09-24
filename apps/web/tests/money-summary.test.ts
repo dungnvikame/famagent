@@ -64,7 +64,7 @@ test("validate: chi âm bị từ chối, tiết kiệm âm hợp lệ (rút), s
   assert.equal(validRecurring({ name: "Internet", category: "Tiêu dùng", kind: "expense", amount: 450000, dayOfMonth: 32 }), null);
   assert.ok(validGoal({ name: "Quỹ dự phòng", targetAmount: 100_000_000, monthlyPlan: "" }));
   assert.equal(validSettings({ categories: [{ name: "", kind: "expense" }] }), null);
-  assert.deepEqual(validSettings({ categories: [] }), { openingCash: 0, openingSavings: 0, monthlyPlan: undefined, categories: [] });
+  assert.deepEqual(validSettings({ categories: [] }), { openingCash: 0, openingSavings: 0, monthlyPlan: undefined, categories: [], position: undefined, allocation: undefined, categoryMemory: undefined });
 });
 
 test("shortVnd", () => { assert.equal(shortVnd(18_200_000), "18,2M"); assert.equal(shortVnd(450_000), "450K"); assert.equal(shortVnd(-698_000), "−698K"); assert.equal(shortVnd(17), "17đ"); });

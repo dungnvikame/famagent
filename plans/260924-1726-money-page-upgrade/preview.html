@@ -1,0 +1,971 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tài chính · bản xem trước</title><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"><style>:root{--font-sans:"Plus Jakarta Sans"}
+:root{--ink:#211c35;--muted:#6a657c;--cream:#f7f8f3;--paper:#fff;--mint:#dcd7ef;--green:#31216f;--line:#dedbe8;--orange:#f0b77b}*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--cream);color:var(--ink);font-family:inherit;line-height:1.6}a{color:inherit;text-decoration:none}button,input,select{font:inherit}.container{width:min(1180px,calc(100% - 40px));margin:auto}.site-header{background:rgba(255,255,255,.94);border-bottom:1px solid var(--line)}.nav{height:74px;display:flex;justify-content:space-between;align-items:center;gap:20px}.brand{display:flex;align-items:center;gap:11px;font-size:21px;font-weight:800;letter-spacing:-.7px}.brand-icon{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:11px;background:var(--green);color:white;font-size:24px;font-family:inherit;font-style:italic}.nav nav{display:flex;gap:30px;align-items:center;font-size:14px;font-weight:700}.nav nav a:hover,.text-link:hover,.clear-link:hover{color:var(--green)}.coming-soon{color:#898696;font-weight:400}.hero{background:radial-gradient(circle at 78% 45%,#e4e0f3 0,#f5f7ef 39%,#f7f8f3 72%);padding:90px 0 100px}.hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:70px;align-items:center}.eyebrow{margin:0 0 12px;color:#767188;font-size:12px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase}.accent{color:var(--green)}h1,h2,h3,p{margin-top:0}.hero h1{font-family:inherit;font-size:clamp(46px,5.3vw,72px);line-height:1.12;letter-spacing:-1.8px;font-weight:700;margin:0 0 24px}.hero h1 em{color:var(--green);font-style:normal;font-weight:700}.hero-copy{max-width:540px;font-size:18px;color:#645f76;line-height:1.7;margin-bottom:28px}.button{display:inline-flex;align-items:center;justify-content:center;gap:24px;border:0;border-radius:12px;padding:14px 20px;font-weight:700;cursor:pointer}.primary{background:var(--green);color:white}.primary:hover{background:#221556}.full{width:100%}.hero-panel{background:var(--paper);border:1px solid var(--line);border-radius:24px;box-shadow:0 24px 50px #2a224812;overflow:hidden;transform:rotate(1deg)}.hero-panel-top{height:51px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:10px;padding:0 24px;color:#7b7691;font-size:11px;font-weight:800;letter-spacing:1.2px}.small-dot{width:9px;height:9px;background:#7f6ec1;border-radius:50%}.hero-panel-content{padding:42px 40px 48px}.hero-symbol{font-size:56px;color:#8375bb}.hero-panel h2{font-family:inherit;font-size:30px;font-weight:700;letter-spacing:-.8px;margin:8px 0 12px}.hero-panel p{color:var(--muted);max-width:310px}.fake-filter{display:flex;gap:8px;flex-wrap:wrap;margin:23px 0 26px}.fake-filter span{padding:8px 12px;background:#f0eff7;border-radius:9px;color:#3b2e6f;font-size:13px;font-weight:700}.hero-panel-content a{font-weight:800;color:var(--green)}.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;padding:55px 0 65px}.steps>div{border-top:1px solid #bfbad4;padding-top:20px}.steps span{font-family:inherit;font-size:30px;color:#8c80bc}.steps h3{font-size:18px;margin:15px 0 7px}.steps p{color:var(--muted);font-size:14px;max-width:280px}.site-footer{border-top:1px solid var(--line);background:#edecf3;padding:30px 0;color:#5c5771;font-size:13px}.site-footer strong{color:var(--ink);font-size:16px}.site-footer p{margin:5px 0 0}.catalog-page,.detail-page{padding:35px 0 90px}.breadcrumb{display:flex;gap:10px;flex-wrap:wrap;color:#878398;font-size:13px;margin:0 0 35px}.breadcrumb a:hover{color:var(--green)}.page-heading{display:flex;align-items:flex-end;justify-content:space-between;margin:0 0 28px}.page-heading h1,.detail-info h1{font-family:inherit;font-size:clamp(38px,4vw,54px);letter-spacing:-1px;font-weight:700;line-height:1.2;margin:0 0 10px}.page-heading p:not(.eyebrow){color:var(--muted);margin:0}.count-pill{background:#e7e4f2;color:#4a3d7e;border-radius:30px;padding:8px 14px;font-size:13px;font-weight:800}.notice{background:#fff8e8;border:1px solid #efdcae;color:#785e2c;border-radius:12px;padding:13px 18px;margin-bottom:26px;font-size:14px}.catalog-layout{display:grid;grid-template-columns:252px 1fr;gap:36px;align-items:start}.filter-panel{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:24px;position:sticky;top:20px}.filter-panel h2{font-size:19px;margin-bottom:24px}.filter-panel form{display:grid;gap:18px}.filter-panel label{display:grid;gap:8px;font-size:13px;font-weight:700}.filter-panel input,.filter-panel select{width:100%;background:white;border:1px solid #d1cedc;border-radius:9px;padding:10px 12px;color:var(--ink);outline:none}.filter-panel input:focus,.filter-panel select:focus{border-color:var(--green);box-shadow:0 0 0 3px #dcd7ef}.clear-link{text-align:center;font-size:13px;text-decoration:underline;color:var(--muted)}.results-heading{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:17px}.results-heading h2{font-size:20px;margin:0}.results-heading p{font-size:12px;color:var(--muted);margin:0}.product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}.product-card{background:white;border:1px solid var(--line);border-radius:17px;overflow:hidden;transition:transform .15s,box-shadow .15s}.product-card:hover{transform:translateY(-3px);box-shadow:0 12px 25px #2e264c14}.product-visual,.detail-visual{position:relative;display:grid;place-items:center;background:radial-gradient(circle,#eeebf7,#e9e6f3 55%,#efecf8);color:#ada5cf}.product-visual{height:185px}.product-visual>span:first-child{font-size:62px}.product-visual img,.detail-visual img{width:100%;height:100%;object-fit:contain;padding:18px}.demo-tag{position:absolute;bottom:12px;left:12px;background:#fff9ed;color:#8b6c34;font-weight:800;font-size:10px;letter-spacing:.5px;border-radius:5px;padding:5px 7px}.product-body{padding:21px}.product-body h3{font-size:17px;line-height:1.35;min-height:46px;margin:0 0 12px}.product-facts{display:flex;gap:7px;flex-wrap:wrap}.product-facts span{background:#f2f1f5;border-radius:6px;padding:5px 7px;font-size:12px;color:#635e76}.price{font-size:19px;font-weight:800;margin:18px 0 0}.price span{font-size:12px;font-weight:400;color:var(--muted)}.unit-price{font-size:13px;color:var(--muted);margin:1px 0 18px}.text-link{color:var(--green);font-weight:800;font-size:13px}.empty-state{border:1px dashed #b9b4d0;background:#f8f7fb;border-radius:15px;padding:50px;text-align:center}.empty-state p{color:var(--muted)}.empty-state a{color:var(--green);font-weight:800}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:center;margin:25px 0 65px}.detail-visual{height:460px;border-radius:22px;border:1px solid var(--line)}.detail-visual>span{font-size:140px}.detail-info>p:not(.eyebrow){color:var(--muted);line-height:1.7;margin:20px 0 26px}.spec-list{border-top:1px solid var(--line)}.spec-list div{display:flex;justify-content:space-between;gap:15px;padding:16px 0;border-bottom:1px solid var(--line);font-size:14px}.spec-list span{color:var(--muted)}.offers h2{font-family:inherit;font-size:28px;font-weight:700;letter-spacing:-.7px;margin-bottom:6px}.offers>p{color:var(--muted);font-size:14px}.offer-list{background:white;border:1px solid var(--line);border-radius:15px;margin:23px 0 12px}.offer-row{display:flex;justify-content:space-between;gap:24px;align-items:center;padding:20px 25px;border-bottom:1px solid var(--line)}.offer-row:last-child{border-bottom:0}.offer-row>div{display:grid;gap:4px}.offer-row span{color:var(--muted);font-size:13px}.offer-price{text-align:right}.offer-price strong{font-size:18px}.fine-print{font-size:12px!important}@media(max-width:1000px){.hero-grid{gap:25px}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.catalog-layout{grid-template-columns:220px 1fr;gap:22px}}@media(max-width:700px){.container{width:min(100% - 28px,1180px)}.nav{height:64px}.nav nav{gap:12px}.coming-soon{display:none}.hero{padding:60px 0}.hero-grid,.detail-grid{grid-template-columns:1fr}.hero-grid{gap:50px}.hero h1{letter-spacing:-2px}.hero-panel{transform:none}.steps{grid-template-columns:1fr;gap:15px}.steps>div{padding-top:13px}.catalog-layout{grid-template-columns:1fr}.filter-panel{position:static}.filter-panel form{grid-template-columns:1fr 1fr}.filter-panel .button,.filter-panel .clear-link{grid-column:1/-1}.page-heading{align-items:start;gap:10px}.count-pill{white-space:nowrap}.results-heading{display:block}.product-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.detail-grid{gap:25px}.detail-visual{height:340px}.offer-row{align-items:start;flex-direction:column}.offer-price{text-align:left}}@media(max-width:480px){.product-grid{grid-template-columns:1fr}.filter-panel form{grid-template-columns:1fr}.page-heading{display:block}.count-pill{display:inline-block;margin-top:15px}}
+
+
+
+/* Soft Aurora design layer (UI refresh 2026-09, plans/260924-0025-ui-refresh/mockups/directions.html, option B).
+   Loaded last: tokens + glass surfaces, gradient actions, AI orb, typography. Component files keep layout. */
+
+:root{
+  /* palette */
+  --ink:#1f1b2e;--muted:#6f6a8a;--cream:#f7f6fb;--paper:#fff;--line:#e8e5f3;
+  --green:#5b4bb7;            /* legacy name used across the app = primary */
+  --mint:#ece8ff;             /* legacy name = primary tint */
+  --orange:#ff9f7a;
+  --primary:#5b4bb7;--primary-2:#7a5cff;--primary-ink:#3f3290;
+  --grad:linear-gradient(135deg,#7a5cff 0%,#5b4bb7 100%);
+  --orb:conic-gradient(from 200deg,#ff9f7a,#b59cff,#6fd7b5,#ff9f7a);
+  --ok:#1f7a5a;--ok-bg:#dff6ee;--warn:#8a5a12;--warn-bg:#fff3d6;--danger:#b4413c;
+  /* surfaces */
+  --glass:#ffffffb8;--glass-strong:#ffffffe0;--glass-border:#ffffffe6;--blur:blur(18px);
+  --r-sm:12px;--r:16px;--r-lg:24px;--pill:999px;
+  --shadow-sm:0 6px 16px -10px #4b3fa040;--shadow:0 20px 40px -28px #4b3fa066;--shadow-lg:0 30px 60px -30px #4b3fa080;
+  --aurora:radial-gradient(60% 50% at 8% 0%,#ffd9c7 0%,transparent 60%),radial-gradient(50% 45% at 96% 8%,#dcd5ff 0%,transparent 60%),radial-gradient(60% 50% at 50% 104%,#cff3e6 0%,transparent 65%);
+}
+
+/* ---------- base ---------- */
+body{font-family:var(--font-sans),'Be Vietnam Pro',system-ui,sans-serif;background:var(--aurora),var(--cream);background-attachment:fixed;color:var(--ink);-webkit-font-smoothing:antialiased}
+h1,h2,h3{letter-spacing:-.02em}
+::selection{background:#dcd5ff}
+:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+
+/* shared header/footer */
+.site-header{background:#ffffffa6;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-bottom:1px solid #ffffffcc;position:sticky;top:0;z-index:20}
+.brand-icon{background:var(--orb);color:#fff;border-radius:50%;font-style:normal;box-shadow:0 0 0 4px #ffffff90;text-shadow:0 1px 2px #0003}
+.nav nav a:hover{color:var(--primary)}
+.site-footer{background:transparent;border-top:1px solid #ffffffb0}
+
+/* ---------- shared components (catalog, compare, family, sign-in) ---------- */
+.eyebrow,.eyebrow.accent{color:var(--primary);letter-spacing:.14em}
+.button,.button.primary,.primary{border-radius:var(--r-sm)}
+.button.primary,button.primary,a.primary{background:var(--grad);border:0;color:#fff;box-shadow:0 10px 20px -10px #5b4bb7}
+.product-card,.form-card,.sign-in-card,.empty-state,.offer-row,.compare-summary,.notice,.filter-panel,.detail-visual,.spec-list>div,.table-scroll{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.product-card{overflow:hidden;transition:transform .2s ease,box-shadow .2s ease}
+.product-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.product-visual,.detail-visual{background:linear-gradient(135deg,#ffe6da,#f3e9ff)}
+.product-card:nth-child(3n+2) .product-visual{background:linear-gradient(135deg,#e2f7ef,#e8ecff)}
+.product-card:nth-child(3n) .product-visual{background:linear-gradient(135deg,#fff3d6,#ffe3ea)}
+.compare-table{border-collapse:separate;border-spacing:0}
+.compare-table th,.compare-table td{border-color:var(--line)}
+.compare-table thead th{background:#ffffff80}
+.notice{background:var(--warn-bg);border-color:#f3dfae;color:var(--warn)}
+.count-pill,.demo-tag{border-radius:var(--pill)}
+.stale-note{color:var(--warn)}
+input,select,textarea{border-radius:var(--r-sm)}
+.form-card input,.form-card select,.sign-in-card input{border:1px solid var(--line);background:#fff}
+.form-card input:focus,.form-card select:focus,.sign-in-card input:focus{border-color:#b9adff;box-shadow:0 0 0 4px #ece8ff;outline:0}
+
+/* ---------- AI shopping workspace ---------- */
+.agent-app{--agent-ink:var(--ink);--agent-muted:var(--muted);--agent-line:var(--line);background:var(--aurora),var(--cream)}
+.agent-decoration{display:none}
+.agent-rail{background:#ffffff8c;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-right:1px solid #ffffffcc}
+.agent-logo{background:var(--orb);border-radius:50%;box-shadow:0 0 0 4px #ffffff90;color:#fff;letter-spacing:-2px}
+.agent-logo span{color:#fff}
+.rail-new{border-radius:50%;border-color:var(--line);color:var(--primary)}
+.rail-caption{color:#a39fbd}
+.agent-status{display:inline-flex;align-items:center;background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);padding:7px 12px;border-radius:var(--pill);color:#4a4468;box-shadow:var(--shadow-sm)}
+.status-dot{background:linear-gradient(135deg,#6fd7b5,#7a8cff);box-shadow:0 0 0 4px #e6fbf3}
+.agent-history-trigger{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--pill);color:#4a4468;padding:8px 14px;box-shadow:var(--shadow-sm)}
+.agent-history-trigger:hover{background:#fff}
+.agent-context{display:flex;flex-wrap:wrap;gap:8px;width:min(1100px,calc(100% - 48px));margin:0 auto 4px}
+.agent-context span{font-size:12px;font-weight:600;padding:6px 12px;border-radius:var(--pill);background:var(--glass);border:1px solid var(--glass-border);color:#4a4468;backdrop-filter:var(--blur)}
+
+/* empty state */
+.agent-orbit{border:0;width:72px;height:72px;background:var(--orb);box-shadow:0 0 0 8px #ffffff80,0 20px 40px -16px #7a5cff80;animation:aurora-breathe 4s ease-in-out infinite}
+.agent-orbit span{opacity:0}
+.agent-overline{color:var(--primary)}
+.agent-core h1{font-weight:800;letter-spacing:-.035em;background:linear-gradient(90deg,var(--ink),#5b4bb7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.agent-subtitle{color:var(--muted)}
+.agent-suggestions>span{color:#8a86a3}
+.agent-suggestions button{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r);color:#3b3556;box-shadow:var(--shadow-sm);transition:transform .15s ease,box-shadow .15s ease}
+.agent-suggestions button:hover{background:#fff;transform:translateY(-2px);box-shadow:var(--shadow)}
+.agent-suggestions b{color:var(--primary)}
+
+/* thread */
+.agent-thread-heading h1{font-weight:800;letter-spacing:-.03em}
+.agent-line-icon{background:var(--orb);border-radius:50%;color:transparent;box-shadow:0 0 0 3px #ffffffb0;width:32px;height:32px}
+.agent-line>p,.agent-line-content>p{background:var(--glass-strong);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:6px 20px 20px 20px;box-shadow:var(--shadow-sm);font-size:14.5px}
+.agent-line.user>p{background:var(--ink);border-color:var(--ink);color:#fff;border-radius:20px 20px 6px 20px}
+
+/* composer */
+.agent-prompt{background:#ffffffc9;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid #fff;border-radius:var(--r-lg);box-shadow:var(--shadow-lg);padding:16px 18px 12px}
+.agent-prompt:focus-within{box-shadow:var(--shadow-lg),0 0 0 4px #ece8ff}
+.agent-prompt label{color:var(--primary)}
+.agent-prompt textarea{color:var(--ink)}
+.agent-prompt textarea::placeholder{color:#9b97b3}
+.agent-prompt-bottom{border-top-color:#efedf7}
+.agent-prompt-bottom>span{color:#9b97b3}
+.agent-prompt button{background:var(--grad);border-radius:var(--pill);padding:10px 18px;box-shadow:0 10px 20px -10px #5b4bb7}
+.agent-bottom-note{color:#8a86a3}
+
+/* recommendation cards */
+.agent-results{gap:16px;margin-top:16px}
+.agent-product{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column;transition:transform .2s ease,box-shadow .2s ease}
+.agent-product:hover{transform:translateY(-3px);box-shadow:var(--shadow-lg)}
+.agent-product-top{position:absolute;inset:14px 14px auto 14px;z-index:1;padding:0}
+.agent-product-top>span{background:#ffffffd9;color:#4a4468;padding:6px 10px;border-radius:var(--pill);letter-spacing:.06em;box-shadow:var(--shadow-sm)}
+.agent-product:first-child .agent-product-top>span{background:var(--ink);color:#fff}
+.agent-product-top button{width:34px;height:34px;border-radius:50%;background:#ffffffd9;color:var(--primary);box-shadow:var(--shadow-sm);font-size:17px}
+.agent-product-visual{height:140px;margin:8px;border-radius:18px;background:linear-gradient(135deg,#ffe6da,#f3e9ff);color:#b3a8e8}
+.agent-product:nth-child(2) .agent-product-visual{background:linear-gradient(135deg,#e2f7ef,#e8ecff)}
+.agent-product:nth-child(3) .agent-product-visual{background:linear-gradient(135deg,#fff3d6,#ffe3ea)}
+.agent-product-visual svg{width:96px;height:96px}
+.agent-product-main{padding:10px 18px 18px;display:flex;flex-direction:column;flex:1}
+.agent-product-main small{color:#7a6fb0;letter-spacing:.08em;font-size:11px}
+.agent-product-main h3{font-size:17px;font-weight:700;margin:4px 0 6px}
+.agent-product-score{display:inline-flex;align-self:flex-start;background:var(--ok-bg);color:var(--ok);font-size:11.5px;font-weight:700;padding:4px 10px;border-radius:var(--pill);margin:0}
+.agent-product-main ul{gap:6px;margin:12px 0}
+.agent-product-main li{font-size:12px;color:#4a4468}
+.agent-product-main li:before{content:'✓ ';color:var(--ok);font-weight:800}
+.agent-product-price{font-size:22px;color:var(--ink);margin:6px 0 4px;letter-spacing:-.02em}
+.agent-product-price span{font-size:12px;color:#7c7896}
+.agent-offer-meta{font-size:11.5px;color:#7c7896;margin:0 0 10px}
+.agent-why{border-top:1px solid #efedf7;padding-top:10px}
+.agent-why summary{color:var(--primary);font-size:12.5px;list-style:none}
+.agent-why summary::-webkit-details-marker{display:none}
+.agent-why summary:after{content:' ›';display:inline-block;transition:transform .2s}
+.agent-why[open] summary:after{transform:rotate(90deg)}
+.agent-why-title{color:#7a6fb0}
+.agent-why .agent-why-tradeoffs li:before{content:'– ';color:var(--warn)}
+.agent-product-actions{margin-top:auto;gap:8px}
+.agent-product-actions button,.agent-product-actions a{border:1px solid var(--line);background:#fff;color:var(--ink);border-radius:14px;padding:11px 6px;font-size:12.5px}
+.agent-product-actions button:hover{background:#f6f4ff}
+.agent-product-actions a{background:var(--grad);border:0;color:#fff;box-shadow:0 8px 18px -8px #5b4bb7}
+.agent-product-actions button[aria-pressed=true]{background:#ece8ff;border-color:#b9adff;color:var(--primary-ink)}
+.agent-stale{border-radius:14px;border-color:#f3dfae;background:var(--warn-bg);color:var(--warn);font-size:12px}
+.agent-line-content>p.agent-disclosure{color:#8a86a3;font-size:11.5px}
+.agent-compare-bar{background:#1f1b2ee8;backdrop-filter:var(--blur);border-radius:18px;padding:12px 16px;font-size:13px;box-shadow:var(--shadow-lg)}
+.agent-compare-bar button{border-radius:var(--pill);border-color:#ffffff55}
+.agent-compare-bar a{border-radius:var(--pill);background:#fff;color:var(--ink)}
+
+/* panels inside the thread */
+.agent-data-panel{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.agent-list button,.agent-catalog-item,.agent-family-list>div{background:#ffffffc0;border-color:var(--line);border-radius:var(--r-sm)}
+.agent-list button:hover{background:#fff}
+.catalog-symbol{background:var(--orb);color:transparent;border-radius:50%}
+.catalog-actions button{border-radius:var(--pill);border-color:var(--line);color:var(--primary)}
+.ob-link-banner{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r);box-shadow:var(--shadow-sm)}
+.ob-link-banner a{color:var(--primary)}
+
+/* ---------- onboarding agent ---------- */
+.ob-app{background:var(--aurora),var(--cream);--ob-line:#ebe8f5;--ob-muted:var(--muted)}
+.ob-rail,.ob-panel{background:#ffffff8c;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur)}
+.ob-rail{border-right-color:#ffffffcc}
+.ob-panel{border-left-color:#ffffffcc}
+.ob-top{border-bottom-color:#ffffffcc;color:#4a4468}
+.ob-progress i{background:#e3dff3;height:6px;border-radius:var(--pill)}
+.ob-progress i.on{background:var(--grad)}
+.ob-progress i.now{background:#c7bcff}
+.ob-progress em{color:#8a86a3}
+.ob-msg.agent{background:var(--glass-strong);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:6px 20px 20px 20px;box-shadow:var(--shadow-sm)}
+.ob-msg.user{background:var(--ink);border-radius:20px 20px 6px 20px}
+.ob-typing{background:var(--glass-strong);border-color:var(--glass-border);border-radius:var(--pill)}
+.ob-typing b{background:#b59cff}
+.ob-confirm{background:var(--warn-bg);border-color:#f3dfae;color:var(--warn);border-radius:var(--r)}
+.ob-chip{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);color:var(--primary-ink);box-shadow:var(--shadow-sm);padding:9px 15px}
+.ob-chip:hover:not(:disabled){border-color:#b9adff;background:#fff}
+.ob-chip.primary{background:var(--grad);border:0;color:#fff}
+.ob-composer{background:#ffffffc9;backdrop-filter:blur(20px);border:1px solid #fff;border-radius:var(--r-lg);box-shadow:var(--shadow);padding:10px 10px 10px 16px}
+.ob-composer:focus-within{border-color:#fff;box-shadow:var(--shadow),0 0 0 4px #ece8ff}
+.ob-composer button{background:var(--grad);border-radius:var(--pill);padding:10px 18px;box-shadow:0 8px 18px -8px #5b4bb7}
+.ob-consent input{accent-color:var(--primary)}
+.ob-review{background:var(--glass-strong);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow)}
+.ob-btn{border-radius:var(--pill);padding:11px 18px}
+.ob-btn.primary{background:var(--grad);box-shadow:0 10px 20px -10px #5b4bb7}
+.ob-btn.ghost{background:#f1effa;color:var(--primary-ink)}
+.ob-group h4{color:#8a86a3}
+button.ob-field:hover,button.ob-field:focus-visible{background:#f6f4ff}
+.ob-field.fresh{background:#ece8ff;animation:aurora-fresh 1.6s ease-out}
+.ob-field.editing{background:#f6f4ff;outline-color:#c7bcff}
+.ob-field-actions button{background:var(--grad);border-radius:var(--pill)}
+.ob-field-actions button[type=button]{background:#ece8ff;color:var(--ink)}
+.ob-panel-compact{background:#ffffffa6}
+.ob-signin,.ob-inline-btn,.ob-panel-foot a{color:var(--primary)}
+
+@keyframes aurora-breathe{0%,100%{transform:scale(1);filter:saturate(1)}50%{transform:scale(1.06);filter:saturate(1.25)}}
+@keyframes aurora-fresh{from{background:#dcd5ff}to{background:#ece8ff}}
+@media (prefers-reduced-motion:reduce){.agent-orbit{animation:none}.agent-product,.product-card,.agent-suggestions button{transition:none}}
+.agent-avatar,.compare-icon{background:var(--orb);color:transparent!important;border-radius:50%;box-shadow:0 0 0 3px #ffffffb0;display:inline-block;width:30px;height:30px;flex:none}
+
+/* ---------- compact layouts ---------- */
+.agent-header{gap:10px}
+.agent-status,.agent-history-trigger{white-space:nowrap}
+.agent-product-price span{display:block;margin-top:2px;font-weight:500}
+.agent-product-actions button,.agent-product-actions a,.agent-stale{white-space:nowrap}
+@media(max-width:800px){
+  .agent-header{height:auto;min-height:56px;padding:10px 14px;flex-wrap:wrap}
+  .agent-status{padding:6px 10px;font-size:11.5px}
+  .agent-header-actions{gap:6px}
+  .agent-history-trigger{padding:7px 11px;font-size:11.5px}
+  .agent-context{width:calc(100% - 28px);flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+  .agent-context::-webkit-scrollbar{display:none}
+  .agent-context span{flex:none}
+  .agent-product-actions{gap:6px}
+  .agent-product-actions button,.agent-product-actions a{padding:10px 4px;font-size:12px}
+}
+/* User turns: text sits inside .agent-line-content, so align and color that (older selector targeted >p only). */
+.agent-line.user .agent-line-content{flex:0 1 auto;max-width:min(620px,80%)}
+.agent-line.user .agent-line-content>p{background:var(--ink);border-color:var(--ink);color:#fff;border-radius:20px 20px 6px 20px;margin-left:auto}
+.product-visual svg{width:104px;height:104px;color:#b3a8e8}
+.detail-visual svg{width:180px;height:180px;color:#b3a8e8}
+.product-visual,.detail-visual{display:grid;place-items:center}
+@media(max-width:560px){
+  /* Compact composer on phones; label stays available to screen readers. */
+  .agent-prompt{padding:10px 12px 8px;border-radius:20px}
+  .agent-prompt label{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .agent-prompt textarea{min-height:44px}
+  .agent-prompt-bottom{padding-top:6px;justify-content:flex-end}
+}
+
+/* ---------- onboarding v2 (ak-ui-ux-pro-max pass) ---------- */
+.ob-orb{display:inline-block;flex:none;width:30px;height:30px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 3px #ffffffb3,0 6px 14px -6px #7a5cff80}
+.ob-orb.ghost{visibility:hidden}
+.ob-orb-lg{width:64px;height:64px;box-shadow:0 0 0 8px #ffffff80,0 24px 44px -18px #7a5cff99;animation:aurora-breathe 4s ease-in-out infinite}
+.ob-top{min-height:64px;background:#ffffff66;backdrop-filter:var(--blur)}
+.ob-who{display:flex;align-items:center;gap:10px}
+.ob-who>span:last-child{display:flex;flex-direction:column;line-height:1.25}
+.ob-who b{font-size:14px;color:var(--ink)}
+.ob-who small{font-size:11.5px;color:var(--muted);font-weight:500;display:flex;align-items:center}
+.ob-progress i{width:30px;transition:background-color .25s ease}
+.ob-progress em{font-size:12px}
+.ob-progress em b{color:var(--primary);font-weight:700}
+
+.ob-thread{gap:14px;padding-top:28px}
+.ob-hero{align-self:center;text-align:center;max-width:560px;margin:8px auto 18px;display:flex;flex-direction:column;align-items:center;gap:10px;animation:ob-in .35s ease-out both}
+.ob-hero h1{margin:8px 0 0;font-size:clamp(26px,3.2vw,34px);font-weight:800;letter-spacing:-.035em;line-height:1.15;background:linear-gradient(90deg,var(--ink),#5b4bb7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ob-hero p{margin:0;color:var(--muted);font-size:15px}
+.ob-benefits{list-style:none;padding:0;margin:10px 0 0;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.ob-benefits li{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;color:#4a4468;background:var(--glass);border:1px solid var(--glass-border);backdrop-filter:var(--blur);padding:8px 12px;border-radius:var(--pill);box-shadow:var(--shadow-sm)}
+.ob-benefits svg{color:var(--primary)}
+
+.ob-row{display:flex;align-items:flex-end;gap:10px;animation:ob-in .22s ease-out both}
+.ob-row.user{justify-content:flex-end}
+.ob-row .ob-msg{max-width:min(600px,80%)}
+.ob-msg{font-size:15px;line-height:1.6;padding:12px 16px}
+.ob-row.agent .ob-confirm{margin:0}
+.ob-confirm{box-shadow:var(--shadow-sm)}
+.ob-typing{width:64px;justify-content:center}
+
+.ob-chips{gap:8px}
+.ob-chip{min-height:40px;transition:transform .15s ease,background-color .15s ease,box-shadow .15s ease}
+.ob-chip:hover:not(:disabled){transform:translateY(-1px);box-shadow:var(--shadow)}
+.ob-chip:active:not(:disabled){transform:scale(.97)}
+
+.ob-composer{align-items:center;border-radius:var(--pill);padding:6px 6px 6px 20px}
+.ob-composer textarea{padding:10px 0;font-size:16px}
+.ob-send{flex:none;display:grid;place-items:center;width:44px;height:44px;padding:0!important;border-radius:50%!important;transition:transform .15s ease,opacity .15s ease}
+.ob-send:not(:disabled):hover{transform:translateY(-1px)}
+.ob-send:not(:disabled):active{transform:scale(.94)}
+.ob-send:disabled{opacity:.4}
+
+.ob-consent{align-items:center;gap:12px;cursor:pointer}
+.ob-consent input{appearance:none;-webkit-appearance:none;flex:none;margin:0;width:40px;height:24px;border-radius:var(--pill);background:#dcd8ea;position:relative;cursor:pointer;transition:background-color .2s ease}
+.ob-consent input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s ease}
+.ob-consent input:checked{background:var(--grad)}
+.ob-consent input:checked::after{transform:translateX(16px)}
+.ob-consent input:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+.ob-consent-text{display:flex;gap:8px;align-items:flex-start;line-height:1.5}
+.ob-consent-text svg{flex:none;margin-top:2px;color:var(--ok)}
+.ob-consent-text b{color:var(--ink);font-weight:600}
+
+.ob-review{padding:22px;animation:ob-in .3s ease-out both}
+.ob-review-head{display:flex;gap:14px;align-items:flex-start;margin-bottom:14px}
+.ob-review-head h2{margin:0 0 4px;font-size:19px;font-weight:800;letter-spacing:-.02em}
+.ob-review-head p{margin:0;color:var(--muted);font-size:13.5px}
+.ob-review-badge{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--ok-bg);color:var(--ok)}
+.ob-review-list{list-style:none;padding:0!important;margin:0 0 18px!important;display:grid;gap:8px!important}
+.ob-review-list li{display:flex;gap:9px;align-items:flex-start;font-size:14px;background:#ffffffb3;border:1px solid var(--line);border-radius:var(--r-sm);padding:10px 12px}
+.ob-review-list svg{flex:none;margin-top:3px;color:var(--ok)}
+.ob-review-actions .ob-btn.primary{padding:13px 22px;font-size:15px}
+
+.ob-panel-body{padding:20px 18px}
+.ob-panel-head{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.ob-panel-head .ob-orb{width:26px;height:26px}
+.ob-panel h3{font-size:16px;font-weight:800;margin:0}
+.ob-meter{height:6px;border-radius:var(--pill);background:#e8e4f6;overflow:hidden}
+.ob-meter span{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .4s ease-out}
+.ob-meter-label{margin:6px 0 4px;font-size:12px;font-weight:600;color:var(--primary-ink)}
+.ob-group{border:1px solid var(--glass-border);border-top:1px solid var(--glass-border);background:#ffffffa6;border-radius:var(--r);padding:10px 10px 8px;margin-top:10px;box-shadow:var(--shadow-sm)}
+.ob-field{min-height:36px;align-items:center}
+.ob-field.empty b{font-style:italic}
+
+@keyframes ob-in{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.ob-row,.ob-hero,.ob-review,.ob-orb-lg{animation:none}.ob-chip,.ob-send,.ob-consent input,.ob-consent input::after,.ob-meter span{transition:none}}
+@media (max-width:980px){
+  .ob-hero{margin:4px auto 10px}
+  .ob-hero h1{font-size:25px}
+  .ob-benefits li{font-size:12px;padding:7px 10px}
+  .ob-row .ob-msg,.ob-row .ob-confirm{max-width:86%}
+  .ob-panel-compact{font-weight:600}
+}
+
+/* The pill composer shows focus on its outer edge (:focus-within); no second ring on the textarea. */
+.ob-composer textarea:focus-visible,.agent-prompt textarea:focus-visible{outline:none}
+
+@media (max-width:560px){
+  .ob-top{padding:10px 14px;min-height:56px}
+  .ob-who small{display:none}
+  .ob-progress i{width:16px}
+  .ob-progress em{white-space:nowrap}
+  .ob-consent{font-size:11.5px}
+}
+
+/* quick replies under a clarification + AI opt-in inside the status pill */
+.agent-choices{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.agent-choices button{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--pill);padding:9px 14px;font:inherit;font-size:13px;font-weight:600;color:var(--primary-ink);cursor:pointer;box-shadow:var(--shadow-sm);min-height:40px}
+.agent-choices button:hover:not(:disabled){background:#fff;border-color:#b9adff}
+.agent-choices button:disabled{opacity:.5;cursor:default}
+.agent-inline-toggle{border:0;background:var(--grad);color:#fff;border-radius:var(--pill);padding:3px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:2px}
+/* App shell (Spec v2 §34): sidebar ≥900px, bottom bar below. Signed-in pages only; landing/onboarding/sign-in keep .site-header. */
+:root{--app-side-w:232px;--app-bottom-h:0px}
+body:has(.app-shell)>.site-header,body:has(.app-shell)>.site-footer{display:none}
+body:has(.app-shell)>main{min-height:100dvh}
+.app-shell{display:grid;grid-template-columns:var(--app-side-w) minmax(0,1fr);min-height:100dvh}
+.app-side{position:sticky;top:0;height:100dvh;display:flex;flex-direction:column;gap:6px;padding:18px 14px;background:#ffffff8c;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-right:1px solid #ffffffcc}
+.app-brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;padding:6px 8px 16px;letter-spacing:-.02em}
+.app-orb{display:inline-block;width:30px;height:30px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 3px #ffffffb3;flex:none}
+.app-nav{display:grid;gap:4px}
+.app-nav a,.app-bottom a{display:flex;align-items:center;gap:12px;min-height:44px;padding:10px 12px;border-radius:14px;color:#4a4468;font-weight:600;font-size:14px;transition:background .15s,color .15s}
+.app-nav a svg{width:20px;height:20px;flex:none}
+.app-nav a:hover{background:#ffffffb0;color:var(--primary)}
+.app-nav a.on,.app-bottom a.on{background:#fff;color:var(--primary);box-shadow:var(--shadow-sm)}
+.app-me{margin-top:auto;display:flex;gap:10px;align-items:center;min-height:56px;padding:10px 12px;border-radius:14px;background:#ffffffc0;font-size:12.5px;line-height:1.3}
+.app-me:hover{background:#fff}
+.app-me img,.app-me-initial{width:36px;height:36px;border-radius:50%;flex:none;background:#dcd5ff;object-fit:cover}
+.app-me-initial{display:grid;place-items:center;font-weight:800;color:var(--primary-ink)}
+.app-me span{min-width:0;display:grid}.app-me b{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.app-me small{color:var(--muted)}
+.app-main{min-width:0;display:flex;flex-direction:column}
+.app-bottom{display:none}
+
+/* section pages */
+.app-page{width:min(1040px,100%);margin:0 auto;padding:28px clamp(16px,3vw,32px) 40px;display:flex;flex-direction:column;gap:20px}
+.app-page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.app-page h1{font-size:clamp(24px,3vw,30px);font-weight:800;letter-spacing:-.03em;margin:0}
+.app-sub{color:var(--muted);font-size:14px;margin:4px 0 0}
+.app-section h2{font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#7a6fb0;margin:0 0 10px}
+.app-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.app-card{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow);padding:16px}
+.app-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:40px;background:var(--grad);color:#fff!important;border:0;border-radius:var(--pill);padding:9px 16px;font:700 13px var(--font-sans),inherit;cursor:pointer;white-space:nowrap;box-shadow:0 8px 18px -8px #5b4bb7}
+.app-btn.ghost{background:#fff;color:var(--ink)!important;border:1px solid var(--line);box-shadow:none}
+.app-btn:hover{filter:brightness(1.04)}
+.app-pill{display:inline-block;font-size:11px;font-weight:700;padding:3px 8px;border-radius:var(--pill);background:#ece8ff;color:var(--primary-ink)}
+.app-pill.warn{background:var(--warn-bg);color:var(--warn)}.app-pill.ok{background:var(--ok-bg);color:var(--ok)}
+.app-empty{text-align:center;padding:34px 18px;color:var(--muted);font-size:14px;line-height:1.6;display:flex;flex-direction:column;gap:12px;align-items:center}
+.app-empty strong{color:var(--ink);font-size:16px}
+.app-tabs{display:flex;gap:8px;flex-wrap:wrap}
+.app-tabs a{padding:9px 14px;min-height:40px;display:inline-flex;align-items:center;border-radius:var(--pill);font-weight:700;font-size:13px;background:var(--glass);border:1px solid var(--glass-border);color:#4a4468}
+.app-tabs a.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.app-rows>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;font-size:14px;border-top:1px solid var(--line)}
+.app-rows>div:first-child{border-top:0}
+.app-rows small{display:block;color:var(--muted);font-size:12px}
+
+/* Home brief */
+.brief-att{display:grid;gap:10px}
+.brief-card{display:flex;gap:12px;align-items:center;padding:14px 16px}
+.brief-card .ic{flex:none;width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:12px}
+.brief-card .ic.warn{background:var(--warn-bg);color:var(--warn)}.brief-card .ic.ok{background:var(--ok-bg);color:var(--ok)}.brief-card .ic.info{background:#ece8ff;color:var(--primary-ink)}
+.brief-card .t{flex:1;min-width:0}.brief-card b{display:block;font-size:14px}.brief-card small{color:var(--muted);font-size:12.5px;line-height:1.45}
+.brief-kpi b{display:block;font-size:22px;letter-spacing:-.02em}.brief-kpi small{color:var(--muted);font-size:12px}
+.brief-insight{display:flex;gap:12px;align-items:flex-start}
+.brief-insight p{margin:0;font-size:14px;line-height:1.55}.brief-insight small{display:block;color:var(--muted);margin-top:6px;font-size:12px}
+.brief-kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font-size:13px}.brief-kv span{color:var(--muted)}.brief-kv em{font-style:normal}
+.brief-link{color:var(--primary);font-weight:700;font-size:13px}
+
+/* Agent page: conversation list + thread inside the shell */
+.agent-app{height:calc(100dvh - var(--app-bottom-h));min-height:0;grid-template-columns:260px minmax(0,1fr)}
+.agent-convs{z-index:2;display:flex;flex-direction:column;gap:8px;padding:18px 14px;border-right:1px solid #ffffffcc;background:#ffffff8c;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);overflow:auto;min-height:0}
+.agent-convs h4{font-size:11px;letter-spacing:.1em;color:#8a86a3;text-transform:uppercase;margin:10px 4px 0;font-weight:800}
+.agent-conv{display:grid;gap:2px;text-align:left;padding:11px 12px;min-height:44px;border-radius:14px;background:#ffffffa6;border:1px solid var(--glass-border);font:inherit;color:var(--ink);cursor:pointer}
+.agent-conv b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.agent-conv small{color:var(--muted);font-size:12px}
+.agent-conv.on{background:#fff;border-color:#c7bcff;box-shadow:var(--shadow-sm)}
+.agent-convs-toggle{display:none}
+
+@media(max-width:900px){
+  :root{--app-bottom-h:calc(64px + env(safe-area-inset-bottom))}
+  .app-shell{grid-template-columns:1fr}
+  .app-side{display:none}
+  .app-main{padding-bottom:var(--app-bottom-h)}
+  .app-bottom{position:fixed;left:0;right:0;bottom:0;z-index:30;display:grid;grid-template-columns:repeat(5,1fr);gap:2px;padding:6px 6px calc(6px + env(safe-area-inset-bottom));background:#ffffffd9;backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border-top:1px solid #ffffffcc}
+  .app-bottom a{flex-direction:column;gap:3px;min-height:52px;padding:6px 2px;font-size:10.5px;color:#6f6a8a;border-radius:12px;justify-content:center}
+  .app-bottom a svg{width:22px;height:22px}
+  .app-bottom a.on{background:transparent;box-shadow:none}
+  .app-grid2{grid-template-columns:1fr}
+  .agent-app{grid-template-columns:minmax(0,1fr)}
+  .agent-convs{display:none;position:absolute;inset:0 auto 0 0;width:min(84vw,320px);z-index:20;box-shadow:var(--shadow-lg);background:#fffffff2}
+  .agent-app.convs-open .agent-convs{display:flex}
+  .agent-convs-toggle{display:inline-flex}
+}
+@media(prefers-reduced-motion:reduce){.app-nav a,.app-bottom a{transition:none}}
+
+/* Family page extras */
+.account-rows>div{align-items:center}
+.account-rows b{display:block;font-size:14px}
+.account-who{display:flex;gap:12px;align-items:center;min-width:0}
+.account-who img{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none}
+.account-toggle{display:grid;cursor:pointer}
+.account-rows input[type=checkbox]{width:44px;height:26px;appearance:none;background:#d9d5ea;border-radius:var(--pill);position:relative;cursor:pointer;flex:none;transition:background .2s}
+.account-rows input[type=checkbox]:checked{background:var(--primary)}
+.account-rows input[type=checkbox]::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0003;transition:transform .2s}
+.account-rows input[type=checkbox]:checked::after{transform:translateX(18px)}
+.app-btn.danger{color:var(--danger)!important;border-color:#f1c9c6}
+.memory-empty{font-size:13px;color:var(--muted);line-height:1.6;margin:0;border:1px dashed #cfc9e6;border-radius:var(--r);padding:14px}
+.agent-convs-empty{font-size:12.5px;color:var(--muted);line-height:1.55;margin:8px 4px}
+.agent-status{display:inline-flex;align-items:center;gap:8px}
+
+/* Home — Việc hôm nay */
+.daily-task{display:flex;gap:12px;align-items:flex-start;padding:14px 16px}
+.daily-task .t{flex:1;min-width:0;display:grid;gap:2px}
+.daily-task b{font-size:14px;line-height:1.45}
+.daily-task small{color:var(--muted);font-size:12.5px;line-height:1.45}
+.daily-source{font-size:11px!important;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--primary)!important}
+.daily-task.money .daily-source{color:var(--ok)!important}.daily-task.improve .daily-source{color:var(--warn)!important}
+.daily-check{flex:none;width:28px;height:28px;margin-top:2px;border-radius:50%;border:2px solid #c9c3e3;background:#fff;color:#fff;font-weight:800;cursor:pointer;display:grid;place-items:center;transition:background .15s,border-color .15s}
+.daily-check:hover{border-color:var(--primary-2)}
+.daily-task.done .daily-check{background:var(--ok);border-color:var(--ok)}
+.daily-task.done b{text-decoration:line-through;color:var(--muted)}
+.daily-task.invite{align-items:center;flex-wrap:wrap}
+.daily-invite-links{display:flex;gap:8px;flex-wrap:wrap}
+/* 44px touch target around the 28px circle */
+.daily-check{position:relative}.daily-check::after{content:"";position:absolute;inset:-8px}
+/* Money module (SPEC_V2 §8–12): month KPIs, Excel-like ledger, budget rows, recurring/goals forms. */
+.month-nav{display:inline-flex;align-items:center;gap:10px}
+.month-nav b{min-width:120px;text-align:center;font-size:15px}
+.month-nav .app-btn{min-width:40px;padding:6px 12px;font-size:18px;line-height:1}
+.money-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.money-plan{grid-column:1/-1;display:grid;gap:6px}
+.money-plan small{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12.5px}
+.bar{display:block;height:8px;border-radius:var(--pill);background:#e8e4f6;overflow:hidden;margin-top:6px}
+.bar>span{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .3s}
+.bar>span.over{background:linear-gradient(135deg,#f0a08a,#b4413c)}
+.money-foot{margin-top:4px}
+
+.ledger-wrap{overflow-x:auto;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow)}
+.ledger{width:100%;min-width:760px;border-collapse:collapse;font-size:13.5px}
+.ledger th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#7a6fb0;padding:12px 12px 8px;border-bottom:1px solid var(--line)}
+.ledger td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ledger td:nth-child(2){min-width:200px}
+.ledger tbody tr:last-child td{border-bottom:0}
+.ledger .num,.ledger td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.ledger-row.kind-expense td.num{color:var(--ink)}.ledger-row.kind-income td.num{color:var(--ok)}.ledger-row.kind-saving td.num{color:var(--primary-ink)}
+.ledger-kind{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--pill);background:#f1eff8;color:#4a4468}
+.ledger-kind.income{background:var(--ok-bg);color:var(--ok)}.ledger-kind.saving{background:#ece8ff;color:var(--primary-ink)}
+.ledger-content{display:block}.ledger td small{display:block;color:var(--muted);font-size:12px}
+.ledger td .app-pill{margin-left:6px;vertical-align:middle}
+.ledger-child{text-align:center}.ledger-child label{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.ledger-actions{white-space:nowrap;text-align:right}
+.ledger-actions .app-btn{min-height:36px;padding:6px 14px}
+.ledger-link{background:none;border:0;color:var(--primary);font:600 13px var(--font-sans),inherit;cursor:pointer;padding:6px 8px;min-height:36px}
+.ledger-link.danger{color:var(--danger)}
+.ledger-new td{background:#ffffffb8}
+.ledger input,.ledger select,.inline-form input,.inline-form select,.budget-edit input{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px}
+.ledger input:focus,.ledger select:focus,.inline-form input:focus,.inline-form select:focus,.budget-edit input:focus{outline:0;border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff}
+.ledger-new td:nth-child(1){width:150px}.ledger-new td:nth-child(3){width:110px}.ledger-new td:nth-child(4){width:170px}.ledger-new td:nth-child(5){width:130px}
+.ledger-empty{text-align:center;color:var(--muted);padding:26px 12px!important}
+
+.month-view{display:flex;flex-direction:column;gap:20px}
+.budget-rows>div{align-items:center}
+.budget-name{flex:1;min-width:0;display:grid}.budget-name b{font-size:14px}
+.budget-pill{border:0;cursor:pointer;min-height:32px;padding:6px 12px;font:700 12px var(--font-sans),inherit}
+.budget-edit{display:inline-flex;gap:6px;align-items:center}.budget-edit input{width:110px}.budget-edit .app-btn{min-height:36px;padding:6px 12px}
+.row-actions{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+
+.money-settings{display:flex;flex-direction:column;gap:20px}
+.inline-form{display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr auto auto;gap:8px;align-items:center;padding:12px 16px}
+.inline-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4a4468}
+.day-field{display:flex!important;align-items:center;gap:6px;white-space:nowrap}.day-field input{width:64px}
+.settings-form{grid-template-columns:repeat(3,1fr) auto;align-items:end}
+.app-rows .inline-form{border-top:1px solid var(--line)}
+.money-settings .app-rows>div.inline-form{display:grid}
+
+@media(max-width:900px){
+  .money-kpis{grid-template-columns:1fr 1fr}
+  .inline-form,.settings-form{grid-template-columns:1fr 1fr}
+  .inline-form .app-btn{grid-column:1/-1}
+  .ledger{min-width:680px}
+}
+@media(max-width:560px){.inline-form,.settings-form{grid-template-columns:1fr}.month-nav b{min-width:96px;font-size:14px}}
+
+/* Purchases → Tiền + tồn kho */
+.mark-purchased{position:relative;display:inline-flex}
+.purchase-backdrop{position:fixed;inset:0;z-index:55;border:0;background:#1f1b2e59;cursor:default}
+.purchase-form{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);backdrop-filter:none;-webkit-backdrop-filter:none;width:min(340px,calc(100vw - 32px));display:grid;gap:8px;padding:16px;text-align:left;font-size:13px;background:#fff;box-shadow:var(--shadow-lg)}
+.purchase-form b{font-size:14px}
+.purchase-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4a4468}
+.purchase-form input{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;min-height:40px;background:#fff}
+.purchase-form .purchase-check{display:flex;align-items:center;gap:8px;font-weight:600}
+.purchase-form .purchase-check input{width:auto;min-height:0}
+.purchase-form small{color:var(--muted);font-size:11.5px;line-height:1.45}
+.purchase-actions{display:flex;gap:6px;align-items:center}
+.purchased-done{font-size:12px;color:var(--ok);font-weight:700}
+.tracking-card{align-items:flex-start}
+.tracking-card .t small{display:block;margin-top:4px}
+.tracking-actions{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.agent-product-actions .mark-purchased{flex:1}
+.agent-product-actions .mark-purchased>button{width:100%;min-height:0;padding:9px 5px;font-size:10px;border-radius:8px}
+.agent-budget-hint{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#4a4468;background:#fff3d6;border:1px solid #f4dca6;border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.5}
+.agent-budget-hint.ok{background:var(--ok-bg);border-color:#b8e6d3}
+
+/* Phone: the ledger becomes stacked cards (no horizontal scroll, 44px targets). */
+@media(max-width:640px){
+  .ledger-wrap{overflow:visible;background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+  .ledger,.ledger tbody,.ledger tr,.ledger td{display:block;min-width:0;width:auto}
+  .ledger thead{display:none}
+  .ledger tr{background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:10px 14px;margin-bottom:10px;box-shadow:var(--shadow-sm);position:relative}
+  .ledger td{padding:4px 0;border:0}
+  .ledger td[data-label="Ngày"]{font-size:12px;color:var(--muted)}
+  .ledger-row td[data-label="Nội dung"]{font-weight:700;font-size:15px;padding-right:110px}
+  .ledger-row td.num{position:absolute;top:26px;right:14px;font-size:15px}
+  .ledger-row td[data-label="Loại"],.ledger-row td[data-label="Nhóm"],.ledger-row td[data-label="Cho con"]{display:inline-block;margin-right:8px;font-size:12px;color:var(--muted)}
+  .ledger-row td[data-label="Cho con"]:empty{display:none}
+  .ledger-row td.ledger-actions{text-align:left;padding-top:6px}
+  .ledger-new td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:#7a6fb0;margin-bottom:3px;letter-spacing:.04em;text-transform:uppercase}
+  .ledger-new td.ledger-child::before,.ledger-new td.ledger-actions::before{display:none}
+  .ledger-new td.ledger-child,.ledger-new td.ledger-actions{text-align:left;padding-top:8px}
+  .ledger-new td.ledger-actions .app-btn{width:100%}
+  .ledger-empty{padding:18px 0!important}
+}
+/* Money frameworks: chooser cards (onboarding assessment + Tiền) and the progress panel. */
+.fw-list{display:grid;gap:10px}
+.fw-card{background:#fff;border:1.5px solid var(--line);border-radius:var(--r);overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.fw-card.on{border-color:var(--primary-2);box-shadow:0 0 0 3px #ece8ff}
+.fw-head{display:grid;gap:4px;width:100%;text-align:left;background:none;border:0;padding:14px 16px 10px;font:inherit;color:var(--ink);cursor:pointer;position:relative}
+.fw-title{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding-right:76px}.fw-title b{font-size:15px}
+.fw-origin{color:var(--muted);font-size:12px}
+.fw-idea{font-size:13.5px;line-height:1.55}
+.fw-mark{position:absolute;top:12px;right:14px;font-size:12px;font-weight:800;padding:5px 10px;border-radius:var(--pill);background:#f1eff8;color:#4a4468}
+.fw-card.on .fw-mark{background:var(--grad);color:#fff}
+.fw-buckets{list-style:none;margin:0;padding:0 16px 10px;display:flex;flex-wrap:wrap;gap:6px}
+.fw-buckets li{display:grid;gap:1px;background:#f7f6fb;border-radius:10px;padding:6px 10px;font-size:12px;min-width:120px;flex:1}
+.fw-buckets b{font-size:12.5px}.fw-buckets em{font-style:normal;color:var(--primary-ink);font-weight:700}.fw-buckets small{color:var(--muted);font-size:11px}
+.fw-note{margin:0 16px 10px;font-size:13px;background:var(--warn-bg);color:var(--warn);border-radius:10px;padding:8px 10px}
+.fw-more{padding:0 16px 12px;font-size:13px}.fw-more summary{cursor:pointer;color:var(--primary);font-weight:700}.fw-more ol{margin:6px 0;padding-left:18px;display:grid;gap:3px}.fw-more p{margin:4px 0 0;color:var(--muted)}
+.fw-panel{display:grid;gap:12px}
+.fw-panel .fw-note{margin:0}
+.fw-panel-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.fw-panel-head b{display:block;font-size:15px}.fw-panel-head small{color:var(--muted);font-size:12px}
+.fw-progress{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.fw-row{display:grid;gap:2px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.fw-row-top{display:flex;justify-content:space-between;gap:8px;font-size:13px}.fw-row-top span{font-variant-numeric:tabular-nums;font-weight:700}
+.fw-row small{color:var(--muted);font-size:11.5px}
+.ob-assess-block .fw-buckets{display:flex;padding:0 16px 10px;gap:6px}
+.ob-assess-block .fw-buckets li{min-width:110px}
+.ob-assess-block .fw-more ol{padding-left:18px}
+/* Financial health check (FinHealth-style 8 indicators) on the onboarding assessment. */
+.ob-assess-block .fh-grid{list-style:none;padding:0;margin:0;display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.fh-item{display:grid;gap:2px;border-radius:12px;padding:9px 11px;background:#f7f6fb;border:1px solid var(--line);border-left-width:4px}
+.fh-item.healthy{border-left-color:var(--ok)}.fh-item.coping{border-left-color:#e0a23a}.fh-item.vulnerable{border-left-color:var(--danger)}.fh-item.unknown{border-left-color:#cfcbe0;opacity:.8}
+.fh-pillar{font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8a86a3}
+.fh-item b{font-size:13px}
+.fh-status{font-size:12px;font-weight:800}
+.fh-item.healthy .fh-status{color:var(--ok)}.fh-item.coping .fh-status{color:var(--warn)}.fh-item.vulnerable .fh-status{color:var(--danger)}.fh-item.unknown .fh-status{color:var(--muted)}
+.fh-item small{color:var(--muted);font-size:11.5px;line-height:1.45}
+.ob-assess-block .fh-problems{margin:0;padding-left:20px;display:grid;gap:10px;font-size:14px;line-height:1.55}
+.fh-problems li b{display:block}
+.fh-problems li span{color:#3f3a58}
+.fh-problems li.vulnerable::marker{color:var(--danger);font-weight:800}.fh-problems li.coping::marker{color:var(--warn);font-weight:800}
+
+/* Parenting approach chooser/panel (reuses .fw-card styles) */
+.fw-card.off-age{opacity:.72}
+.care-practices{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;line-height:1.55}
+/* ---------- preview chrome (not part of the app) ---------- */
+.pv-bar{position:sticky;top:0;z-index:50;display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 16px;background:#1f1b2e;color:#fff;font-size:13px}
+.pv-bar b{margin-right:8px;font-weight:800}
+.pv-bar button{border:1px solid #ffffff40;background:transparent;color:#fff;border-radius:999px;padding:6px 12px;font:600 12.5px var(--font-sans);cursor:pointer}
+.pv-bar button.on{background:#fff;color:#1f1b2e}
+.pv-note{margin:0;padding:10px 14px;border-radius:14px;background:#fff3d6;color:#6b4a10;font-size:13px;line-height:1.5}
+.pv-note b{color:#4a330a}
+.pv-screen{display:none}.pv-screen.on{display:flex}
+.pv-new{display:inline-block;margin-left:6px;padding:2px 7px;border-radius:999px;background:#ffe3d6;color:#9a3d17;font-size:10.5px;font-weight:800;vertical-align:middle;letter-spacing:.02em}
+
+/* ---------- 1. Custom allocation ---------- */
+.fw-card.custom{border:1.5px dashed #b9adff;background:#fbfaff}
+.fw-card.custom .fw-idea{color:#4a4468}
+.alloc{display:grid;gap:14px}
+.alloc-from{display:flex;gap:8px;flex-wrap:wrap;align-items:center;font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:#fff;border-radius:999px;padding:5px 11px;font-size:12.5px;font-weight:600;color:#4a4468;cursor:pointer}
+.chip.on{background:var(--ink);border-color:var(--ink);color:#fff}
+.chip.cat{cursor:default;padding:4px 6px 4px 10px;background:#f4f2fb;border-color:#f4f2fb}
+.chip.cat i{font-style:normal;color:#9a95b3;padding:0 4px;cursor:pointer}
+.chip.cat.fresh{background:#ffe9df;border-color:#ffe9df;color:#8a3a18}
+.chip.add{border-style:dashed;color:var(--primary)}
+.alloc-income{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:#f4f2fb;font-size:13.5px}
+.alloc-income input{width:110px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;font:inherit;text-align:right;background:#fff}
+.bucket{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff}
+.bucket-top{display:grid;grid-template-columns:14px 1fr 92px 110px 24px;gap:10px;align-items:center}
+.bucket-top .dot{width:12px;height:12px;border-radius:50%}
+.bucket-top input.name{border:0;border-bottom:1px dashed #cfc9e6;font:700 15px var(--font-sans);padding:2px 0;background:transparent;color:var(--ink);min-width:0}
+.pct{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.pct input{width:100%;border:0;padding:6px 8px;text-align:right;font:700 14px var(--font-sans)}
+.pct span{padding:0 8px;color:var(--muted);font-weight:700}
+.bucket-top em{font-style:normal;text-align:right;color:var(--muted);font-size:13px}
+.bucket-top .x{border:0;background:none;color:#9a95b3;font-size:18px;cursor:pointer}
+.bucket input[type=range]{width:100%;accent-color:var(--primary)}
+.bucket-cats{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.bucket-cats small{color:var(--muted);font-size:12px;margin-right:2px}
+.alloc-total{display:grid;gap:8px;padding:12px 14px;border-radius:14px;background:#fff;border:1px solid var(--line)}
+.alloc-total .stack{display:flex;height:12px;border-radius:999px;overflow:hidden;background:#eee}
+.alloc-total .stack span{display:block;height:100%}
+.alloc-total .row{display:flex;justify-content:space-between;font-size:13.5px}
+.ok-text{color:var(--ok);font-weight:700}.warn-text{color:var(--warn);font-weight:700}
+.alloc-loose{display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:10px 14px;border-radius:14px;background:var(--warn-bg);font-size:13px;color:var(--warn)}
+.alloc-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.cats-manage{display:grid;gap:10px}
+.cats-manage h3{margin:0;font-size:14px}
+.cats-row{display:flex;gap:6px;flex-wrap:wrap}
+.cats-add{display:grid;grid-template-columns:1.6fr 1fr 1.4fr auto;gap:8px}
+.cats-add input,.cats-add select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px;min-width:0}
+
+/* ---------- 2. Quick add with the agent ---------- */
+.quick{display:grid;gap:12px;border:1.5px solid #dcd5ff;background:linear-gradient(180deg,#fbfaff,#fff)}
+.quick-head{display:flex;gap:12px;align-items:flex-start}
+.quick-head .app-orb{width:34px;height:34px}
+.quick-head b{display:block;font-size:15px}
+.quick-head small{color:var(--muted);font-size:12.5px}
+.quick textarea{width:100%;min-height:128px;border:1px solid var(--line);border-radius:14px;padding:12px 14px;font:14px/1.6 var(--font-sans);resize:vertical;background:#fff;color:var(--ink)}
+.quick-bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.quick-bar .left{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.quick-bar small{color:var(--muted);font-size:12px}
+.shot{display:flex;gap:12px;align-items:center;padding:10px 12px;border-radius:14px;background:#f4f2fb;font-size:13px}
+.shot .thumb{width:46px;height:62px;border-radius:8px;background:repeating-linear-gradient(180deg,#fff 0 8px,#e6e2f5 8px 10px);border:1px solid #d9d4ee;flex:none}
+.review{width:100%;border-collapse:collapse;font-size:13.5px}
+.review th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+.review td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.review td.num,.review th.num{text-align:right;white-space:nowrap;font-weight:700}
+.review select,.review input[type=text]{border:1px solid var(--line);border-radius:9px;padding:5px 8px;font:inherit;font-size:13px;background:#fff;max-width:150px}
+.review tr.unsure select.cat{border-color:#f0b77b;background:#fff8ee}
+.review tr.dupe{opacity:.62}
+.review .flag{display:block;font-size:11.5px;color:var(--warn);margin-top:2px}
+.review .flag.ok{color:var(--ok)}
+.review-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px}
+.review-foot .sum b{margin-right:10px}
+.learn{font-size:12.5px;color:var(--muted);margin:0}
+.or-line{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.or-line:before,.or-line:after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* ---------- 3. Current financial position ---------- */
+.situ-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.situ-kpis>div{padding:12px 14px;border-radius:16px;background:#fff;border:1px solid var(--line)}
+.situ-kpis small{display:block;color:var(--muted);font-size:12px}
+.situ-kpis b{font-size:20px;letter-spacing:-.02em}
+.situ-kpis em{display:block;font-style:normal;font-size:12px;margin-top:2px}
+.situ-sec{display:grid;gap:10px}
+.situ-sec>header{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.situ-sec h2{margin:0;font-size:17px}
+.situ-sec header small{color:var(--muted);font-size:12.5px}
+.acc-type{display:inline-block;min-width:74px;font-size:11px;font-weight:700;color:#4a4468;background:#f4f2fb;border-radius:999px;padding:2px 8px;margin-right:8px;text-align:center}
+.linked{font-size:11px;color:var(--muted);background:#f1f0f5;border-radius:999px;padding:2px 8px;margin-left:6px}
+.totals-line{display:flex;justify-content:space-between;padding:12px 16px;border-top:1px solid var(--line);font-size:14px;background:#faf9fd;border-radius:0 0 20px 20px}
+.health{display:flex;gap:10px;align-items:center;padding:12px 14px;border-radius:14px;font-size:13.5px}
+.health.ok{background:var(--ok-bg);color:#15573f}
+.health.warn{background:var(--warn-bg);color:var(--warn)}
+.setup{display:grid;gap:14px}
+.steps3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.steps3>div{padding:14px;border-radius:16px;border:1px solid var(--line);background:#fff;display:grid;gap:4px}
+.steps3>div.now{border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff}
+.steps3 span{font-size:12px;font-weight:800;color:var(--primary)}
+.steps3 small{color:var(--muted);font-size:12.5px}
+.setup-form{display:grid;gap:8px}
+.setup-form .line{display:grid;grid-template-columns:1.3fr 1.5fr 1fr 32px;gap:8px}
+.setup-form input,.setup-form select{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px;min-width:0}
+.setup-actions{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center}
+.tell{display:grid;gap:8px;padding:12px 14px;border-radius:14px;background:#f4f2fb}
+.tell textarea{width:100%;min-height:64px;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:14px/1.5 var(--font-sans);background:#fff}
+.banner{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-radius:16px;background:#ece8ff;color:var(--primary-ink);font-size:13.5px}
+
+@media(max-width:760px){
+  .situ-kpis{grid-template-columns:1fr 1fr}
+  .steps3{grid-template-columns:1fr}
+  .bucket-top{grid-template-columns:12px 1fr 80px 24px}.bucket-top em{display:none}
+  .cats-add{grid-template-columns:1fr 1fr}.cats-add .app-btn{grid-column:1/-1}
+  .setup-form .line{grid-template-columns:1fr 1fr}
+  .review thead{display:none}.review tr{display:grid;grid-template-columns:24px 1fr auto;gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--line)}.review td{border:0;padding:2px}
+}
+</style></head><body>
+<div class="pv-bar" role="tablist" aria-label="Màn hình xem trước">
+  <b>Bản xem trước · Tài chính</b>
+  <button data-go="s1" class="on">1a · Chọn cách chia</button>
+  <button data-go="s2">1b · Tự thiết kế</button>
+  <button data-go="s3">1c · Sau khi lưu</button>
+  <button data-go="s4">2a · Thêm nhanh</button>
+  <button data-go="s5">2b · Trợ lý đã phân loại</button>
+  <button data-go="s6">3a · Tình hình (lần đầu)</button>
+  <button data-go="s7">3b · Tình hình tài chính</button>
+</div>
+
+<div class="app-shell">
+  <aside class="app-side">
+    <a class="app-brand"><span class="app-orb"></span>FamAgent</a>
+    <nav class="app-nav">
+      <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11 12 4l9 7"/><path d="M5 10v10h14V10"/></svg>Trang chủ</a>
+      <a class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18M8 15h3"/></svg>Tài chính</a>
+      <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8h12l1 12H5z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>Mua sắm</a>
+      <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M5 9l-2 1M19 9l2 1"/><rect x="5" y="8" width="14" height="11" rx="4"/><circle cx="10" cy="13" r="1"/><circle cx="14" cy="13" r="1"/></svg>Trợ lý</a>
+      <a><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="10" r="2.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0M14 20a3.5 3.5 0 0 1 6.5-2"/></svg>Gia đình</a>
+    </nav>
+    <a class="app-me"><span class="app-me-initial">D</span><span><b>Dũng</b><small>Tài khoản &amp; quyền riêng tư</small></span></a>
+  </aside>
+
+  <div class="app-main"><div class="app-page money-page">
+    <div class="app-page-head"><div><h1>Tài chính</h1><p class="app-sub">Nhà mình có bao nhiêu · tiền đi đâu · có gì bất thường · nên làm gì</p></div>
+      <div class="month-nav"><button class="app-btn ghost">‹</button><b>Tháng 9/2026</b><button class="app-btn ghost" disabled>›</button></div></div>
+
+    <div class="app-card money-kpis">
+      <div class="brief-kpi"><small>Thu</small><b>30tr</b></div>
+      <div class="brief-kpi"><small>Đã chi</small><b>14,6tr</b></div>
+      <div class="brief-kpi"><small>Tiết kiệm</small><b>5tr</b></div>
+      <div class="brief-kpi"><small>Còn lại trong kế hoạch</small><b>10,4tr</b></div>
+      <div class="money-plan"><span class="bar"><span style="width:58%"></span></span><small>14,6tr / kế hoạch 25tr · dự kiến cuối tháng 24,1tr<span class="app-pill ok">Đúng nhịp</span></small></div>
+    </div>
+
+    <!-- ================= 1a. Choose a method: new "custom" option ================= -->
+    <div class="pv-screen" id="s1" style="flex-direction:column;gap:20px">
+      <p class="pv-note"><b>Yêu cầu 1.</b> Thêm lựa chọn <b>“Tự thiết kế theo nhà mình”</b>, đặt đầu danh sách. Vẫn giữ 7 phương pháp có sẵn; chọn một phương pháp có sẵn rồi bấm “Chỉnh theo nhà mình” thì phương pháp đó thành bản tùy chỉnh để sửa tiếp.</p>
+      <section class="app-card fw-panel">
+        <div class="fw-panel-head"><div><b>Chọn cách chia tiền cho nhà mình</b><small>Dùng phương pháp nổi tiếng, hoặc tự chia theo nhu cầu riêng. FamAgent sẽ chia sổ thu chi theo cách bạn chọn.</small></div><button class="ledger-link">Đóng</button></div>
+        <div class="fw-list">
+          <article class="fw-card custom">
+            <button class="fw-head" data-go="s2">
+              <span class="fw-title"><b>Tự thiết kế theo nhà mình</b><span class="pv-new">MỚI</span></span>
+              <small class="fw-origin">Bạn đặt tên các phần, tỷ lệ % và nhóm chi nào thuộc phần nào</small>
+              <span class="fw-idea">Ví dụ: Thiết yếu 50% · Cho con 15% · Để dành 20% · Hưởng thụ 10% · Biếu bố mẹ 5%. Có thể thêm nhóm chi riêng như “Sữa &amp; bỉm”, “Đi lại”.</span>
+              <span class="fw-mark">Bắt đầu</span>
+            </button>
+          </article>
+          <article class="fw-card on">
+            <button class="fw-head">
+              <span class="fw-title"><b>Quy tắc 50/30/20</b><span class="app-pill ok">Hợp với nhà bạn · dễ bắt đầu</span></span>
+              <small class="fw-origin">Elizabeth Warren &amp; Amelia Tyagi — sách “All Your Worth” (2005)</small>
+              <span class="fw-idea">Chia thu nhập thành ba phần: 50% thiết yếu, 30% mong muốn, 20% để dành và trả thêm nợ.</span>
+              <span class="fw-mark">Đã chọn</span>
+            </button>
+            <ul class="fw-buckets"><li><b>Thiết yếu 50%</b><em>≈ 15 triệu</em><small>ăn uống, nhà, hóa đơn, con cái</small></li><li><b>Mong muốn 30%</b><em>≈ 9 triệu</em><small>ăn ngoài, mua sắm, giải trí</small></li><li><b>Để dành &amp; trả nợ 20%</b><em>≈ 6 triệu</em><small>tiết kiệm, đầu tư, trả nợ sớm</small></li></ul>
+            <p class="fw-note" style="display:flex;justify-content:space-between;align-items:center;gap:8px">Muốn đổi tỷ lệ hoặc thêm phần? <button class="app-btn ghost" data-go="s2" style="font-size:13px">Chỉnh theo nhà mình</button></p>
+          </article>
+          <article class="fw-card">
+            <button class="fw-head">
+              <span class="fw-title"><b>6 chiếc lọ (JARS)</b></span>
+              <small class="fw-origin">T. Harv Eker — sách “Bí mật tư duy triệu phú” (2005)</small>
+              <span class="fw-idea">Chia mỗi khoản thu nhập vào 6 “lọ”, mỗi lọ một mục đích, tiêu trong phần của lọ đó.</span>
+              <span class="fw-mark">Chọn</span>
+            </button>
+          </article>
+          <p class="app-sub" style="margin:0;font-size:13px">… và 5 phương pháp khác như hiện nay (Trả cho mình trước, Ngân sách bằng 0, Phong bì, Kakeibo, 7 bước nhỏ).</p>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= 1b. Custom allocation editor ================= -->
+    <div class="pv-screen" id="s2" style="flex-direction:column;gap:20px">
+      <p class="pv-note"><b>Tự thiết kế.</b> Mỗi phần có tên, tỷ lệ % (kéo hoặc gõ), và các nhóm chi thuộc phần đó. Tổng phải bằng 100%. Nhóm chi chưa thuộc phần nào sẽ được nhắc để gắn vào. Có thể <b>thêm nhóm chi mới</b> ngay tại đây: nhóm mới hiện luôn trong sổ, trong ngân sách tháng, và Trợ lý dùng khi phân loại.</p>
+      <section class="app-card fw-panel alloc">
+        <div class="fw-panel-head"><div><b>Cách chia của nhà mình</b><small>Chỉnh thoải mái, đổi lại lúc nào cũng được. Tháng cũ vẫn giữ nguyên số liệu.</small></div><button class="ledger-link" data-go="s1">Đóng</button></div>
+        <div class="alloc-from">Bắt đầu từ: <span class="chip">Trống</span><span class="chip on">50/30/20</span><span class="chip">6 chiếc lọ</span><span class="chip">Trả cho mình trước</span></div>
+        <div class="alloc-income"><span>Chia theo thu nhập mỗi tháng <small class="app-sub">(lấy từ thu nhập đã ghi trong sổ; khi chưa ghi thì dùng số này)</small></span><input value="30tr" aria-label="Thu nhập tháng"></div>
+
+        <div class="bucket">
+          <div class="bucket-top"><span class="dot" style="background:#7a5cff"></span><input class="name" value="Thiết yếu" aria-label="Tên phần"><span class="pct"><input value="50"><span>%</span></span><em>≈ 15 triệu</em><button class="x" title="Xóa phần">×</button></div>
+          <input type="range" min="0" max="100" value="50" aria-label="Tỷ lệ">
+          <div class="bucket-cats"><small>Nhóm chi:</small><span class="chip cat">Ăn uống<i>×</i></span><span class="chip cat">Tiêu dùng<i>×</i></span><span class="chip cat">Tiền điện<i>×</i></span><span class="chip cat">Tiền nước<i>×</i></span><span class="chip cat">Khám, thuốc<i>×</i></span><span class="chip cat">Tiền trả góp<i>×</i></span><span class="chip add">+ Gắn nhóm</span></div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-top"><span class="dot" style="background:#ff9f7a"></span><input class="name" value="Cho con" aria-label="Tên phần"><span class="pct"><input value="15"><span>%</span></span><em>≈ 4,5 triệu</em><button class="x">×</button></div>
+          <input type="range" min="0" max="100" value="15">
+          <div class="bucket-cats"><small>Nhóm chi:</small><span class="chip cat">Con<i>×</i></span><span class="chip cat">Học tập<i>×</i></span><span class="chip cat fresh">Sữa &amp; bỉm · nhóm mới<i>×</i></span><span class="chip add">+ Gắn nhóm</span></div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-top"><span class="dot" style="background:#3fb68b"></span><input class="name" value="Để dành" aria-label="Tên phần"><span class="pct"><input value="20"><span>%</span></span><em>≈ 6 triệu</em><button class="x">×</button></div>
+          <input type="range" min="0" max="100" value="20">
+          <div class="bucket-cats"><small>Nhóm chi:</small><span class="chip cat">Tiết kiệm<i>×</i></span><span class="chip cat">Tiết kiệm cho con<i>×</i></span><span class="chip add">+ Gắn nhóm</span><small style="margin-left:6px">· phần này tính “ít nhất”, còn lại tính “tối đa”</small></div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-top"><span class="dot" style="background:#f2c14e"></span><input class="name" value="Hưởng thụ" aria-label="Tên phần"><span class="pct"><input value="10"><span>%</span></span><em>≈ 3 triệu</em><button class="x">×</button></div>
+          <input type="range" min="0" max="100" value="10">
+          <div class="bucket-cats"><small>Nhóm chi:</small><span class="chip cat">Giải trí<i>×</i></span><span class="chip cat">Du lịch<i>×</i></span><span class="chip cat">Mua sắm<i>×</i></span><span class="chip add">+ Gắn nhóm</span></div>
+        </div>
+        <div class="bucket">
+          <div class="bucket-top"><span class="dot" style="background:#5aa9e6"></span><input class="name" value="Biếu bố mẹ" aria-label="Tên phần"><span class="pct"><input value="5"><span>%</span></span><em>≈ 1,5 triệu</em><button class="x">×</button></div>
+          <input type="range" min="0" max="100" value="5">
+          <div class="bucket-cats"><small>Nhóm chi:</small><span class="chip cat">Gia đình<i>×</i></span><span class="chip cat">Hiếu hỉ<i>×</i></span><span class="chip add">+ Gắn nhóm</span></div>
+        </div>
+        <div><button class="app-btn ghost">+ Thêm phần</button></div>
+
+        <div class="alloc-total">
+          <div class="stack"><span style="width:50%;background:#7a5cff"></span><span style="width:15%;background:#ff9f7a"></span><span style="width:20%;background:#3fb68b"></span><span style="width:10%;background:#f2c14e"></span><span style="width:5%;background:#5aa9e6"></span></div>
+          <div class="row"><span>Tổng: <b>100%</b> của 30 triệu</span><span class="ok-text">✓ Đã chia hết</span></div>
+        </div>
+        <div class="alloc-loose">Chưa thuộc phần nào: <span class="chip cat">Tiền thẻ tín dụng</span><span class="chip cat">Tiền trả nợ</span><span class="chip cat">Chi phí đầu tư</span><span class="chip cat">Khác</span> → <span class="chip add">Gắn vào…</span></div>
+
+        <div class="cats-manage">
+          <h3>Nhóm chi tiêu của nhà mình <span class="pv-new">MỚI</span></h3>
+          <div class="cats-row"><span class="chip cat">Ăn uống</span><span class="chip cat">Tiêu dùng</span><span class="chip cat">Mua sắm</span><span class="chip cat">Con</span><span class="chip cat fresh">Sữa &amp; bỉm</span><span class="chip cat">Gia đình</span><span class="chip cat">Khám, thuốc</span><span class="chip cat">Giải trí</span><span class="chip cat">Học tập</span><span class="chip cat">Hiếu hỉ</span><span class="chip cat">Du lịch</span><span class="chip cat">Tiền điện</span><span class="chip cat">Tiền nước</span><span class="chip cat">…</span></div>
+          <div class="cats-add"><input placeholder="Tên nhóm mới, ví dụ: Đi lại" value="Đi lại"><select><option>Khoản chi</option><option>Khoản thu</option></select><select><option>Thuộc phần: Thiết yếu</option><option>Cho con</option><option>Hưởng thụ</option></select><button class="app-btn">Thêm nhóm</button></div>
+          <small class="app-sub" style="font-size:12px">Bấm vào một nhóm để đổi tên hoặc ẩn. Nhóm đã có khoản chi thì chỉ ẩn, không xóa, để sổ cũ không bị mất nhóm.</small>
+        </div>
+
+        <div class="alloc-actions"><button class="app-btn ghost" data-go="s1">Hủy</button><button class="app-btn" data-go="s3">Lưu cách chia</button></div>
+      </section>
+    </div>
+
+    <!-- ================= 1c. Custom method in use ================= -->
+    <div class="pv-screen" id="s3" style="flex-direction:column;gap:20px">
+      <p class="pv-note"><b>Sau khi lưu.</b> Khung phương pháp hiện đúng các phần nhà mình đã đặt, so mục tiêu với số thực trong sổ tháng này, giống cách các phương pháp có sẵn đang hiện.</p>
+      <section class="app-card fw-panel">
+        <div class="fw-panel-head"><div><b>Cách chia của nhà mình</b><small>Tự thiết kế · 5 phần · theo thu nhập 30 triệu</small></div><span><button class="ledger-link" data-go="s2">Chỉnh</button> · <button class="ledger-link" data-go="s1">Đổi phương pháp</button></span></div>
+        <div class="fw-progress">
+          <div class="fw-row"><div class="fw-row-top"><b>Thiết yếu · 50%</b><span>9,8 triệu / 15 triệu</span></div><span class="bar"><span style="width:65%"></span></span><small>ăn uống, tiêu dùng, điện, nước, khám, trả góp</small></div>
+          <div class="fw-row"><div class="fw-row-top"><b>Cho con · 15%</b><span>4,9 triệu / 4,5 triệu</span></div><span class="bar"><span class="over" style="width:100%"></span></span><small>con, học tập, sữa &amp; bỉm · đã vượt mức</small></div>
+          <div class="fw-row"><div class="fw-row-top"><b>Để dành · 20%</b><span>5 triệu / 6 triệu</span></div><span class="bar"><span style="width:83%"></span></span><small>tiết kiệm, tiết kiệm cho con · còn thiếu 1 triệu</small></div>
+          <div class="fw-row"><div class="fw-row-top"><b>Hưởng thụ · 10%</b><span>0,9 triệu / 3 triệu</span></div><span class="bar"><span style="width:30%"></span></span><small>giải trí, du lịch, mua sắm</small></div>
+          <div class="fw-row"><div class="fw-row-top"><b>Biếu bố mẹ · 5%</b><span>1 triệu / 1,5 triệu</span></div><span class="bar"><span style="width:67%"></span></span><small>gia đình, hiếu hỉ</small></div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ================= shared tabs for screens 2–3 ================= -->
+    <div class="pv-tabs-wrap" style="display:contents">
+      <div class="app-tabs" role="tablist" id="tabs">
+        <a data-go="s7" data-tab="situ">Tình hình <span class="pv-new">MỚI</span></a>
+        <a data-go="s4" data-tab="ledger" class="on">Sổ · 42</a>
+        <a data-tab="month">Tháng</a>
+        <a data-tab="goals">Mục tiêu</a>
+      </div>
+    </div>
+
+    <!-- ================= 2a. Quick add with the agent ================= -->
+    <div class="pv-screen" id="s4" style="flex-direction:column;gap:14px">
+      <p class="pv-note"><b>Yêu cầu 2.</b> Trên đầu Sổ có khung <b>“Thêm nhanh bằng Trợ lý”</b>: dán một danh sách giao dịch (tự ghi, tin nhắn ngân hàng, Zalo…) hoặc gửi ảnh (sao kê, ảnh chụp màn hình app ngân hàng, hóa đơn, trang sổ tay). Trợ lý tách từng khoản, đoán loại và nhóm. <b>Chưa ghi gì vào sổ</b> cho tới khi bạn xem lại và bấm Ghi. Dòng nhập tay như Excel vẫn giữ nguyên bên dưới.</p>
+      <section class="app-card quick">
+        <div class="quick-head"><span class="app-orb"></span><div><b>Thêm nhanh bằng Trợ lý</b><small>Dán danh sách hoặc gửi ảnh, mỗi khoản một dòng hoặc cách nhau bằng dấu phẩy. Viết tắt cũng được (35k, 2tr5, t9).</small></div></div>
+        <textarea aria-label="Danh sách giao dịch">12/9 ăn sáng 35k, cf highlands 45k, đổ xăng 80k
+13/9 bỉm bobby shopee 329k
+14/9 gửi tiết kiệm 5tr
+15/9 lương t9 25tr
+điện t8 612k</textarea>
+        <div class="quick-bar"><div class="left"><button class="app-btn ghost">📷 Gửi ảnh</button><small>Sao kê · ảnh chụp app ngân hàng · hóa đơn · sổ tay</small></div><button class="app-btn" data-go="s5">Phân loại giúp tôi</button></div>
+      </section>
+      <div class="ledger-wrap">
+        <table class="ledger"><thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th class="num">Số tiền</th><th>Cho con</th><th></th></tr></thead>
+          <tbody>
+            <tr class="ledger-new"><td><input type="date" value="2026-09-24"></td><td><input placeholder="Ăn sáng, tiền điện…"></td><td><select><option>Chi</option></select></td><td><select><option>Ăn uống</option></select></td><td><input placeholder="350k"></td><td class="ledger-child"><label><input type="checkbox"> <span>Cho con</span></label></td><td class="ledger-actions"><button class="app-btn">Thêm</button></td></tr>
+            <tr class="ledger-row kind-expense"><td>11/09</td><td><span class="ledger-content">Đi chợ</span></td><td><span class="ledger-kind expense">Chi</span></td><td>Ăn uống</td><td class="num">−420.000 ₫</td><td class="ledger-child"></td><td class="ledger-actions"><button class="ledger-link">Sửa</button><button class="ledger-link danger">Xóa</button></td></tr>
+            <tr class="ledger-row kind-expense"><td>10/09</td><td><span class="ledger-content">Tiền điện</span><span class="app-pill">Định kỳ</span></td><td><span class="ledger-kind expense">Chi</span></td><td>Tiền điện</td><td class="num">−612.000 ₫</td><td class="ledger-child"></td><td class="ledger-actions"><button class="ledger-link">Sửa</button><button class="ledger-link danger">Xóa</button></td></tr>
+          </tbody></table>
+      </div>
+    </div>
+
+    <!-- ================= 2b. Agent review ================= -->
+    <div class="pv-screen" id="s5" style="flex-direction:column;gap:14px">
+      <p class="pv-note"><b>Xem lại trước khi ghi.</b> Mỗi dòng sửa được. Nhóm Trợ lý <b>chưa chắc</b> được tô cam. Dòng <b>có thể trùng</b> với khoản đã có trong sổ bị bỏ chọn sẵn. Khoản mua cho con (bỉm, sữa) được đánh dấu “Cho con” và cũng cập nhật bên Mua sắm như hiện nay. Lần sau Trợ lý nhớ cách bạn đã sửa nhóm.</p>
+      <section class="app-card quick">
+        <div class="quick-head"><span class="app-orb"></span><div><b>Trợ lý đọc được 7 khoản</b><small>Từ đoạn bạn dán · <button class="ledger-link" data-go="s4">Sửa đoạn đã dán</button></small></div></div>
+        <div class="shot"><span class="thumb"></span><span>Với ảnh: hiện ảnh thu nhỏ ở đây, bấm để xem to và đối chiếu từng dòng. Dòng nào Trợ lý đọc không rõ số sẽ ghi “Không đọc rõ” để bạn điền.</span></div>
+        <div style="overflow-x:auto"><table class="review">
+          <thead><tr><th></th><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th class="num">Số tiền</th></tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" checked></td><td>12/09</td><td><input type="text" value="Ăn sáng"></td><td><select><option>Chi</option></select></td><td><select class="cat"><option>Ăn uống</option></select></td><td class="num">35.000</td></tr>
+            <tr><td><input type="checkbox" checked></td><td>12/09</td><td><input type="text" value="Cà phê Highlands"></td><td><select><option>Chi</option></select></td><td><select class="cat"><option>Ăn uống</option></select></td><td class="num">45.000</td></tr>
+            <tr class="unsure"><td><input type="checkbox" checked></td><td>12/09</td><td><input type="text" value="Đổ xăng"></td><td><select><option>Chi</option></select></td><td><select class="cat"><option>Tiêu dùng</option><option>Đi lại</option></select><span class="flag">Chưa chắc · <button class="ledger-link">tạo nhóm “Đi lại”?</button></span></td><td class="num">80.000</td></tr>
+            <tr><td><input type="checkbox" checked></td><td>13/09</td><td><input type="text" value="Bỉm Bobby (Shopee)"></td><td><select><option>Chi</option></select></td><td><select class="cat"><option>Sữa &amp; bỉm</option></select><span class="flag ok">Cho con · cập nhật tồn bỉm bên Mua sắm</span></td><td class="num">329.000</td></tr>
+            <tr><td><input type="checkbox" checked></td><td>14/09</td><td><input type="text" value="Gửi tiết kiệm"></td><td><select><option>Tiết kiệm</option></select></td><td><select class="cat"><option>Tiết kiệm</option></select></td><td class="num">5.000.000</td></tr>
+            <tr><td><input type="checkbox" checked></td><td>15/09</td><td><input type="text" value="Lương tháng 9"></td><td><select><option>Thu</option></select></td><td><select class="cat"><option>Lương</option></select></td><td class="num">25.000.000</td></tr>
+            <tr class="dupe"><td><input type="checkbox"></td><td>15/09<span class="flag">không ghi ngày</span></td><td><input type="text" value="Tiền điện tháng 8"></td><td><select><option>Chi</option></select></td><td><select class="cat"><option>Tiền điện</option></select></td><td class="num">612.000<span class="flag">Có thể trùng “Tiền điện” 612k ngày 10/09</span></td></tr>
+          </tbody></table></div>
+        <div class="review-foot"><span class="sum"><b>6 khoản đã chọn</b>Chi 489k · Thu 25tr · Tiết kiệm 5tr</span><span style="display:flex;gap:8px"><button class="app-btn ghost" data-go="s4">Hủy</button><button class="app-btn" data-go="s4">Ghi 6 khoản vào sổ</button></span></div>
+        <p class="learn">Bạn đổi “Đổ xăng” sang nhóm khác thì lần sau Trợ lý tự xếp vào nhóm đó.</p>
+      </section>
+      <p class="app-sub" style="margin:0;font-size:13px">Cùng tính năng này dùng được trong trang Trợ lý: gửi ảnh sao kê hoặc dán danh sách vào ô chat, Trợ lý trả về đúng khung xem lại này.</p>
+    </div>
+
+    <!-- ================= 3a. Financial position: first time ================= -->
+    <div class="pv-screen" id="s6" style="flex-direction:column;gap:14px">
+      <p class="pv-note"><b>Yêu cầu 3.</b> Tab mới <b>Tình hình</b> (đứng đầu) cho biết nhà mình đang có bao nhiêu, đang nợ bao nhiêu, mỗi tháng cố định thu và chi bao nhiêu. Lần đầu vào sẽ đi 3 bước ngắn, bỏ qua bước nào cũng được, hoặc kể một câu cho Trợ lý điền giúp. Khi chưa nhập, trên Sổ có một dòng nhắc nhẹ. Hai ô “Tiền mặt/tiết kiệm đầu kỳ” đang nằm ẩn trong “Định kỳ &amp; mục tiêu” sẽ chuyển về đây.</p>
+      <section class="app-card setup">
+        <div class="fw-panel-head"><div><b>Cho FamAgent biết tình hình hiện tại của nhà mình</b><small>Khoảng 2 phút. Số ước chừng là được, sửa lại lúc nào cũng được. Chỉ nhà mình thấy.</small></div></div>
+        <div class="steps3">
+          <div class="now"><span>Bước 1</span><b>Tiền đang có</b><small>Tiền mặt, tài khoản ngân hàng, ví, sổ tiết kiệm</small></div>
+          <div><span>Bước 2</span><b>Khoản nợ</b><small>Vay mua nhà/xe, thẻ tín dụng, trả góp, vay người thân</small></div>
+          <div><span>Bước 3</span><b>Thu &amp; chi cố định</b><small>Lương, tiền nhà, học phí, điện nước, bảo hiểm…</small></div>
+        </div>
+        <div class="setup-form">
+          <div class="line"><select><option>Tài khoản ngân hàng</option></select><input value="Vietcombank"><input value="28,5tr"><button class="ledger-link danger">×</button></div>
+          <div class="line"><select><option>Tiền mặt</option></select><input value="Tiền mặt ở nhà"><input value="3tr"><button class="ledger-link danger">×</button></div>
+          <div class="line"><select><option>Sổ tiết kiệm</option></select><input value="Tiết kiệm VCB 12 tháng"><input value="150tr"><button class="ledger-link danger">×</button></div>
+          <div class="line"><select><option>Ví điện tử</option></select><input placeholder="MoMo, ZaloPay…"><input placeholder="Số tiền"><button class="ledger-link danger">×</button></div>
+          <div><button class="app-btn ghost">+ Thêm tài khoản</button></div>
+        </div>
+        <div class="or-line">hoặc</div>
+        <div class="tell"><b style="font-size:14px">Kể cho Trợ lý, Trợ lý điền giúp cả 3 bước</b><textarea>VCB còn 28tr rưỡi, tiền mặt 3tr, sổ tiết kiệm 150tr. Đang vay mua xe TPBank còn 380tr, trả 8,2tr ngày 15. Tiền nhà 6tr, học phí bé 3,5tr, lương hai vợ chồng 30tr.</textarea><div style="display:flex;justify-content:flex-end"><button class="app-btn ghost">Điền giúp tôi</button></div></div>
+        <div class="setup-actions"><button class="ledger-link">Để sau</button><span style="display:flex;gap:8px"><button class="app-btn ghost">Bỏ qua bước này</button><button class="app-btn" data-go="s7">Tiếp: Khoản nợ →</button></span></div>
+      </section>
+      <div class="banner"><span>Ví dụ dòng nhắc trên tab Sổ khi chưa nhập: <b>Nhập tình hình hiện tại để FamAgent tính số dư và nợ đúng.</b></span><button class="app-btn ghost" style="font-size:13px">Nhập ngay</button></div>
+    </div>
+
+    <!-- ================= 3b. Financial position: filled ================= -->
+    <div class="pv-screen" id="s7" style="flex-direction:column;gap:18px">
+      <p class="pv-note"><b>Tình hình tài chính.</b> Số dư bạn nhập là mốc tại một ngày. Sau đó FamAgent tự cộng trừ theo các khoản ghi trong sổ, nên con số “đang có” luôn cập nhật. Khoản nợ có lịch trả thì tự tạo khoản chi cố định và tự ghi vào sổ khi tới ngày, giống khoản định kỳ hiện nay. Khoản định kỳ hiện có chuyển về mục “Thu &amp; chi cố định” ở đây.</p>
+      <div class="situ-kpis">
+        <div><small>Đang có</small><b>182,7tr</b><em class="app-sub">tiền tiêu 32,7tr · tiết kiệm 150tr</em></div>
+        <div><small>Đang nợ</small><b>412,4tr</b><em class="app-sub">trả 8,2tr/tháng + thẻ</em></div>
+        <div><small>Chi cố định</small><b>20,2tr</b><em class="app-sub">/tháng · 67% thu nhập</em></div>
+        <div><small>Quỹ dự phòng</small><b>~7 tháng</b><em class="app-sub">tiết kiệm ÷ chi cố định</em></div>
+      </div>
+      <div class="health ok">✓ Trả nợ 8,2tr/tháng = 27% thu nhập, dưới ngưỡng an toàn 35%.</div>
+      <div class="health warn">! Chi cố định chiếm 67% thu nhập, chỉ còn khoảng 9,8tr/tháng cho ăn uống và chi linh hoạt.</div>
+
+      <section class="situ-sec">
+        <header><h2>Tiền đang có</h2><small>Nhập ngày 24/09 · sau đó tự cộng trừ theo sổ · <button class="ledger-link">Cập nhật số dư</button></small></header>
+        <div class="app-card app-rows" style="padding:0">
+          <div><span><span class="acc-type">Ngân hàng</span><b>Vietcombank</b></span><span class="row-actions"><b>28.500.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div><span><span class="acc-type">Tiền mặt</span><b>Tiền mặt ở nhà</b></span><span class="row-actions"><b>3.000.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div><span><span class="acc-type">Ví điện tử</span><b>MoMo</b></span><span class="row-actions"><b>1.200.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div><span><span class="acc-type">Tiết kiệm</span><b>Tiết kiệm VCB 12 tháng</b><small>đáo hạn 03/2027 · 5,2%/năm</small></span><span class="row-actions"><b>150.000.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div class="totals-line"><span>Tổng hiện tại <small class="app-sub">(mốc 182,7tr ± các khoản ghi sau 24/09)</small></span><b>182.700.000 ₫</b></div>
+        </div>
+        <div><button class="app-btn ghost">+ Thêm tài khoản</button></div>
+      </section>
+
+      <section class="situ-sec">
+        <header><h2>Khoản nợ</h2><small>Tổng 412,4tr</small></header>
+        <div class="app-card app-rows" style="padding:0">
+          <div><span><b>Vay mua xe · TPBank</b><small>Trả 8,2tr ngày 15 hằng tháng · lãi 8,5%/năm · còn khoảng 54 tháng</small></span><span class="row-actions"><b>380.000.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div><span><b>Thẻ tín dụng VIB</b><small>Hạn trả ngày 5 · trả đủ mỗi tháng</small></span><span class="row-actions"><b>12.400.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+          <div><span><b>Vay em gái</b><small>Không lãi · chưa hẹn ngày trả</small></span><span class="row-actions"><b>20.000.000 ₫</b><button class="ledger-link">Sửa</button></span></div>
+        </div>
+        <div><button class="app-btn ghost">+ Thêm khoản nợ</button></div>
+      </section>
+
+      <section class="situ-sec">
+        <header><h2>Thu &amp; chi cố định hằng tháng</h2><small>Tự ghi vào sổ khi tới ngày, bạn không phải nhớ</small></header>
+        <div class="app-card app-rows" style="padding:0">
+          <div><span><b>Lương chồng</b><small>Thu · Lương · ngày 5</small></span><span class="row-actions"><b>+18.000.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Lương vợ</b><small>Thu · Lương · ngày 10</small></span><span class="row-actions"><b>+12.000.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Tiền nhà</b><small>Chi · Gia đình · ngày 1</small></span><span class="row-actions"><b>6.000.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Học phí mầm non</b><small>Chi · Học tập · ngày 5</small></span><span class="row-actions"><b>3.500.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Trả góp xe</b><span class="linked">từ khoản nợ</span><small>Chi · Tiền trả góp · ngày 15</small></span><span class="row-actions"><b>8.200.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Bảo hiểm</b><small>Chi · Khám, thuốc · ngày 20</small></span><span class="row-actions"><b>1.100.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div><span><b>Điện, nước, internet</b><small>Chi · ước tính · ngày 10</small></span><span class="row-actions"><b>~1.350.000 ₫</b><button class="ledger-link">Tạm dừng</button></span></div>
+          <div class="totals-line"><span>Thu cố định 30tr · Chi cố định 20,15tr</span><b>Còn ~9,85tr/tháng</b></div>
+        </div>
+        <div><button class="app-btn ghost">+ Thêm khoản cố định</button></div>
+      </section>
+    </div>
+
+    <p class="app-sub money-foot">Số dư: tiền tiêu 32.700.000 ₫ · tiết kiệm 150.000.000 ₫. <a class="brief-link">Hỏi FamAgent về tiền →</a></p>
+  </div></div>
+</div>
+
+<script>
+  const screens = [...document.querySelectorAll(".pv-screen")];
+  const tabs = document.getElementById("tabs");
+  function go(id) {
+    screens.forEach((s) => s.classList.toggle("on", s.id === id));
+    document.querySelectorAll(".pv-bar button").forEach((b) => b.classList.toggle("on", b.dataset.go === id));
+    // Tabs belong to the ledger / situation screens; allocation screens sit above them.
+    const tab = { s4: "ledger", s5: "ledger", s6: "situ", s7: "situ" }[id];
+    tabs.style.display = tab ? "flex" : "none";
+    tabs.querySelectorAll("a").forEach((a) => a.classList.toggle("on", a.dataset.tab === tab));
+    window.scrollTo({ top: 0 });
+  }
+  document.addEventListener("click", (event) => { const el = event.target.closest("[data-go]"); if (el) { event.preventDefault(); go(el.dataset.go); } });
+  go("s1");
+</script>
+</body></html>

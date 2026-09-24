@@ -7,20 +7,8 @@ import type { ChildProfile } from "@/lib/experience/types";
 import type { PurchaseDraft } from "@/lib/shopping/capture";
 import type { ShoppingItem } from "@/lib/shopping/items";
 import type { Purchase } from "@/lib/shopping/purchases";
+import { shrinkImage } from "@/lib/image/shrink";
 import { PurchaseDraftCard } from "./purchase-draft-card";
-
-const MAX_SIDE = 1280;
-
-/** Shrinks a photo to ≤1280 px JPEG in the browser so the upload is small and holds no EXIF location. */
-async function shrink(file: File): Promise<string> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale); canvas.height = Math.round(bitmap.height * scale);
-  canvas.getContext("2d")!.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  return canvas.toDataURL("image/jpeg", 0.82);
-}
 
 /** Camera button: photo of an order → one confirmation card per line (source "photo"). Shown only with AI consent. */
 export function PhotoCapture({ items, familyChildren, aiConsent, onSaved }: { items: ShoppingItem[]; familyChildren: ChildProfile[]; aiConsent: boolean; onSaved: (purchase: Purchase, item: ShoppingItem) => void }) {
@@ -35,7 +23,7 @@ export function PhotoCapture({ items, familyChildren, aiConsent, onSaved }: { it
   async function read(file: File) {
     setBusy(true); setError("");
     try {
-      const image = await shrink(file);
+      const image = await shrinkImage(file);
       const response = await fetch("/api/shopping/receipt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ image, aiConsent: cloudEnabled ? undefined : aiConsent, items: cloudEnabled ? undefined : items }) });
       const data = await response.json().catch(() => ({})) as { drafts?: PurchaseDraft[]; error?: string };
       if (!response.ok || !data.drafts) throw new Error(data.error || "Chưa đọc được ảnh.");
