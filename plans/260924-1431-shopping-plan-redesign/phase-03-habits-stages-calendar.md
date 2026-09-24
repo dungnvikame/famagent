@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Thói quen + giai đoạn của bé + lịch sale/lương"
-status: pending
+status: completed
 priority: P2
 effort: "0.75d"
 dependencies: [2]
@@ -34,10 +34,10 @@ Trực quan hóa hành vi mua (chi 6 tháng theo nhóm, nơi mua, giá/đơn v�
 5. typecheck · lint · test · commit.
 
 ## Success Criteria
-- [ ] 6 tháng chi theo nhóm khớp tổng lần mua.
-- [ ] Bé 10,6 kg đang dùng size L (≈9–14 kg) chưa cảnh báo; 13,4 kg → “sắp lên XL, đừng tích trữ L”.
-- [ ] Bé 5 tháng → “Ăn dặm (khoảng 6 tháng)” trong danh sách.
-- [ ] Dòng thời gian có mốc lương từ khoản định kỳ Thu và ngày sale trong 30 ngày.
+- [x] 6 tháng chi theo nhóm khớp tổng lần mua.
+- [x] Bé 10,6 kg đang dùng size L (≈9–14 kg) chưa cảnh báo; 13,4 kg → “sắp lên XL, đừng tích trữ L”.
+- [x] Bé 5 tháng → “Ăn dặm (khoảng 6 tháng)” trong danh sách.
+- [x] Dòng thời gian có mốc lương từ khoản định kỳ Thu và ngày sale trong 30 ngày.
 
 ## Risk Assessment
 - Ngưỡng size khác nhau theo hãng → dùng khoảng chung + khoảng trên bao bì khi món có `product_id` catalog; nhãn rõ là ước tính.

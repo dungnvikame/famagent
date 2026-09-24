@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Học mức dùng + đối soát sổ + kế hoạch tháng"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1]
@@ -37,10 +37,10 @@ dependencies: [1]
 6. typecheck · lint · test · commit.
 
 ## Success Criteria
-- [ ] Mua đều 64 miếng mỗi 12 ngày → mức dùng ~5,3/ngày, dự báo lệch ≤ ±3 ngày.
-- [ ] “Hết” hôm nay → daysLeft 0, lần mua sau cộng từ 0.
-- [ ] Gắn khoản “Shopee 690k” vào món: 1 lần mua mới, 0 khoản chi mới.
-- [ ] Kế hoạch tháng hiện món sắp hết với số gói + tiền dự kiến, tổng và câu ngân sách.
+- [x] Mua đều 64 miếng mỗi 12 ngày → mức dùng ~5,3/ngày, dự báo lệch ≤ ±3 ngày.
+- [x] “Hết” hôm nay → daysLeft 0, lần mua sau cộng từ 0.
+- [x] Gắn khoản “Shopee 690k” vào món: 1 lần mua mới, 0 khoản chi mới.
+- [x] Kế hoạch tháng hiện món sắp hết với số gói + tiền dự kiến, tổng và câu ngân sách.
 
 ## Risk Assessment
 - Người dùng mua dồn (tích trữ) làm mức dùng học sai → chỉ dùng khoảng giữa các lần mua khi lần sau không quá sớm (≥ 40% thời gian dự kiến); mốc kiểm tra thắng khoảng mua.

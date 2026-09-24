@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Ảnh đơn hàng + PWA + nhắc sắp hết"
-status: pending
+status: completed
 priority: P2
 effort: "0.75d"
 dependencies: [1, 2]
@@ -35,10 +35,11 @@ Ghi nhiều lần mua từ ảnh chụp đơn Shopee/Lazada (vision LLM, xác nh
 6. env/docs; typecheck · lint · test · commit.
 
 ## Success Criteria
-- [ ] Ảnh đơn 3 dòng → 3 thẻ xác nhận đúng tên/số tiền (test với JSON mẫu từ LLM).
-- [ ] Không có AI/đồng ý → nút ảnh không hiện; route trả 403.
-- [ ] Manifest hợp lệ; SW đăng ký; bật nhắc lưu đăng ký.
-- [ ] Cron chỉ chọn món ≤ 3 ngày, không gửi trùng trong ngày; thiếu VAPID → 503, không lỗi.
+- [x] Ảnh đơn 3 dòng → 3 thẻ xác nhận đúng tên/số tiền (test với JSON mẫu từ LLM).
+- [x] Không có AI/đồng ý → nút ảnh không hiện; route trả 403.
+- [x] Manifest hợp lệ, sw.js và icon PNG iOS phục vụ được (kiểm trên dev).
+- [ ] Bật nhắc lưu đăng ký — chưa thử thật: cần khóa VAPID + migration 0014.
+- [x] Cron chỉ chọn món ≤ 3 ngày, không gửi trùng trong ngày; thiếu VAPID → 503, không lỗi.
 
 ## Risk Assessment
 - Không cài được `web-push` (mạng/quyền) → dừng phần gửi, giữ đăng ký + báo lại; không tự viết mã hóa push.

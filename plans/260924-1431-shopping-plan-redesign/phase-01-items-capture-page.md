@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Món đồ + ghi nhận + trang mới"
-status: pending
+status: completed
 priority: P1
 effort: "1.5d"
 dependencies: []
@@ -17,7 +17,7 @@ dependencies: []
 - Non-functional: rules-only; demo mode (localStorage) giữ chạy; migration add-only + backfill; không có câu hỏi mua hàng (“mua bỉm dưới 400k”) bị hiểu nhầm thành ghi lần mua.
 
 ## Architecture
-- DB `202609240012_shopping_items.sql`: `shopping_items(id, user_id, name, category ∈ diapers|wipes|milk|solids|hygiene|household|other, unit, pack_size, brand, merchant, daily_rate (người dùng đặt), child_id, product_id, status ∈ active|paused|outgrown, timestamps)`; `purchases` + `item_id` (backfill 1 món / (user, product_id), rồi `not null`), `product_id` nullable, `source ∈ catalog|chat|quick|ledger|photo|plan`. RLS theo `user_id`, revoke anon.
+- DB `202609240012_shopping_items.sql`: `shopping_items(id, user_id, name, category ∈ diapers|wipes|milk|solids|hygiene|household|other, unit, pack_size, brand, merchant, daily_rate (người dùng đặt), child_id, product_id, status ∈ active|paused|outgrown, timestamps)`; `purchases` + `item_id` (backfill 1 món / (user, product_id); **giữ nullable** theo review để bản app cũ chạy được giữa lúc migrate và deploy), `product_id` nullable, `source ∈ catalog|chat|quick|ledger|photo|plan`. RLS theo `user_id`, revoke anon.
 - `lib/shopping/items.ts` (thuần): kiểu `ShoppingItem`, `defaultRate(item, ageMonths)` (bỉm theo `defaultDailyRate`; khăn ướt 10 tờ/ngày; sữa hộp theo tuổi; nhóm khác: 1 gói/30 ngày), `estimateItems(items, purchases, rateFor, now)` → `ItemEstimate` (itemId, name, unit, remaining, dailyRate, daysLeft, runsOutOn, rateSource default|learned|set, lastPurchase, purchaseCount, lastUnitPrice), `runningLow`, `itemFromTarget`. `purchases.ts` giữ `budgetHint`, `transactionForPurchase`, `defaultDailyRate`; `estimateStock` bị thay.
 - `lib/shopping/capture.ts` (thuần): `looksLikePurchaseLog(text)`, `parsePurchase(text, items, today)` → `PurchaseDraft` (itemId?, name, category, unit, packs, packSize?, amount?, merchant?, purchasedOn, missing[]). Quy tắc: số tiền qua `parseVnd`; “2 bịch/gói/hộp…”; “64 miếng”, “L64”; nơi mua (Shopee, Lazada, Tiki, TikTok, Con Cưng, Bibo Mart, Kids Plaza, Bách Hóa Xanh, WinMart, Co.op, chợ…); “hôm qua/hôm kia/dd-mm”; khớp món cũ theo token không dấu; đoán nhóm theo từ khóa.
 - Store/API: `lib/shopping/item-store-server.ts`, `lib/shopping/item-client.ts` (cloud + local); `/api/shopping/items` (GET/PUT/DELETE); `/api/purchases` POST nhận `{ purchase, item?, forChild }` — tạo món mới khi cần.
@@ -41,11 +41,11 @@ dependencies: []
 9. typecheck · lint · test · commit.
 
 ## Success Criteria
-- [ ] “vừa mua 2 bịch Merries L 64 miếng 690k ở Shopee” → nháp đúng: 2 gói × 64 miếng, 690.000đ, Shopee, hôm nay.
-- [ ] “mua bỉm dưới 400k”, “nên mua bỉm gì” không bị hiểu là ghi lần mua.
-- [ ] Món ngoài catalog ghi được, vào sổ Tiền, hiện trong Sắp cần mua.
-- [ ] `/shopping` không có lưới sản phẩm; catalog ở `/shopping/find`.
-- [ ] Test cũ + mới xanh.
+- [x] “vừa mua 2 bịch Merries L 64 miếng 690k ở Shopee” → nháp đúng: 2 gói × 64 miếng, 690.000đ, Shopee, hôm nay.
+- [x] “mua bỉm dưới 400k”, “nên mua bỉm gì” không bị hiểu là ghi lần mua.
+- [x] Món ngoài catalog ghi được, vào sổ Tiền, hiện trong Sắp cần mua.
+- [x] `/shopping` không có lưới sản phẩm; catalog ở `/shopping/find`.
+- [x] Test cũ + mới xanh.
 
 ## Risk Assessment
 - Backfill sai món khi cùng product_id khác tên → nhóm theo (user_id, product_id) lấy tên lần mua mới nhất. Tín hiệu: món trùng tên trên UI → gộp thủ công (sửa/ẩn).
