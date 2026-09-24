@@ -16,7 +16,7 @@ import { OnboardingReview } from "./onboarding-review";
 
 // AI is the product's core value, so new profiles start opted in; the review switch and /family let people opt out.
 const freshProfile = (): FamilyProfile => ({ id: crypto.randomUUID(), children: [], pricePreference: "balanced", aiConsent: true, updatedAt: new Date().toISOString() });
-const GROUPS = ["Mục tiêu", "Gia đình", "Về bé", "Mua sắm", "Tiền"] as const;
+const GROUPS = ["Mục tiêu", "Gia đình", "Các con", "Nhà ở", "Tiền"] as const;
 /** Short pause so the tapped choice visibly registers before the next question (≤ 300 ms). */
 const ADVANCE_MS = 220;
 
@@ -200,6 +200,6 @@ export function OnboardingWizard() {
         {cloudEnabled && !session && <p className="ob-error" role="status">Chưa tạo được phiên để lưu trên máy chủ. Bạn vẫn có thể trả lời; cần <Link href="/sign-in">đăng nhập</Link> để lưu.</p>}
       </div>
     </main>
-    <FamilyContextPanel profile={profile} onEdit={edit} disabled={busy} title="FamAgent đang hiểu"/>
+    <FamilyContextPanel profile={profile} onEdit={edit} disabled={busy} title="FamAgent đang hiểu" general/>
   </div>;
 }

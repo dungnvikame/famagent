@@ -1,4 +1,4 @@
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, MERCHANTS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
+import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
 
 // Limits keep stored context small and to what product selection needs (PRODUCT.md §4).
 const MAX_LIST = 10;
@@ -41,7 +41,10 @@ function validHousehold(value: unknown): boolean {
   return optional(h.setup, inList(HOUSEHOLD_SETUPS))
     && optional(h.focus, enumList(HOUSEHOLD_FOCUS))
     && optional(h.monthlySpend, number(1_000_000, 1_000_000_000, true))
-    && optional(h.merchants, enumList(MERCHANTS));
+    && optional(h.merchants, enumList(MERCHANTS))
+    && optional(h.housing, inList(HOUSING_TYPES))
+    && optional(h.monthlyIncome, number(1_000_000, 10_000_000_000, true))
+    && optional(h.savingGoals, enumList(SAVING_GOALS));
 }
 
 const isoTime =(value: unknown) => typeof value === "string" && value.length <= 40 && !Number.isNaN(Date.parse(value));

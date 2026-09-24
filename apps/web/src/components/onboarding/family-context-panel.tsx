@@ -72,7 +72,9 @@ function applyEdit(profile: FamilyProfile, path: string, raw: string): FamilyPro
   return validProfile(stamped) ? stamped : null;
 }
 
-export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disabled = false, title = "FamAgent đang hiểu" }: {
+export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disabled = false, title = "FamAgent đang hiểu", general = false }: {
+  /** Onboarding: show general family facts only (no product-related rows such as size or budget). */
+  general?: boolean;
   profile: FamilyProfile;
   fresh?: Set<string>;
   pending?: PendingValue[];
@@ -86,12 +88,14 @@ export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disab
   const [draft, setDraft] = useState("");
   const [error, setError] = useState("");
   const [open, setOpen] = useState(false);
-  const groups = familyRows(profile);
+  const groups = general
+    ? familyRows(profile).filter((group) => group.title !== "Ưu tiên" && group.title !== "Thiết bị").map((group) => ({ ...group, rows: group.rows.filter((row) => !row.path.endsWith(".diaperSize")) }))
+    : familyRows(profile);
   // How much context the agent has so far (display only; empty rows are fine — every question is skippable).
   const allRows = groups.flatMap((group) => group.rows);
   const filled = allRows.filter((row) => row.display).length;
   const first = profile.children[0];
-  const compact = [profile.adultsCount ? `${profile.adultsCount} người lớn` : null, first && (first.name || first.weightKg || first.diaperSize) ? [first.name ? `Bé ${first.name}` : "Bé", first.weightKg ? formatWeight(first.weightKg) : null, first.diaperSize].filter(Boolean).join(" ") : null, profile.maxBudget ? `≤ ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean).join(" · ") || "Chưa có thông tin";
+  const compact = [profile.adultsCount ? `${profile.adultsCount} người lớn` : null, first && (first.name || first.weightKg || first.diaperSize) ? [first.name ? `Bé ${first.name}` : "Bé", first.weightKg ? formatWeight(first.weightKg) : null, general ? null : first.diaperSize].filter(Boolean).join(" ") : null, !general && profile.maxBudget ? `≤ ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean).join(" · ") || "Chưa có thông tin";
 
   function save(path: string) {
     const next = applyEdit(profile, path, draft);

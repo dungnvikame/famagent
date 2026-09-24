@@ -51,8 +51,10 @@ export interface OnboardingState {
   skippedSlots: string[];
 }
 
-export const HOUSEHOLD_SETUPS = ["couple", "single_parent", "multigen", "expecting"] as const;
-export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care"] as const;
+export const HOUSEHOLD_SETUPS = ["couple", "single_parent", "multigen", "expecting", "no_kids"] as const;
+export const HOUSING_TYPES = ["own", "rent", "with_parents"] as const;
+export const SAVING_GOALS = ["emergency", "education", "home", "car", "travel", "retirement"] as const;
+export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
 
@@ -65,6 +67,11 @@ export interface HouseholdContext {
   monthlySpend?: number;
   /** Where the family usually buys for the kids. */
   merchants?: Array<(typeof MERCHANTS)[number]>;
+  housing?: (typeof HOUSING_TYPES)[number];
+  /** Rough monthly household income (VND). */
+  monthlyIncome?: number;
+  /** What the family is saving for. */
+  savingGoals?: Array<(typeof SAVING_GOALS)[number]>;
 }
 
 export interface FamilyProfile {

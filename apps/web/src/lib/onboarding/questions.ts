@@ -1,8 +1,8 @@
 // Multiple-choice onboarding (tap, don't type): each question reads its current answer from the profile and
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
-import { HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, MERCHANT_LABELS, MERCHANTS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity, type ShoppingConcern } from "../experience/types.ts";
+import { HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, SAVING_GOALS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
-export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Về bé" | "Mua sắm" | "Tiền";
+export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền";
 export interface Choice { value: string; label: string; hint?: string }
 export interface Question {
   /** Stable id, also recorded in profile.onboarding (≤ 80 chars). */
@@ -18,22 +18,22 @@ export interface Question {
   apply: (profile: FamilyProfile, values: string[]) => FamilyProfile;
 }
 
+/** Child age bands for the whole childhood (not only infants); stored as the band midpoint in months. */
 export const AGE_CHOICES: Array<Choice & { months: number }> = [
-  { value: "0-3", label: "Dưới 3 tháng", months: 1 },
-  { value: "3-6", label: "3–6 tháng", months: 4 },
-  { value: "6-12", label: "6–12 tháng", months: 9 },
-  { value: "12-24", label: "1–2 tuổi", months: 18 },
-  { value: "24-36", label: "2–3 tuổi", months: 30 },
-  { value: "36+", label: "Trên 3 tuổi", months: 42 },
+  { value: "0-12", label: "Dưới 1 tuổi", months: 6 },
+  { value: "12-36", label: "1–3 tuổi", months: 24 },
+  { value: "36-72", label: "3–6 tuổi", months: 54 },
+  { value: "72-144", label: "6–12 tuổi", months: 108 },
+  { value: "144+", label: "Trên 12 tuổi", months: 168 },
 ];
-/** Stored as the range midpoint: the hard filter needs a number; the UI always shows the range. */
+/** Stored as the range midpoint; the UI always shows the range. Asked only for children under 6. */
 export const WEIGHT_CHOICES: Array<Choice & { min: number; max: number; kg: number }> = [
-  { value: "<5", label: "Dưới 5 kg", hint: "thường size NB", min: 2, max: 5, kg: 4 },
-  { value: "5-8", label: "5–8 kg", hint: "thường size S", min: 5, max: 8, kg: 6.5 },
-  { value: "8-11", label: "8–11 kg", hint: "thường size M", min: 8, max: 11, kg: 9.5 },
-  { value: "11-14", label: "11–14 kg", hint: "thường size L", min: 11, max: 14, kg: 12.5 },
-  { value: "14-17", label: "14–17 kg", hint: "thường size XL", min: 14, max: 17, kg: 15.5 },
-  { value: "17+", label: "Trên 17 kg", hint: "thường size XXL", min: 17, max: 30, kg: 18.5 },
+  { value: "<5", label: "Dưới 5 kg", min: 2, max: 5, kg: 4 },
+  { value: "5-8", label: "5–8 kg", min: 5, max: 8, kg: 6.5 },
+  { value: "8-11", label: "8–11 kg", min: 8, max: 11, kg: 9.5 },
+  { value: "11-14", label: "11–14 kg", min: 11, max: 14, kg: 12.5 },
+  { value: "14-17", label: "14–17 kg", min: 14, max: 17, kg: 15.5 },
+  { value: "17+", label: "Trên 17 kg", min: 17, max: 30, kg: 18.5 },
 ];
 
 const MONTH = 30.44 * 86_400_000;
@@ -54,60 +54,55 @@ export function weightChoiceFor(kg: number | undefined): string | undefined {
   return WEIGHT_CHOICES.find((choice) => kg >= choice.min && kg < choice.max)?.value ?? (kg >= 17 ? "17+" : "<5");
 }
 
-/** Current brand choices (Vietnam market leaders); "other" keeps the field empty for the chat to fill in. */
-export const BRAND_CHOICES: Choice[] = [
-  { value: "Bobby", label: "Bobby" }, { value: "Huggies", label: "Huggies" }, { value: "Merries", label: "Merries" }, { value: "Moony", label: "Moony" },
-  { value: "Pampers", label: "Pampers" }, { value: "Goo.n", label: "Goo.n" }, { value: "other", label: "Hãng khác / chưa cố định" },
-];
-/** Monthly household spend bands, stored as a round plan figure (VND). */
-export const SPEND_CHOICES: Array<Choice & { amount: number }> = [
-  { value: "8000000", label: "Dưới 10 triệu", amount: 8_000_000 },
-  { value: "15000000", label: "10–20 triệu", amount: 15_000_000 },
-  { value: "25000000", label: "20–30 triệu", amount: 25_000_000 },
-  { value: "40000000", label: "30–50 triệu", amount: 40_000_000 },
-  { value: "60000000", label: "Trên 50 triệu", amount: 60_000_000 },
-];
-const SETUP_ADULTS: Record<NonNullable<HouseholdContext["setup"]>, number> = { couple: 2, single_parent: 1, multigen: 4, expecting: 2 };
+/** Monthly money bands (VND), stored as a round figure. */
+const band = (list: Array<[number, string]>) => list.map(([amount, label]) => ({ value: String(amount), label, amount }));
+export const SPEND_CHOICES = band([[8_000_000, "Dưới 10 triệu"], [15_000_000, "10–20 triệu"], [25_000_000, "20–30 triệu"], [40_000_000, "30–50 triệu"], [60_000_000, "Trên 50 triệu"]]);
+export const INCOME_CHOICES = band([[12_000_000, "Dưới 15 triệu"], [22_000_000, "15–30 triệu"], [40_000_000, "30–50 triệu"], [75_000_000, "50–100 triệu"], [120_000_000, "Trên 100 triệu"]]);
+const SETUP_ADULTS: Record<NonNullable<HouseholdContext["setup"]>, number> = { couple: 2, single_parent: 1, multigen: 4, expecting: 2, no_kids: 2 };
 const household = (p: FamilyProfile, patch: Partial<HouseholdContext>): FamilyProfile => ({ ...p, household: { ...p.household, ...patch } });
+const pick = <T extends string>(list: readonly T[], values: string[]) => values.filter((value): value is T => (list as readonly string[]).includes(value));
+const nearest = (choices: Array<{ value: string; amount: number }>, amount?: number) => amount ? [choices.reduce((best, choice) => Math.abs(choice.amount - amount) < Math.abs(best.amount - amount) ? choice : best).value] : [];
+const HAS_KIDS = (p: FamilyProfile) => p.household?.setup !== "expecting" && p.household?.setup !== "no_kids";
 
 /**
- * Ordered questions (onboarding v3): start from why the family is here, then who lives in the house, then each
- * child (max 3), shopping habits and a rough monthly spend that seeds the Money plan. Every question is skippable;
- * an expecting family skips the per-child block.
+ * Onboarding v4 — general family information only (no products): what the family wants help with, who lives in
+ * the house, each child (name, age, weight when under 6, health notes), housing, income, spend, saving goals.
+ * Everything is skippable; families without children skip the child block.
  */
 export function buildQuestions(profile: FamilyProfile, newId: () => string = () => crypto.randomUUID(), now = Date.now()): Question[] {
-  const expecting = profile.household?.setup === "expecting";
   const questions: Question[] = [
     {
       id: "focus", group: "Mục tiêu", title: "Bạn muốn FamAgent đỡ việc gì cho nhà mình?", help: "Chọn một hoặc vài việc — mình sẽ ưu tiên những việc này trên Trang chủ.", mode: "multi",
       choices: [
-        { value: "money", label: "Quản lý chi tiêu hằng tháng", hint: "biết còn tiêu được bao nhiêu" },
-        { value: "shopping", label: "Chọn đồ cho con đúng và rẻ", hint: "bỉm, sữa, đồ dùng" },
-        { value: "replenish", label: "Nhắc khi đồ sắp hết", hint: "không bị hết bỉm giữa đêm" },
-        { value: "care", label: "Ghi nhớ sức khỏe, thói quen của bé", hint: "dị ứng, hãng hợp, lịch sinh hoạt" },
+        { value: "money", label: "Quản lý thu chi hằng tháng", hint: "biết tiền đi đâu, còn tiêu được bao nhiêu" },
+        { value: "shopping", label: "Mua sắm cho gia đình hợp lý hơn", hint: "chọn đúng, không mua thừa" },
+        { value: "replenish", label: "Nhắc những thứ dễ quên", hint: "đồ dùng sắp hết, hóa đơn đến hạn" },
+        { value: "care", label: "Theo dõi sức khỏe, thói quen của các con", hint: "dị ứng, cân nặng, điều cần tránh" },
       ],
       current: (p) => p.household?.focus ? [...p.household.focus] : [],
-      apply: (p, values) => household(p, { focus: values.filter((value): value is NonNullable<HouseholdContext["focus"]>[number] => (HOUSEHOLD_FOCUS as readonly string[]).includes(value)) }),
+      apply: (p, values) => household(p, { focus: pick(HOUSEHOLD_FOCUS, values) }),
     },
     {
-      id: "setup", group: "Gia đình", title: "Nhà mình hiện thế nào?", help: "Để mình tính chi tiêu và nhu cầu cho đúng quy mô.", mode: "single",
+      id: "setup", group: "Gia đình", title: "Nhà mình hiện thế nào?", help: "Để mình hiểu quy mô gia đình khi tính chi tiêu và nhắc việc.", mode: "single",
       choices: [
-        { value: "couple", label: "Hai vợ chồng và con nhỏ" },
+        { value: "couple", label: "Vợ chồng và các con" },
         { value: "multigen", label: "Sống cùng ông bà", hint: "3 thế hệ" },
-        { value: "single_parent", label: "Mình tự chăm con" },
+        { value: "single_parent", label: "Mình tự nuôi con" },
         { value: "expecting", label: "Đang chờ em bé chào đời" },
+        { value: "no_kids", label: "Chưa có con" },
       ],
       current: (p) => p.household?.setup ? [p.household.setup] : [],
       apply: (p, [value]) => {
-        const setup = (HOUSEHOLD_SETUPS as readonly string[]).includes(value) ? value as NonNullable<HouseholdContext["setup"]> : undefined;
+        const setup = pick(HOUSEHOLD_SETUPS, [value])[0];
         if (!setup) return p;
-        return { ...household(p, { setup }), adultsCount: SETUP_ADULTS[setup], children: setup === "expecting" ? [] : p.children };
+        const next = { ...household(p, { setup }), adultsCount: SETUP_ADULTS[setup] };
+        return setup === "expecting" || setup === "no_kids" ? { ...next, children: [] } : next;
       },
     },
   ];
-  if (!expecting) questions.push({
-    id: "kids", group: "Gia đình", title: "Có mấy bé còn dùng bỉm, tã?", help: "Mình hỏi riêng từng bé để gợi ý đúng size.", mode: "single",
-    choices: [{ value: "1", label: "1 bé" }, { value: "2", label: "2 bé" }, { value: "3", label: "3 bé" }],
+  if (HAS_KIDS(profile)) questions.push({
+    id: "kids", group: "Gia đình", title: "Nhà mình có mấy con?", help: "Mình sẽ hỏi vài điều cơ bản về từng con.", mode: "single",
+    choices: [{ value: "1", label: "1 con" }, { value: "2", label: "2 con" }, { value: "3", label: "3 con trở lên" }],
     current: (p) => p.children.length ? [String(Math.min(p.children.length, 3))] : [],
     apply: (p, [value]) => {
       const count = Number(value);
@@ -116,78 +111,76 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       return { ...p, children };
     },
   });
-  const count = expecting ? 0 : Math.min(profile.children.length, 3);
+  const count = HAS_KIDS(profile) ? Math.min(profile.children.length, 3) : 0;
   for (let index = 0; index < count; index++) {
     const child = profile.children[index];
     const who = childTitle(child, index, count);
     const Who = `${who[0].toUpperCase()}${who.slice(1)}`;
     const suffix = child.id;
+    const months = ageMonthsOf(child, now);
     questions.push(
       {
-        id: `child-name:${suffix}`, group: "Về bé", title: count > 1 ? `Bé thứ ${index + 1} tên ở nhà là gì?` : "Bé tên ở nhà là gì?", help: "Để mình gọi bé cho thân — tên chỉ lưu trong tài khoản của bạn, không gửi cho AI.", mode: "text", choices: [],
+        id: `child-name:${suffix}`, group: "Các con", title: count > 1 ? `Con thứ ${index + 1} tên ở nhà là gì?` : "Con tên ở nhà là gì?", help: "Để mình gọi cho thân — tên chỉ lưu trong tài khoản của bạn, không gửi cho AI.", mode: "text", choices: [],
         current: (p) => p.children[index]?.name ? [p.children[index].name!] : [],
         apply: (p, [value]) => withChild(p, index, (c) => ({ ...c, name: value?.trim().slice(0, 80) || undefined })),
       },
       {
-        id: `child-age:${suffix}`, group: "Về bé", title: `${Who} được bao nhiêu tháng rồi?`, help: "Tuổi giúp mình ước lượng bé dùng bao nhiêu miếng mỗi ngày.", mode: "single", choices: AGE_CHOICES,
+        id: `child-age:${suffix}`, group: "Các con", title: `${Who} bao nhiêu tuổi?`, mode: "single", choices: AGE_CHOICES,
         current: (p) => {
-          const months = p.children[index] ? ageMonthsOf(p.children[index], now) : undefined;
-          if (months === undefined) return [];
-          const match = [...AGE_CHOICES].reverse().find((choice) => months >= Number(choice.value.split(/[-+]/)[0]));
+          const value = p.children[index] ? ageMonthsOf(p.children[index], now) : undefined;
+          if (value === undefined) return [];
+          const match = [...AGE_CHOICES].reverse().find((choice) => value >= Number(choice.value.split(/[-+]/)[0]));
           return match ? [match.value] : [];
         },
         // A picked age range replaces a stored birth date (the two must not disagree).
         apply: (p, [value]) => withChild(p, index, (c) => ({ ...c, ageMonths: AGE_CHOICES.find((choice) => choice.value === value)?.months, birthDate: undefined })),
       },
-      {
-        id: `child-weight:${suffix}`, group: "Về bé", title: `${Who} nặng khoảng bao nhiêu?`, help: "Cân nặng quyết định size bỉm — chọn khoảng gần nhất, hoặc nhập số chính xác.", mode: "single", choices: WEIGHT_CHOICES,
-        exact: { min: 2, max: 30, step: 0.1, unit: "kg" },
-        current: (p) => { const choice = weightChoiceFor(p.children[index]?.weightKg); return choice ? [choice] : []; },
-        apply: (p, [value]) => {
-          const exact = Number(value);
-          const kg = Number.isFinite(exact) && exact >= 2 && exact <= 30 ? Math.round(exact * 10) / 10 : WEIGHT_CHOICES.find((choice) => choice.value === value)?.kg;
-          // A new weight makes an old size answer stale (the recommender derives fit from weight): drop it.
-          return withChild(p, index, (c) => ({ ...c, weightKg: kg, diaperSize: c.weightKg === kg ? c.diaperSize : undefined }));
-        },
-      },
-      {
-        id: `child-brand:${suffix}`, group: "Về bé", title: `${Who} đang dùng bỉm hãng nào?`, help: "Mình sẽ so với hãng đang dùng và nhắc mua lại đúng loại.", mode: "single", choices: BRAND_CHOICES,
-        current: (p) => { const brand = p.children[index]?.currentBrand; return brand ? [BRAND_CHOICES.some((choice) => choice.value === brand) ? brand : "other"] : []; },
-        apply: (p, [value]) => withChild(p, index, (c) => ({ ...c, currentBrand: value && value !== "other" ? value : undefined })),
-      },
-      {
-        id: `child-care:${suffix}`, group: "Về bé", title: `${Who} có điều gì cần lưu ý không?`, help: "Chọn tất cả điều đúng — mình sẽ loại sản phẩm không hợp.", mode: "multi",
-        choices: [{ value: "sensitive_skin", label: "Da nhạy cảm" }, { value: "rash_prone", label: "Dễ bị hăm" }, { value: "fragrance_free", label: "Cần loại không mùi" }, { value: "none", label: "Không có gì đặc biệt" }],
-        current: (p) => { const list = p.children[index]?.sensitivities; return list === undefined ? [] : list.length ? [...list] : ["none"]; },
-        apply: (p, values) => withChild(p, index, (c) => ({ ...c, sensitivities: values.filter((value): value is Sensitivity => value !== "none") })),
-      },
     );
+    // Weight matters for small children (growth, sizes); skip it once they are 6+.
+    if (months === undefined || months < 72) questions.push({
+      id: `child-weight:${suffix}`, group: "Các con", title: `${Who} nặng khoảng bao nhiêu?`, help: "Chọn khoảng gần nhất, hoặc nhập số chính xác. Mình sẽ nhắc cập nhật khi con lớn.", mode: "single", choices: WEIGHT_CHOICES,
+      exact: { min: 2, max: 30, step: 0.1, unit: "kg" },
+      current: (p) => { const choice = weightChoiceFor(p.children[index]?.weightKg); return choice ? [choice] : []; },
+      apply: (p, [value]) => {
+        const exact = Number(value);
+        const kg = Number.isFinite(exact) && exact >= 2 && exact <= 30 ? Math.round(exact * 10) / 10 : WEIGHT_CHOICES.find((choice) => choice.value === value)?.kg;
+        return withChild(p, index, (c) => ({ ...c, weightKg: kg, diaperSize: c.weightKg === kg ? c.diaperSize : undefined }));
+      },
+    });
+    questions.push({
+      id: `child-care:${suffix}`, group: "Các con", title: `${Who} có điều gì cần lưu ý về sức khỏe?`, help: "Chọn tất cả điều đúng — mình sẽ nhớ và tránh những thứ không hợp với con.", mode: "multi",
+      choices: [{ value: "sensitive_skin", label: "Da nhạy cảm" }, { value: "rash_prone", label: "Hay bị hăm, mẩn ngứa" }, { value: "fragrance_free", label: "Dị ứng mùi hương, hóa chất" }, { value: "none", label: "Không có gì đặc biệt" }],
+      current: (p) => { const list = p.children[index]?.sensitivities; return list === undefined ? [] : list.length ? [...list] : ["none"]; },
+      apply: (p, values) => withChild(p, index, (c) => ({ ...c, sensitivities: values.filter((value): value is Sensitivity => value !== "none") })),
+    });
   }
   questions.push(
     {
-      id: "concern", group: "Mua sắm", title: expecting ? "Khi chuẩn bị đồ cho bé, bạn lo nhất điều gì?" : "Khi mua bỉm, bạn lo nhất điều gì?", mode: "single",
-      choices: [{ value: "night", label: "Bé ngủ đêm không bị tràn" }, { value: "sensitive", label: "Không hăm, dịu cho da" }, { value: "soft", label: "Mỏng, thoáng, bé dễ chịu" }, { value: "value", label: "Tiết kiệm — rẻ nhất tính theo miếng" }],
-      current: (p) => p.mainConcern ? [p.mainConcern] : [],
-      // "Tiết kiệm" also sets the ranking to best value per piece; other answers keep the balanced default.
-      apply: (p, [value]) => ({ ...p, mainConcern: value as ShoppingConcern, pricePreference: value === "value" ? "value" : p.pricePreference }),
+      id: "housing", group: "Nhà ở", title: "Nhà mình đang ở thế nào?", help: "Nếu thuê nhà, mình sẽ gợi ý đặt tiền nhà thành khoản cố định hằng tháng.", mode: "single",
+      choices: [{ value: "own", label: "Nhà của mình" }, { value: "rent", label: "Thuê nhà" }, { value: "with_parents", label: "Ở cùng bố mẹ" }],
+      current: (p) => p.household?.housing ? [p.household.housing] : [],
+      apply: (p, [value]) => household(p, { housing: pick(HOUSING_TYPES, [value])[0] }),
     },
     {
-      id: "budget", group: "Mua sắm", title: "Một gói bỉm, bạn thấy hợp lý tối đa bao nhiêu?", help: "Mình sẽ không gợi ý gói đắt hơn mức này (bạn nới lúc nào cũng được).", mode: "single",
-      choices: [{ value: "250000", label: "Dưới 250.000đ" }, { value: "350000", label: "250.000–350.000đ" }, { value: "450000", label: "350.000–450.000đ" }, { value: "none", label: "Không đặt giới hạn" }],
-      current: (p) => p.maxBudget ? [["250000", "350000", "450000"].find((value) => p.maxBudget! <= Number(value)) ?? "450000"] : [],
-      apply: (p, [value]) => ({ ...p, maxBudget: value === "none" ? undefined : Number(value) }),
+      id: "income", group: "Tiền", title: "Thu nhập cả nhà mỗi tháng khoảng bao nhiêu?", help: "Ước chừng là được, có thể bỏ qua. Chỉ dùng để tính tỷ lệ tiết kiệm cho bạn — không chia sẻ với ai.", mode: "single",
+      choices: INCOME_CHOICES,
+      current: (p) => nearest(INCOME_CHOICES, p.household?.monthlyIncome),
+      apply: (p, [value]) => household(p, { monthlyIncome: INCOME_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "merchants", group: "Mua sắm", title: "Nhà mình hay mua đồ cho bé ở đâu?", help: "Mình ưu tiên nơi bán bạn quen khi so giá.", mode: "multi",
-      choices: MERCHANTS.map((value) => ({ value, label: MERCHANT_LABELS[value] })),
-      current: (p) => p.household?.merchants ? [...p.household.merchants] : [],
-      apply: (p, values) => household(p, { merchants: values.filter((value): value is (typeof MERCHANTS)[number] => (MERCHANTS as readonly string[]).includes(value)) }),
-    },
-    {
-      id: "spend", group: "Tiền", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, đồ cho con — ước chừng là được. Mình dùng làm kế hoạch chi tháng để báo sớm khi tiêu quá tay; sửa lại trong mục Tiền bất cứ lúc nào.", mode: "single",
+      id: "spend", group: "Tiền", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, chi cho các con. Mình dùng làm kế hoạch chi tháng để báo sớm khi tiêu quá tay; sửa lại lúc nào cũng được.", mode: "single",
       choices: SPEND_CHOICES,
-      current: (p) => { const amount = p.household?.monthlySpend; return amount ? [SPEND_CHOICES.find((choice) => choice.amount === amount)?.value ?? SPEND_CHOICES.reduce((best, choice) => Math.abs(choice.amount - amount) < Math.abs(best.amount - amount) ? choice : best).value] : []; },
+      current: (p) => nearest(SPEND_CHOICES, p.household?.monthlySpend),
       apply: (p, [value]) => household(p, { monthlySpend: SPEND_CHOICES.find((choice) => choice.value === value)?.amount }),
+    },
+    {
+      id: "goals", group: "Tiền", title: "Nhà mình đang để dành cho điều gì?", help: "Chọn tất cả điều đúng — mình sẽ giúp theo dõi tiến độ.", mode: "multi",
+      choices: [
+        { value: "emergency", label: "Quỹ dự phòng" }, { value: "education", label: "Học hành của các con" }, { value: "home", label: "Mua hoặc sửa nhà" },
+        { value: "car", label: "Mua xe" }, { value: "travel", label: "Du lịch" }, { value: "retirement", label: "Về hưu, chăm sóc bố mẹ" },
+      ],
+      current: (p) => p.household?.savingGoals ? [...p.household.savingGoals] : [],
+      apply: (p, values) => household(p, { savingGoals: pick(SAVING_GOALS, values) }),
     },
   );
   return questions;

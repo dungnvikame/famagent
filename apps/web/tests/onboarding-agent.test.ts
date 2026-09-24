@@ -253,8 +253,9 @@ test("tóm tắt chỉ nêu điều người dùng đã nói; lời ghi nhận n
   const result = await converse(["2 người lớn, 1 bé", "Bé Gold 10kg size L", "Không có gì đặc biệt", "Ưu tiên chống tràn, dưới 400k"]);
   assert.match(result.reply, /ưu tiên hạn chế tràn/);
   const summary = profileSummary(result.profile).join(" | ");
-  assert.match(summary, /Ưu tiên: hạn chế tràn, tối đa 400\.000đ/);
-  assert.doesNotMatch(summary, /Cân bằng/);
+  // The onboarding summary lists family facts only; shopping preferences live in chat/Family page.
+  assert.match(summary, /Bé Gold: 10 kg/);
+  assert.doesNotMatch(summary, /Cân bằng|size|400\.000/);
   const home = await converse(["Cửa trước"], result.profile);
   assert.match(home.reply, /máy giặt cửa trước/);
 });

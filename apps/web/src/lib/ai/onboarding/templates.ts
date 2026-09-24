@@ -1,7 +1,7 @@
 // Vietnamese wording for rules mode and for any LLM reply that fails checks.
 // Each question asks one slot group with at most 2 questions (spec v1 §9).
 import { childAgeMonths } from "../../experience/profile-mapper.ts";
-import { MERCHANT_LABELS, PRICE_PREFERENCE_LABELS, SHOPPING_CONCERN_LABELS, WASHING_MACHINE_LABELS, type ChildProfile, type FamilyProfile } from "../../experience/types.ts";
+import type { ChildProfile, FamilyProfile } from "../../experience/types.ts";
 import type { ActiveSlot } from "./slots.ts";
 import { formatWeight } from "../../onboarding/questions.ts";
 
@@ -48,22 +48,22 @@ export function acknowledgement(applied: string[]): string {
 export function profileSummary(profile: FamilyProfile): string[] {
   const lines: string[] = [];
   const h = profile.household;
-  const FOCUS: Record<string, string> = { money: "quản lý chi tiêu", shopping: "chọn đồ cho con", replenish: "nhắc đồ sắp hết", care: "ghi nhớ sức khỏe, thói quen của bé" };
-  const SETUP: Record<string, string> = { couple: "Hai vợ chồng và con nhỏ", multigen: "Sống cùng ông bà", single_parent: "Bố/mẹ tự chăm con", expecting: "Đang chờ em bé chào đời" };
+  const FOCUS: Record<string, string> = { money: "quản lý thu chi", shopping: "mua sắm hợp lý", replenish: "nhắc những thứ dễ quên", care: "theo dõi sức khỏe các con", schedule: "lịch và việc nhà" };
+  const SETUP: Record<string, string> = { couple: "Vợ chồng và các con", multigen: "Sống cùng ông bà", single_parent: "Bố/mẹ tự nuôi con", expecting: "Đang chờ em bé chào đời", no_kids: "Chưa có con" };
   if (h?.focus?.length) lines.push(`Nhờ FamAgent: ${h.focus.map((item) => FOCUS[item]).join(", ")}`);
   if (h?.setup) lines.push(SETUP[h.setup]);
   else if (profile.adultsCount) lines.push(`${profile.adultsCount} người lớn`);
   profile.children.forEach((child, index) => {
     const age = childAgeMonths(child);
-    const details = [child.weightKg ? formatWeight(child.weightKg) : null, child.diaperSize ? `size ${child.diaperSize}` : null, age !== undefined ? `${age} tháng` : null, child.currentBrand ? `đang dùng ${child.currentBrand}` : null].filter(Boolean);
-    lines.push(`${childLabel(child, index).replace(/^b/, "B")}: ${details.length ? details.join(", ") : "chưa có cân nặng/size"}`);
+    const details = [child.weightKg ? formatWeight(child.weightKg) : null, age !== undefined ? (age >= 24 ? `${Math.floor(age / 12)} tuổi` : `${age} tháng`) : null].filter(Boolean);
+    lines.push(`${childLabel(child, index).replace(/^b/, "B")}: ${details.length ? details.join(", ") : "chưa có thông tin"}`);
   });
-  // Only what the user actually said: the default price preference is not shown as a choice.
-  const priorities = [profile.fieldMeta?.pricePreference ? PRICE_PREFERENCE_LABELS[profile.pricePreference] : null, profile.mainConcern ? SHOPPING_CONCERN_LABELS[profile.mainConcern] : null, profile.maxBudget ? `tối đa ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean);
-  if (priorities.length) lines.push(`Ưu tiên: ${priorities.join(", ")}`);
-  if (h?.merchants?.length) lines.push(`Hay mua ở: ${h.merchants.map((item) => MERCHANT_LABELS[item]).join(", ")}`);
+  const HOUSING: Record<string, string> = { own: "Ở nhà của mình", rent: "Đang thuê nhà", with_parents: "Ở cùng bố mẹ" };
+  const GOALS: Record<string, string> = { emergency: "quỹ dự phòng", education: "học hành của các con", home: "nhà", car: "xe", travel: "du lịch", retirement: "về hưu, chăm bố mẹ" };
+  if (h?.housing) lines.push(HOUSING[h.housing]);
+  if (h?.monthlyIncome) lines.push(`Thu nhập khoảng ${Math.round(h.monthlyIncome / 1_000_000)} triệu/tháng`);
+  if (h?.savingGoals?.length) lines.push(`Đang để dành: ${h.savingGoals.map((item) => GOALS[item]).join(", ")}`);
   if (h?.monthlySpend) lines.push(`Chi tiêu tháng khoảng ${Math.round(h.monthlySpend / 1_000_000)} triệu — dùng làm kế hoạch trong mục Tiền`);
-  if (profile.appliances?.washingMachine) lines.push(`Máy giặt: ${WASHING_MACHINE_LABELS[profile.appliances.washingMachine].toLowerCase()}`);
   return lines;
 }
 

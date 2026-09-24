@@ -15,46 +15,48 @@ const answer = (profile: FamilyProfile, id: string, values: string[]) => {
   return next;
 };
 
-test("bộ câu hỏi v3: mục tiêu → gia đình → từng bé → mua sắm → tiền; câu đầu không hỏi số người lớn", () => {
+test("bộ câu hỏi v4: chỉ thông tin chung về gia đình, không nhắc sản phẩm", () => {
   const first = buildQuestions(blank(), newId);
   assert.equal(first[0].id, "focus");
-  assert.ok(!first.some((q) => q.id === "adults"));
-  assert.equal(first.length, 7, "focus, setup, kids, concern, budget, merchants, spend");
+  assert.deepEqual(first.map((q) => q.id), ["focus", "setup", "kids", "housing", "income", "spend", "goals"]);
   const one = answer(blank(), "kids", ["1"]);
-  assert.equal(buildQuestions(one, newId).length, 12, "+5 câu cho mỗi bé: tên, tuổi, cân nặng, hãng đang dùng, lưu ý");
+  assert.equal(buildQuestions(one, newId).length, 11, "+4 câu cho mỗi con: tên, tuổi, cân nặng (dưới 6 tuổi), sức khỏe");
   const three = answer(one, "kids", ["3"]);
   assert.equal(three.children.length, 3);
-  assert.equal(buildQuestions(three, newId).length, 22);
-  assert.equal(three.children[0].id, one.children[0].id, "giữ bé đã có khi tăng số bé");
+  assert.equal(buildQuestions(three, newId).length, 19);
+  assert.equal(three.children[0].id, one.children[0].id, "giữ con đã có khi tăng số con");
   assert.equal(answer(three, "kids", ["1"]).children.length, 1);
-  assert.deepEqual([...new Set(buildQuestions(one, newId).map((q) => q.group))], ["Mục tiêu", "Gia đình", "Về bé", "Mua sắm", "Tiền"]);
+  const text = JSON.stringify(buildQuestions(one, newId).map((q) => [q.title, q.help, q.choices]));
+  assert.doesNotMatch(text, /bỉm|tã|size|hãng|gói|sản phẩm|Shopee/i, "onboarding không nói về sản phẩm");
+  assert.deepEqual([...new Set(buildQuestions(one, newId).map((q) => q.group))], ["Mục tiêu", "Gia đình", "Các con", "Nhà ở", "Tiền"]);
 });
 
-test("gia đình: kiểu nhà suy ra số người lớn; đang chờ em bé bỏ phần câu hỏi về bé", () => {
-  let profile = answer(blank(), "focus", ["money", "replenish"]);
-  assert.deepEqual(profile.household?.focus, ["money", "replenish"]);
+test("gia đình: kiểu nhà suy ra số người lớn; chưa có con / đang chờ em bé bỏ phần câu hỏi về con; con từ 6 tuổi không hỏi cân nặng", () => {
+  let profile = answer(blank(), "focus", ["money", "care"]);
+  assert.deepEqual(profile.household?.focus, ["money", "care"]);
   profile = answer(profile, "setup", ["multigen"]);
-  assert.equal(profile.adultsCount, 4); assert.equal(profile.household?.setup, "multigen");
+  assert.equal(profile.adultsCount, 4);
   profile = answer(profile, "kids", ["1"]);
-  const expecting = answer(profile, "setup", ["expecting"]);
-  assert.equal(expecting.children.length, 0);
-  assert.ok(!buildQuestions(expecting, newId).some((q) => q.id === "kids" || q.id.startsWith("child-")));
-  assert.match(buildQuestions(expecting, newId).find((q) => q.id === "concern")!.title, /chuẩn bị đồ cho bé/);
+  for (const setup of ["expecting", "no_kids"]) {
+    const next = answer(profile, "setup", [setup]);
+    assert.equal(next.children.length, 0);
+    assert.ok(!buildQuestions(next, newId).some((q) => q.id === "kids" || q.id.startsWith("child-")), setup);
+  }
+  const id = profile.children[0].id;
+  const older = answer(profile, `child-age:${id}`, ["72-144"]);
+  assert.ok(!buildQuestions(older, newId).some((q) => q.id === `child-weight:${id}`));
 });
 
-test("hãng đang dùng, nơi mua, chi tiêu tháng được lưu và đọc lại", () => {
-  let profile = answer(blank(), "kids", ["1"]);
-  const id = profile.children[0].id;
-  profile = answer(profile, `child-brand:${id}`, ["Merries"]);
-  assert.equal(profile.children[0].currentBrand, "Merries");
-  assert.equal(answer(profile, `child-brand:${id}`, ["other"]).children[0].currentBrand, undefined);
-  profile = answer(profile, "merchants", ["shopee", "concung"]);
-  assert.deepEqual(profile.household?.merchants, ["shopee", "concung"]);
+test("nhà ở, thu nhập, chi tiêu, mục tiêu để dành được lưu và đọc lại", () => {
+  let profile = answer(blank(), "housing", ["rent"]);
+  assert.equal(profile.household?.housing, "rent");
+  profile = answer(profile, "income", ["40000000"]);
+  assert.equal(profile.household?.monthlyIncome, 40_000_000);
   profile = answer(profile, "spend", ["25000000"]);
   assert.equal(profile.household?.monthlySpend, 25_000_000);
   assert.deepEqual(buildQuestions(profile, newId).find((q) => q.id === "spend")!.current(profile), ["25000000"]);
-  const cheap = answer(profile, "concern", ["value"]);
-  assert.equal(cheap.pricePreference, "value", "lo tiết kiệm → xếp theo giá trị mỗi miếng");
+  profile = answer(profile, "goals", ["emergency", "education"]);
+  assert.deepEqual(profile.household?.savingGoals, ["emergency", "education"]);
 });
 
 test("cân nặng: khoảng lưu giá trị giữa, số chính xác được ưu tiên, size cũ bị bỏ khi cân nặng đổi", () => {
@@ -77,10 +79,10 @@ test("tuổi theo khoảng thay ngày sinh; chăm sóc 'không có gì' lưu dan
   let profile = answer(blank(), "kids", ["1"]);
   const id = profile.children[0].id;
   profile = { ...profile, children: [{ ...profile.children[0], birthDate: "2025-01-01" }] };
-  profile = answer(profile, `child-age:${id}`, ["6-12"]);
-  assert.equal(profile.children[0].ageMonths, AGE_CHOICES.find((c) => c.value === "6-12")!.months);
+  profile = answer(profile, `child-age:${id}`, ["0-12"]);
+  assert.equal(profile.children[0].ageMonths, AGE_CHOICES.find((c) => c.value === "0-12")!.months);
   assert.equal(profile.children[0].birthDate, undefined);
-  assert.deepEqual(buildQuestions(profile, newId).find((q) => q.id === `child-age:${id}`)!.current(profile), ["6-12"]);
+  assert.deepEqual(buildQuestions(profile, newId).find((q) => q.id === `child-age:${id}`)!.current(profile), ["0-12"]);
   profile = answer(profile, `child-care:${id}`, ["none"]);
   assert.deepEqual(profile.children[0].sensitivities, []);
   assert.deepEqual(buildQuestions(profile, newId).find((q) => q.id === `child-care:${id}`)!.current(profile), ["none"]);
@@ -92,21 +94,10 @@ test("tuổi theo khoảng thay ngày sinh; chăm sóc 'không có gì' lưu dan
   assert.match(buildQuestions(profile, newId).find((q) => q.id === `child-weight:${id}`)!.title, /Bé Gold/);
 });
 
-test("mua sắm: ngân sách 'không đặt giới hạn' xóa mức trần; nỗi lo chính được lưu", () => {
-  let profile = answer(blank(), "budget", ["350000"]);
-  assert.equal(profile.maxBudget, 350000);
-  assert.deepEqual(buildQuestions(profile, newId).find((q) => q.id === "budget")!.current(profile), ["350000"]);
-  profile = answer(profile, "budget", ["none"]);
-  assert.equal(profile.maxBudget, undefined);
-  profile = answer(profile, "concern", ["night"]);
-  assert.equal(profile.mainConcern, "night");
-  assert.equal(profile.pricePreference, "balanced");
-});
-
 test("markQuestion ghi đã trả lời / bỏ qua, không trùng, tối đa 30", () => {
-  let profile = markQuestion(blank(), "adults", false);
-  profile = markQuestion(profile, "adults", true);
-  assert.deepEqual(profile.onboarding, { version: 2, completedSlots: [], skippedSlots: ["adults"] });
+  let profile = markQuestion(blank(), "focus", false);
+  profile = markQuestion(profile, "focus", true);
+  assert.deepEqual(profile.onboarding, { version: 2, completedSlots: [], skippedSlots: ["focus"] });
   for (let i = 0; i < 40; i++) profile = markQuestion(profile, `q${i}`, false);
   assert.equal(profile.onboarding!.completedSlots.length, 30);
   assert.ok(validProfile(profile));
