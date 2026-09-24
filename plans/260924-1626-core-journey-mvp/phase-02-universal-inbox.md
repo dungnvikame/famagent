@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Universal Inbox"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1]
@@ -20,7 +20,7 @@ Một ô “Ghi nhanh” trên mọi trang (app shell). Câu → phân loại: *
 - `components/inbox/inbox.tsx` trong `AppShell` (nút nổi trên điện thoại, thanh trên desktop); ảnh dùng lại `PhotoCapture`.
 
 ## Success Criteria
-- [ ] “Hôm nay mua bỉm 369k” → nháp lần mua; `Đúng` → +1 khoản chi (Con), +1 lần mua, cập nhật tồn.
-- [ ] “ăn trưa 80k” → khoản chi Ăn uống; “lương về 25tr” → khoản thu; “tháng này tiêu bao nhiêu” → Trợ lý.
-- [ ] Link sàn không đọc được giá → hỏi giá, không lỗi; host lạ → từ chối.
-- [ ] Test phân loại, tóm tắt, bộ đọc meta.
+- [x] “Hôm nay mua bỉm 369k” → nháp lần mua; `Đúng` → +1 khoản chi (Con), +1 lần mua, cập nhật tồn.
+- [x] “ăn trưa 80k” → khoản chi Ăn uống; “lương về 25tr” → khoản thu; “tháng này tiêu bao nhiêu” → Trợ lý.
+- [x] Link sàn không đọc được giá → hỏi giá, không lỗi; host lạ → từ chối.
+- [x] Test phân loại, tóm tắt, bộ đọc meta.

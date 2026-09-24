@@ -50,6 +50,10 @@ test("khoản định kỳ: sắp tới trong 7 ngày (kể cả đầu tháng s
   assert.deepEqual(upcoming.map((item) => [item.name, item.daysLeft, item.dueOn]), [["Internet", 2, "2026-09-26"], ["Tiền nhà", 7, "2026-10-01"]]);
   assert.deepEqual(dueRecurring(recurring, "2026-09", now).map((item) => item.id), ["r2"], "chỉ khoản đã tới ngày và chưa ghi tháng này");
   assert.deepEqual(dueRecurring(recurring, "2026-10", now), [], "không ghi trước cho tháng sau");
+  // Review 260924-1609 C1: opening an older month never posts into it.
+  const postedSeptember = recurring.map((item) => ({ ...item, lastPostedMonth: "2026-09" }));
+  assert.deepEqual(dueRecurring(postedSeptember, "2026-08", now), [], "không ghi ngược về tháng cũ");
+  assert.deepEqual(dueRecurring(recurring.map((item) => ({ ...item, lastPostedMonth: undefined })), "2026-07", now), [], "khoản mới không ghi bù lịch sử");
   const posted = postingFor(recurring[1], "2026-09", "p1");
   assert.equal(posted.occurredOn, "2026-09-01"); assert.equal(posted.source, "recurring"); assert.equal(posted.recurringId, "r2");
   assert.equal(postingFor({ ...recurring[0], dayOfMonth: 31 }, "2026-09", "p2").occurredOn, "2026-09-30", "ngày 31 lùi về cuối tháng");

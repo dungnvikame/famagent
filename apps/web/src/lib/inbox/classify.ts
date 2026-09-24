@@ -16,20 +16,26 @@ export type InboxResult =
 const EXPENSE_WORDS: Array<[RegExp, string]> = [
   [/\b(tien dien|dien thang|hoa don dien)\b/, "Tiền điện"], [/\b(tien nuoc|hoa don nuoc)\b/, "Tiền nước"],
   [/\b(tra gop)\b/, "Tiền trả góp"], [/\b(the tin dung)\b/, "Tiền thẻ tín dụng"], [/\b(tra no)\b/, "Tiền trả nợ"],
-  [/\b(thuoc|kham|benh vien|nha khoa|tiem|xet nghiem)\b/, "Khám, thuốc"],
+  [/\b(thuoc|kham|benh vien|nha khoa|tiem chung|tiem phong|xet nghiem)\b/, "Khám, thuốc"],
   [/\b(hoc phi|hoc them|khoa hoc|sach vo|truong)\b/, "Học tập"],
-  [/\b(dam cuoi|dam hoi|mung cuoi|phung|sinh nhat|qua tang|mung tuoi|li xi|lixi)\b/, "Hiếu hỉ"],
+  [/\b(dam cuoi|dam hoi|mung cuoi|mung|phung|sinh nhat|qua tang|mung tuoi|li xi|lixi)\b/, "Hiếu hỉ"],
   [/\b(du lich|khach san|homestay|ve may bay|ve tau)\b/, "Du lịch"],
   [/\b(phim|karaoke|game|netflix|spotify|youtube|gym|the thao)\b/, "Giải trí"],
   [/\b(an sang|an trua|an toi|an vat|ca phe|cafe|coffee|tra sua|com|pho|bun|lau|nuong|nha hang|quan an|an ngoai|do an|grabfood|shopeefood|banh mi|uong)\b/, "Ăn uống"],
   [/\b(bo me|ong ba|bieu|gui ve que)\b/, "Gia đình"],
-  [/\b(cho be|cho con|hoc cho con|do choi|bim|sua cho be)\b/, "Con"],
+  [/\b(cho be|cho con|hoc cho con|do choi|bim|sua cho be|sua bot|sua cong thuc)\b/, "Con"],
+  [/\b(nhan hang|don hang|shopee|lazada|tiki|tiktok)\b/, "Mua sắm"],
+  [/\b(cat toc|lam toc|tiem toc|goi dau|spa|lam dep|lam nail)\b/, "Tiêu dùng"],
   [/\b(xang|grab|taxi|be\b|gui xe|ve xe|di cho|sieu thi|rau|thit|ca|trai cay|dien thoai|internet|wifi|gas)\b/, "Tiêu dùng"],
   [/\bmua\b/, "Mua sắm"],
 ];
-const INCOME_WORDS: Array<[RegExp, string]> = [[/\b(luong)\b/, "Lương"], [/\b(thuong)\b/, "Thưởng"], [/\b(co tuc|lai tiet kiem|lai ngan hang|dau tu)\b/, "Đầu tư"], [/\b(ba me cho|ong ba cho|gia dinh ho tro|mung)\b/, "Gia đình hỗ trợ"], [/\b(tra no cho minh|tra lai tien)\b/, "Tiền trả nợ nhận về"], [/\b(nhan|duoc|thu ve|ve tai khoan|hoan tien|freelance|du an)\b/, "Khác"]];
-const QUESTION = /\?|^(bao nhieu|the nao|sao|tai sao|co nen|nen|lam sao|xem|cho (toi|minh) (xem|biet)|thang nay|tuan nay|con bao nhieu|goi y|so sanh|tim|mua lai)\b/;
-const URL = /https?:\/\/[^\s]+/i;
+const INCOME_WORDS: Array<[RegExp, string]> = [
+  [/(^luong\b|\bluong (ve|thang|chong|vo|cua)\b|\bnhan luong\b|\bluong da ve\b)/, "Lương"], [/(^thuong\b|\bnhan thuong\b|\bthuong (tet|quy|du an|kpi)\b)/, "Thưởng"],
+  [/\b(co tuc|lai tiet kiem|lai ngan hang|lai dau tu)\b/, "Đầu tư"], [/\b(ba me cho|bo me cho|ong ba cho|gia dinh ho tro)\b/, "Gia đình hỗ trợ"],
+  [/\b(tra no cho minh|tra lai tien cho minh|duoc \S+ tra( tien)?)\b/, "Tiền trả nợ nhận về"], [/\b(hoan tien|tien ve tai khoan|thu nhap them|ban duoc|nhan tien du an)\b/, "Khác"],
+];
+const QUESTION = /\?|^(bao nhieu|the nao|sao|tai sao|co nen|nen|lam sao|xem|cho (toi|minh) (xem|biet)|thang nay|tuan nay|con bao nhieu|goi y|so sanh|tim|mua lai)\b|\b(khong|ko|hong|nhi)\s*$|\b(la nhieu|nhieu khong|co nhieu|hop ly|co sao|duoc khong|nen khong|the nao)\b/;
+const URL = /(https?:\/\/[^\s]+|\b(?:[a-z0-9-]+\.)?(?:shopee\.vn|shp\.ee|lazada\.vn|tiki\.vn|tiktok\.com|concung\.com|bibomart\.com\.vn)\/[^\s]*)/i;
 const FILLER = /\b(hom nay|hom qua|hom kia|sang nay|trua nay|chieu nay|toi qua|vua|moi|da|roi|xong|het|mat|tieu|chi|tra|tien)\b/g;
 const CONSUMABLE = new Set(["diapers", "wipes", "milk", "solids", "hygiene", "household"]);
 
@@ -37,7 +43,7 @@ const CONSUMABLE = new Set(["diapers", "wipes", "milk", "solids", "hygiene", "ho
 export function classifyInbox(text: string, items: ShoppingItem[], today: string): InboxResult {
   const trimmed = text.trim();
   const link = URL.exec(trimmed);
-  if (link) return { kind: "link", url: link[0].replace(/[),.]+$/, ""), note: trimmed.replace(link[0], "").trim() };
+  if (link) { const raw = link[0].replace(/[),.]+$/, ""); return { kind: "link", url: /^https?:\/\//i.test(raw) ? raw : `https://${raw}`, note: trimmed.replace(link[0], "").trim() }; }
   const lower = trimmed.toLocaleLowerCase("vi");
   const folded = fold(trimmed);
   const amount = findAmount(trimmed);

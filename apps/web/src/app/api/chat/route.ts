@@ -74,7 +74,7 @@ export async function POST(request: Request) {
   const big = detectBigPurchase(body.message);
   if (big && account) {
     const bundle = await loadBundle(account.client, account.user.id, monthKey(new Date()));
-    const decision = decide(big, bundle ? summarizeMonth(bundle) : null, bundle?.goals ?? [], profile?.household?.monthlyIncome);
+    const decision = decide(big, bundle ? summarizeMonth(bundle) : null, bundle?.goals ?? [], profile?.household?.monthlyIncome, (bundle?.recurring ?? []).filter((item) => item.active && item.kind === "income").reduce((sum, item) => sum + item.amount, 0));
     return NextResponse.json({ text: decision.text, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "decision-rules-v1", mode: "rules", decision } satisfies ChatResponse);
   }
 

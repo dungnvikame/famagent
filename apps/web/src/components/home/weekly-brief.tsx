@@ -24,8 +24,9 @@ export function WeeklyBriefPage() {
     {block("Mục tiêu", brief.goal)}
     {block("Tuần tới", brief.nextWeek)}
     <span className="purchase-actions"><Link className="app-btn" href="/shopping#plan-title">Chuẩn bị tuần tới</Link><Link className="ledger-link" href="/home">← Trang chủ</Link>
-      {!muted && <button type="button" className="ledger-link" onClick={() => void sendFeedback("weekly_brief:all", "mute").then(() => setMuted(true))}>Đừng gửi bản tin tuần qua thông báo</button>}
+      {!muted && <button type="button" className="ledger-link" onClick={() => void sendFeedback("weekly_brief:all", "mute").then(() => setMuted(true)).catch(() => setError("Chưa lưu được — thử lại sau."))}>Đừng gửi bản tin tuần qua thông báo</button>}
     </span>
+    {error && <p className="form-error" role="alert">{error}</p>}
     {muted && <p className="app-sub" role="status">Đã tắt thông báo bản tin tuần. Trang này vẫn xem được bất cứ lúc nào.</p>}
   </div>;
 }

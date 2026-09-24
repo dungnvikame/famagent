@@ -98,7 +98,9 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
 /** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */
 export function dueRecurring(recurring: MoneyRecurring[], month: string, now: Date): MoneyRecurring[] {
   const current = monthKey(now) === month;
-  return recurring.filter((item) => item.active && item.lastPostedMonth !== month && (!current || item.dayOfMonth <= now.getDate()) && month <= monthKey(now));
+  // Forward only: a month after the last posting (never-posted items start with the current month). Loading an older
+  // month must not post into it — that would duplicate rent/salary and move lastPostedMonth backwards.
+  return recurring.filter((item) => item.active && month <= monthKey(now) && (item.lastPostedMonth ? month > item.lastPostedMonth : current) && (!current || item.dayOfMonth <= now.getDate()));
 }
 
 /** Transaction created when a recurring item posts. */

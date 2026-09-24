@@ -21,11 +21,10 @@ export async function GET(request: Request) {
   const { today, now } = vietnamToday();
   let sent = 0; let removed = 0;
   try {
-    await client.connect();
     const families = await forEachFamily(client, async (userId, devices) => {
       const state = await loadSnapshotPg(client, userId, today, now);
       const policy = familyPolicy(state.snapshot.profile);
-      const reminders = remindersFor(allInsights(state.snapshot, policy, now), { feedback: state.feedback, sentToday: state.sentToday, recent: state.recent, today, policy, estimates: state.snapshot.estimates });
+      const reminders = remindersFor(allInsights(state.snapshot, policy, now), { feedback: state.feedback, sentToday: state.sentToday, sentThisWeek: state.sentThisWeek, recent: state.recent, today, policy, estimates: state.snapshot.estimates });
       for (const reminder of reminders) {
         if (!await claim(client, userId, reminder.key, today)) continue;
         const result = await sendToDevices(client, devices, reminder);

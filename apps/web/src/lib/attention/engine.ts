@@ -77,7 +77,7 @@ export function allInsights(snapshot: FamilySnapshot, policy: FamilyPolicy, now 
   const children = profile?.children ?? [];
   const nameOf = (childId?: string) => { const child = children.find((entry) => entry.id === childId) ?? (children.length === 1 ? children[0] : undefined); return child?.name; };
 
-  const pending = snapshot.conversations.find((item) => { const last = item.turns.at(-1); return last?.role === "assistant" && (last.choices?.length ?? 0) > 0; });
+  const pending = snapshot.conversations.find((item) => { const last = item.turns.at(-1); return last?.role === "assistant" && Boolean(last.intent?.pendingQuestion) && (last.choices?.length ?? 0) > 0; });
   if (pending) out.push({ key: `pending_question:${pending.id}`, kind: "pending_question", subjectId: pending.id, tone: "warn", badge: "!", title: "FamAgent đang chờ bạn trả lời", detail: `“${pending.title}” — chọn một gợi ý để tiếp tục.`, source: "Từ cuộc trò chuyện gần nhất", cta: { label: "Trả lời", href: `/agent?c=${pending.id}` }, priority: 90 });
 
   // "Bỉm của Gold — có thể còn khoảng 4 ngày. Mua lại" (spec §3).
@@ -95,11 +95,11 @@ export function allInsights(snapshot: FamilySnapshot, policy: FamilyPolicy, now 
   }
 
   for (const spike of categorySpikes(snapshot.history, now, policy.spikePct).slice(0, 1)) {
-    out.push({ key: `category_spike:${spike.category}:${spike.week}`, kind: "category_spike", subjectId: spike.category, tone: "info", badge: `+${spike.pct}%`, title: `Chi ${spike.category.toLocaleLowerCase("vi")} tuần này`, detail: `Cao hơn trung bình 4 tuần trước khoảng ${spike.pct}% (${shortVnd(spike.week7)} so với ~${shortVnd(spike.average)}).`, source: "Từ sổ Tiền 5 tuần gần nhất", cta: { label: "Xem chi tiết", href: `/money#month` }, priority: 65 });
+    out.push({ key: `category_spike:${spike.category}`, kind: "category_spike", subjectId: spike.category, tone: "info", badge: `+${spike.pct}%`, title: `Chi ${spike.category.toLocaleLowerCase("vi")} tuần này`, detail: `Cao hơn trung bình 4 tuần trước khoảng ${spike.pct}% (${shortVnd(spike.week7)} so với ~${shortVnd(spike.average)}).`, source: "Từ sổ Tiền 5 tuần gần nhất", cta: { label: "Xem chi tiết", href: `/money#month` }, priority: 65 });
   }
 
   for (const bill of month?.upcoming.filter((item) => item.kind === "expense" && item.daysLeft <= 3).slice(0, 2) ?? []) {
-    out.push({ key: `bill_due:${bill.id}:${bill.dueOn}`, kind: "bill_due", subjectId: bill.id, tone: bill.daysLeft <= 1 ? "warn" : "info", badge: bill.daysLeft === 0 ? "Nay" : `${bill.daysLeft}d`, title: `${bill.name} ${shortVnd(bill.amount)}`, detail: bill.daysLeft === 0 ? "Đến hạn hôm nay." : `Đến hạn sau ${bill.daysLeft} ngày.`, source: "Từ khoản định kỳ trong Tiền", cta: { label: "Xem", href: "/money#plan" }, priority: 60 });
+    out.push({ key: `bill_due:${bill.id}`, kind: "bill_due", subjectId: bill.id, tone: bill.daysLeft <= 1 ? "warn" : "info", badge: bill.daysLeft === 0 ? "Nay" : `${bill.daysLeft}d`, title: `${bill.name} ${shortVnd(bill.amount)}`, detail: bill.daysLeft === 0 ? "Đến hạn hôm nay." : `Đến hạn sau ${bill.daysLeft} ngày.`, source: "Từ khoản định kỳ trong Tiền", cta: { label: "Xem", href: "/money#plan" }, priority: 60 });
   }
 
   for (const stage of upcomingStages(profile, snapshot.plan, now).filter((entry) => entry.key.startsWith("stage:size-"))) {
@@ -131,7 +131,7 @@ export function fineLines(snapshot: FamilySnapshot, policy: FamilyPolicy, attent
   if (month?.plan && month.transactionCount > 0 && month.paceRatio !== undefined && month.paceRatio <= 1 + policy.spendAlertPct / 100 && !attention.some((item) => item.kind === "money_pace")) out.push(`Chi tiêu: trong nhịp kế hoạch (${shortVnd(month.expense)} / ${shortVnd(month.plan)})`);
   const known = estimates.filter((estimate) => estimate.known);
   if (known.length && !known.some((estimate) => estimate.daysLeft !== null && estimate.daysLeft <= policy.reorderWindowDays)) {
-    const soonest = known.find((estimate) => estimate.daysLeft !== null);
+    const soonest = [...known].filter((estimate) => estimate.daysLeft !== null).sort((a, b) => a.daysLeft! - b.daysLeft!)[0];
     out.push(`Đồ dùng: chưa có món cần mua gấp${soonest ? ` (sớm nhất ${soonest.item.name}, ~${soonest.daysLeft} ngày)` : ""}`);
   }
   if (month && month.upcoming.length > 0 && !month.upcoming.some((item) => item.kind === "expense" && item.daysLeft <= 3)) out.push("Hóa đơn: không có khoản nào đến hạn trong 3 ngày tới");

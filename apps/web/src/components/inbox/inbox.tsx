@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { PhotoCapture } from "@/components/shopping/photo-capture";
@@ -25,6 +25,8 @@ import { MoneyDraftCard } from "./money-draft-card";
 export const DATA_CHANGED = "famagent:data-changed";
 export const OPEN_INBOX = "famagent:open-inbox";
 export const openInbox = (text = "") => window.dispatchEvent(new CustomEvent(OPEN_INBOX, { detail: text }));
+/** The agent page listens for this: a question typed in the Inbox while already on /agent is sent there directly. */
+export const ASK_AGENT = "famagent:ask-agent";
 const changed = () => window.dispatchEvent(new Event(DATA_CHANGED));
 
 interface Context { profile: FamilyProfile | null; shopping: ShoppingState; month: MonthSummary | null }
@@ -35,6 +37,8 @@ interface Context { profile: FamilyProfile | null; shopping: ShoppingState; mont
  */
 export function Inbox() {
   const router = useRouter();
+  const pathname = usePathname();
+  const opener = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [context, setContext] = useState<Context | null>(null);
@@ -56,29 +60,40 @@ export function Inbox() {
   }
 
   useEffect(() => {
-    const show = (event: Event) => { const prefill = (event as CustomEvent<string>).detail; setOpen(true); setDone(""); setResult(null); if (typeof prefill === "string" && prefill) setText(prefill); void loadContext(); };
+    const show = (event: Event) => { opener.current = document.activeElement as HTMLElement | null; const prefill = (event as CustomEvent<string>).detail; setOpen(true); setDone(""); setResult(null); if (typeof prefill === "string" && prefill) setText(prefill); void loadContext(); };
     window.addEventListener(OPEN_INBOX, show);
     return () => window.removeEventListener(OPEN_INBOX, show);
   }, []);
   useEffect(() => { if (open) window.setTimeout(() => input.current?.focus(), 0); }, [open]);
+  // Escape closes; focus goes back to whatever opened the Inbox.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") close(); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+  function close() { setOpen(false); window.setTimeout(() => opener.current?.focus?.(), 0); }
 
   async function submit() {
     if (!text.trim()) return;
     setError(""); setDone("");
     const ctx = context ?? await loadContext();
     const next = classifyInbox(text, ctx.shopping.items, todayLocal());
-    if (next.kind === "question") { setOpen(false); router.push(`/agent?q=${encodeURIComponent(next.text)}`); setText(""); return; }
+    if (next.kind === "question") {
+      close(); setText("");
+      if (pathname.startsWith("/agent")) window.dispatchEvent(new CustomEvent(ASK_AGENT, { detail: next.text }));
+      else router.push(`/agent?q=${encodeURIComponent(next.text)}`);
+      return;
+    }
     setResult(next); setKey((value) => value + 1);
   }
   function saved(message: string) { setDone(message); setResult(null); setText(""); changed(); void loadContext(); }
 
   const children = context?.profile?.children ?? [];
-  const trigger = (className: string) => <button type="button" className={className} onClick={() => openInbox()} aria-haspopup="dialog">＋ Ghi nhanh</button>;
   return <>
-    {trigger("inbox-trigger side")}
-    {trigger("inbox-trigger fab")}
+    <button type="button" className="inbox-trigger fab" onClick={() => openInbox()} aria-haspopup="dialog">＋ Ghi nhanh</button>
     {open && createPortal(<>
-      <button type="button" className="purchase-backdrop" aria-label="Đóng" onClick={() => setOpen(false)} />
+      <button type="button" className="purchase-backdrop" aria-label="Đóng" onClick={close} />
       <div className="purchase-form inbox-sheet" role="dialog" aria-modal="true" aria-label="Ghi nhanh cho FamAgent">
         <div className="app-card inbox-card">
           <b>Nói cho FamAgent</b>

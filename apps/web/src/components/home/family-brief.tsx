@@ -64,6 +64,14 @@ export function FamilyBriefPage() {
 /** One attention card: title, detail, source, one CTA and "⋯" feedback. "Không đúng" on stock asks "còn không?". */
 function InsightCard({ insight, state, onAnswer, onChanged }: { insight: Insight; state: LoadedState; onAnswer: (verdict: FeedbackVerdict) => void; onChanged: () => void }) {
   const [menu, setMenu] = useState(false);
+  // Keyboard: Escape closes the feedback menu; arrows move between its items.
+  function onMenuKey(event: React.KeyboardEvent<HTMLSpanElement>) {
+    const buttons = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button")];
+    const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    if (event.key === "Escape") { setMenu(false); (event.currentTarget.previousElementSibling as HTMLElement | null)?.focus(); }
+    if (event.key === "ArrowDown") { event.preventDefault(); buttons[(at + 1) % buttons.length]?.focus(); }
+    if (event.key === "ArrowUp") { event.preventDefault(); buttons[(at - 1 + buttons.length) % buttons.length]?.focus(); }
+  }
   const [checking, setChecking] = useState(false);
   const estimate = insight.kind === "stock_low" ? state.snapshot.estimates.find((entry) => entry.item.id === insight.subjectId) : undefined;
   function pick(verdict: FeedbackVerdict) {
@@ -81,7 +89,7 @@ function InsightCard({ insight, state, onAnswer, onChanged }: { insight: Insight
       <Link className={`app-btn${insight.tone === "warn" ? "" : " ghost"}`} href={insight.cta.href}>{insight.cta.label}</Link>
       <span className="insight-more">
         <button type="button" className="ledger-link" aria-haspopup="menu" aria-expanded={menu} aria-label={`Phản hồi về: ${insight.title}`} onClick={() => setMenu((open) => !open)}>⋯</button>
-        {menu && <span className="insight-menu" role="menu">{FEEDBACK_VERDICTS.map((verdict) => <button key={verdict} type="button" role="menuitem" onClick={() => pick(verdict)}>{FEEDBACK_LABELS[verdict]}</button>)}</span>}
+        {menu && <span className="insight-menu" role="menu" onKeyDown={onMenuKey} ref={(node) => { node?.querySelector("button")?.focus(); }}>{FEEDBACK_VERDICTS.map((verdict) => <button key={verdict} type="button" role="menuitem" onClick={() => pick(verdict)}>{FEEDBACK_LABELS[verdict]}</button>)}</span>}
       </span>
     </span>
   </div>;

@@ -36,6 +36,10 @@ export interface StockLine {
   lastPackPrice?: number; minPackPrice?: number;
   /** "sắp lên size XL" when the child is near the size's weight ceiling (lib/shopping/stages). */
   sizeNote?: string;
+  /** True only when the child's weight and diaper size are known, so "còn phù hợp" is a fact, not a guess. */
+  fitKnown?: boolean;
+  childName?: string;
+  category?: string;
 }
 
 /** Reorder / "còn không?" answered from purchase history; without history, fall back to discovery with an honest note. */
@@ -49,13 +53,14 @@ function replenishmentReply(intentType: ShoppingIntent["intentType"], stock: Sto
   if (intentType === "check_replenishment") return { text: `${lines.join(". ")}.${low.length ? ` Nên mua lại ${low.map((item) => item.productName).join(", ")} trong tuần này.` : " Chưa cần mua thêm."}`, choices: low.length ? low.slice(0, 2).map((item) => `Mua lại ${item.productName}`) : ["Tìm bỉm cho bé"] };
   // Spec §5: the item asked about (or the one running out first) as one card — fit, last price, lowest paid, catalog price, days left.
   const lower = message.toLocaleLowerCase("vi");
-  const target = stock.find((item) => item.productName.toLocaleLowerCase("vi").split(/\s+/).some((word) => word.length > 2 && lower.includes(word) && !["bỉm", "mua", "lại"].includes(word))) ?? low[0] ?? stock[0];
+  const target = stock.find((item) => item.childName && lower.includes(item.childName.toLocaleLowerCase("vi")) && (item.category === "diapers" || !lower.includes("bỉm")))
+    ?? stock.find((item) => item.productName.toLocaleLowerCase("vi").split(/\s+/).some((word) => word.length > 2 && lower.includes(word) && !["bỉm", "mua", "lại"].includes(word))) ?? low[0] ?? stock[0];
   if (target.lastPackPrice) {
     const product = target.productId ? products.find((entry) => entry.id === target.productId) : undefined;
     const offers = product?.variants.filter((variant) => !target.packSize || variant.quantity === target.packSize).flatMap((variant) => variant.offers.filter((offer) => offer.availability === "in_stock")) ?? [];
     const best = offers.sort((a, b) => a.price - b.price)[0];
     const lines = [
-      `${target.productName} ${target.sizeNote ? `vẫn dùng được nhưng ${target.sizeNote}` : "hiện còn phù hợp"}.`,
+      target.sizeNote ? `${target.productName} vẫn dùng được nhưng ${target.sizeNote}.` : target.fitKnown ? `${target.productName} hiện còn phù hợp với cân nặng của bé.` : `${target.productName} — FamAgent chưa có cân nặng mới của bé để chắc size còn vừa.`,
       `Lần trước: ${k(target.lastPackPrice)}${target.merchant ? ` ở ${target.merchant}` : ""}.`,
       ...(target.minPackPrice && target.minPackPrice < target.lastPackPrice ? [`Giá thấp nhất nhà mình từng trả: ${k(target.minPackPrice)}.`] : []),
       ...(best ? [`Giá đang có trong danh mục: ${k(best.price)} (${best.merchantName}).`] : []),

@@ -1,7 +1,7 @@
 ---
 phase: 6
 title: "Chủ động + Brief tuần"
-status: pending
+status: completed
 priority: P2
 effort: "0.75d"
 dependencies: [3]
@@ -19,5 +19,5 @@ Bất thường theo nhóm/tuần (“Ăn ngoài tuần này cao hơn trung bìn
 - Migration 0015: `notification_log(user_id, key, day)` thay `push_log` cho mọi loại nhắc; cron hằng ngày dùng engine; `/api/cron/weekly` (vercel.json `0 12 * * 0` = 19:00 VN).
 
 ## Success Criteria
-- [ ] Test spike + weekly.
-- [ ] Cron: tối đa 2 nhắc/ngày/nhà, không nhắc mục đã “Đừng nhắc”/“Chưa cần”.
+- [x] Test spike + weekly.
+- [x] Cron: tối đa 2 nhắc/ngày/nhà, không nhắc mục đã “Đừng nhắc”/“Chưa cần”.

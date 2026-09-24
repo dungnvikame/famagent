@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Onboarding 4 bước + Family Policy"
-status: pending
+status: completed
 priority: P1
 effort: "0.5d"
 dependencies: []
@@ -20,7 +20,7 @@ Onboarding chỉ còn: Nhà mình → Thành viên (số con, tên, tuổi, cân
 - Ẩn phương pháp: `FrameworkPanel` (Tiền) và phần phương pháp nuôi dạy / Nurturing Care (Gia đình) vào `<details>` “Nâng cao”; Home bỏ “Việc hôm nay”.
 
 ## Success Criteria
-- [ ] Gia đình 1 con: đúng 7 màn (focus, setup, số con, tên, tuổi, cân, phong cách) + tóm tắt.
-- [ ] Chọn “Tiết kiệm” → `pricePreference=budget`, policy nhắc sớm hơn/nhạy chi hơn “Tiện lợi”.
-- [ ] `?section=money` vẫn hỏi đủ câu tài chính và đánh giá cũ.
-- [ ] Test câu hỏi cập nhật; test policy.
+- [x] Gia đình 1 con: đúng 7 màn (focus, setup, số con, tên, tuổi, cân, phong cách) + tóm tắt.
+- [x] Chọn “Tiết kiệm” → `pricePreference=budget`, policy nhắc sớm hơn/nhạy chi hơn “Tiện lợi”.
+- [x] `?section=money` vẫn hỏi đủ câu tài chính và đánh giá cũ.
+- [x] Test câu hỏi cập nhật; test policy.

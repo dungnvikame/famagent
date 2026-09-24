@@ -17,6 +17,8 @@ export function reorderLines(estimates: ItemEstimate[], purchases: Purchase[], p
       itemId: estimate.item.id, productId: estimate.item.productId, unit: estimate.item.unit, packSize: estimate.item.packSize, merchant: estimate.lastPurchase!.merchant ?? estimate.item.merchant,
       lastPackPrice: estimate.lastPackPrice, minPackPrice: packPrices.length ? Math.min(...packPrices) : undefined,
       sizeNote: stage ? stage.title.replace(/^bé \S+ /, "bé ") : undefined,
+      fitKnown: estimate.item.category === "diapers" && child?.weightKg !== undefined && Boolean(child.diaperSize),
+      childName: child?.name, category: estimate.item.category,
     };
   });
 }

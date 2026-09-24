@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Attention engine + Home + feedback"
-status: pending
+status: completed
 priority: P1
 effort: "1d"
 dependencies: [1, 2]
@@ -19,6 +19,6 @@ Một bộ máy sinh insight từ Family State, dùng chung cho Home, push, Brie
 - Home viết lại (`family-brief.tsx`): lời chào · Cần chú ý · Đang ổn · thẻ khởi đầu · link Brief tuần. Bỏ ô KPI, Việc hôm nay; `build-brief.ts` thay bằng engine.
 
 ## Success Criteria
-- [ ] Không quá 3 thẻ chú ý; mọi thẻ có nguồn + CTA + feedback.
-- [ ] “Đang ổn” liệt kê điều đang đúng (tiết kiệm đúng tiến độ, không món nào gấp, chi trong nhịp).
-- [ ] “Đừng nhắc” ẩn vĩnh viễn thẻ đó; “Chưa cần” ẩn 3 ngày; test engine + feedback.
+- [x] Không quá 3 thẻ chú ý; mọi thẻ có nguồn + CTA + feedback.
+- [x] “Đang ổn” liệt kê điều đang đúng (tiết kiệm đúng tiến độ, không món nào gấp, chi trong nhịp).
+- [x] “Đừng nhắc” ẩn vĩnh viễn thẻ đó; “Chưa cần” ẩn 3 ngày; test engine + feedback.

@@ -115,3 +115,5 @@ details.advanced>summary{cursor:pointer;font-weight:700;color:var(--primary-ink)
 .insight-menu button{border:0;background:none;text-align:left;padding:10px 12px;font:inherit;font-size:14px;border-radius:8px;cursor:pointer;color:var(--ink)}
 .insight-menu button:hover,.insight-menu button:focus-visible{background:var(--mint)}
 @media (max-width:560px){.insight-card{flex-wrap:wrap}.insight-actions{width:100%;justify-content:flex-end}}
+
+.chip.on{background:var(--ink);color:#fff;border-color:var(--ink)}

@@ -17,7 +17,6 @@ export async function GET(request: Request) {
   const key = `weekly_brief:${today}`;
   let sent = 0;
   try {
-    await client.connect();
     const families = await forEachFamily(client, async (userId, devices) => {
       const state = await loadSnapshotPg(client, userId, today, now);
       if (silenced("weekly_brief:all", state.feedback, today) || !await claim(client, userId, key, today)) return;

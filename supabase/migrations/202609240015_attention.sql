@@ -28,12 +28,13 @@ create policy "Read own notification log" on public.notification_log for select 
 revoke all on public.insight_feedback, public.notification_log from anon;
 
 -- The reminder jobs (DATABASE_URL role famagent_app, when present) read feedback, the ledger and plan, and write the log.
+-- Nothing else: conversations/messages stay unreadable to the server role.
 do $$
 declare
   t text;
 begin
   if exists (select 1 from pg_roles where rolname = 'famagent_app') then
-    foreach t in array array['insight_feedback', 'notification_log', 'money_transactions', 'money_recurring', 'money_budgets', 'money_goals', 'money_settings', 'shopping_plan_entries', 'conversations', 'messages'] loop
+    foreach t in array array['insight_feedback', 'notification_log', 'money_transactions', 'money_recurring', 'money_budgets', 'money_goals', 'money_settings', 'shopping_plan_entries'] loop
       execute format('grant select on public.%I to famagent_app', t);
       execute format('create policy "Reminder job reads %s" on public.%I for select to famagent_app using (true)', t, t);
     end loop;

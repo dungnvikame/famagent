@@ -32,8 +32,9 @@ const PACK_WORDS: Record<string, string> = { bich: "bịch", goi: "gói", hop: "
 const PIECE_WORDS: Record<string, string> = { mieng: "miếng", to: "tờ", cai: "cái", vien: "viên" };
 export const CATEGORY_WORDS: Array<[RegExp, ItemCategory]> = [
   [/khan (giay )?uot/, "wipes"], [/\b(bim|ta dan|ta quan|ta)\b/, "diapers"], [/\b(bot an dam|chao|an dam|banh an dam|pure)\b/, "solids"],
-  [/\bsua (bot|cong thuc|tuoi|chua)?|\b(meiji|similac|aptamil|enfa|nan|friso|morinaga|glico|vinamilk|nutifood|colosbaby)\b/, "milk"],
+  // Hygiene before milk: "sữa tắm" is soap, not milk.
   [/sua tam|dau goi|kem ham|nuoc giat (xa )?(em be|cho be)|nuoc rua binh|phan rom|bong tam|tam be/, "hygiene"],
+  [/\bsua (bot|cong thuc|tuoi|chua)?|\b(meiji|similac|aptamil|enfa|nan|friso|morinaga|glico|vinamilk|nutifood|colosbaby)\b/, "milk"],
   [/nuoc giat|nuoc xa|nuoc rua bat|giay ve sinh|khan giay|nuoc lau|tui rac|kem danh rang|xa phong|nuoc rua tay/, "household"],
   [/\b(merries|huggies|bobby|pampers|moony|goon|molfix|genki|mamamy|yubest|unidry|rascal|babydry|caryn|kochi|takato|whito)\b/, "diapers"],
 ];
@@ -88,11 +89,11 @@ export function findDate(folded: string, today: string): { on: string; span?: Sp
 }
 
 /** "Ghi đã mua lại <món>" → last purchase of that item again (packs, pack price, merchant), dated today. */
-export function reorderDraft(text: string, stock: Array<{ productName: string; itemId?: string; unit?: string; packSize?: number; lastPackPrice?: number; merchant?: string }>, today: string): PurchaseDraft | null {
+export function reorderDraft(text: string, stock: Array<{ productName: string; itemId?: string; unit?: string; packSize?: number; lastPackPrice?: number; merchant?: string; category?: string }>, today: string): PurchaseDraft | null {
   const match = /^ghi đã mua lại\s+(.+)$/iu.exec(text.trim());
   const line = match && stock.find((entry) => entry.itemId && entry.productName.toLocaleLowerCase("vi") === match[1].trim().toLocaleLowerCase("vi"));
   if (!line) return null;
-  return { itemId: line.itemId, name: line.productName, category: "diapers", unit: line.unit ?? "miếng", packs: 1, packSize: line.packSize, amount: line.lastPackPrice, merchant: line.merchant, purchasedOn: today, missing: [] };
+  return { itemId: line.itemId, name: line.productName, category: (line.category as ItemCategory | undefined) ?? "other", unit: line.unit ?? "miếng", packs: 1, packSize: line.packSize, amount: line.lastPackPrice, merchant: line.merchant, purchasedOn: today, missing: [] };
 }
 
 /** Parses a purchase sentence into a draft; `items` lets "mua bỉm Merries" restock the family's existing item. */

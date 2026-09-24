@@ -16,7 +16,8 @@ const buy = (purchasedOn: string, packs: number): Purchase => ({ id: crypto.rand
 
 test("pace so với bình thường, nhóm tăng nhiều nhất, Con tăng vì lượng chứ không vì giá", () => {
   // Earlier months up to the 20th: 16,7M each (Ăn uống 2,3M, Con 1M); this month 18,2M (Ăn uống 3M, Con 1,62M).
-  const earlier = ["2026-06", "2026-07", "2026-08"].flatMap((m) => [tx(`${m}-05`, 13_400_000, "Tiêu dùng"), tx(`${m}-10`, 2_300_000, "Ăn uống"), tx(`${m}-12`, 1_000_000, "Con")]);
+  // Rows after the 20th make each month "really logged" (≥ 5 expenses) without changing the up-to-day sums.
+  const earlier = ["2026-06", "2026-07", "2026-08"].flatMap((m) => [tx(`${m}-05`, 13_400_000, "Tiêu dùng"), tx(`${m}-10`, 2_300_000, "Ăn uống"), tx(`${m}-12`, 1_000_000, "Con"), tx(`${m}-25`, 100_000, "Tiêu dùng"), tx(`${m}-27`, 100_000, "Tiêu dùng")]);
   const current = [tx("2026-09-05", 13_580_000, "Tiêu dùng"), tx("2026-09-10", 3_000_000, "Ăn uống"), tx("2026-09-12", 1_620_000, "Con")];
   const purchases = [buy("2026-06-12", 2), buy("2026-07-12", 2), buy("2026-08-12", 2), buy("2026-09-02", 2), buy("2026-09-14", 2)];
   const explain = explainMonth(month(18_200_000), current, earlier, purchases, [bim], now);
@@ -29,14 +30,21 @@ test("pace so với bình thường, nhóm tăng nhiều nhất, Con tăng vì l
   assert.deepEqual(answer.choices[0], "Lập kế hoạch phần còn lại tháng");
 });
 
+test("tháng ghi dở (1 khoản) không được coi là bình thường", () => {
+  const explain = explainMonth(month(18_200_000), [tx("2026-09-05", 18_200_000, "Tiêu dùng")], [tx("2026-08-03", 5_000_000, "Tiêu dùng")], [], [], now);
+  assert.notEqual(explain.basis, "history");
+});
+
 test("lập kế hoạch phần còn lại tháng", () => {
   assert.equal(detectMoneyQuestion("Lập kế hoạch phần còn lại tháng"), "plan_rest");
   assert.match(planRestOfMonth(month(18_200_000), now), /^Còn 6,8M cho 11 ngày — khoảng 618K\/ngày\. Ngân sách nhóm: Ăn uống còn 500K/);
 });
 
 test("Mua lại bỉm cho Gold: phù hợp, lần trước, giá thấp nhất, còn N ngày", async () => {
-  const stock = [{ productName: "Merries L64", daysLeft: 4, remaining: 20, lastPurchasedOn: "2026-09-14", itemId: "i1", unit: "miếng", packSize: 64, merchant: "Shopee", lastPackPrice: 369_000, minPackPrice: 349_000 }];
+  const stock = [{ productName: "Merries L64", daysLeft: 4, remaining: 20, lastPurchasedOn: "2026-09-14", itemId: "i1", unit: "miếng", packSize: 64, merchant: "Shopee", lastPackPrice: 369_000, minPackPrice: 349_000, fitKnown: true, childName: "Gold", category: "diapers" }];
   const result = await runShoppingTurn({ message: "Mua lại bỉm cho Gold", profile: null, previousIntent: null, products: [], allowAi: false, stock });
-  assert.match(result.response.text, /Merries L64 hiện còn phù hợp\. Lần trước: 369K ở Shopee\. Giá thấp nhất nhà mình từng trả: 349K\. Dự kiến còn: 4 ngày\./);
+  assert.match(result.response.text, /Merries L64 hiện còn phù hợp với cân nặng của bé. Lần trước: 369K ở Shopee\. Giá thấp nhất nhà mình từng trả: 349K\. Dự kiến còn: 4 ngày\./);
   assert.deepEqual(result.response.choices, ["Ghi đã mua lại Merries L64", "So sánh loại khác"]);
+  const unknown = await runShoppingTurn({ message: "Mua lại bỉm cho Gold", profile: null, previousIntent: null, products: [], allowAi: false, stock: [{ ...stock[0], fitKnown: false }] });
+  assert.match(unknown.response.text, /chưa có cân nặng mới của bé để chắc size còn vừa/);
 });

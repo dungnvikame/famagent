@@ -21,7 +21,8 @@ export async function PUT(request: Request) {
   const auth = await authenticated();
   if (!auth || auth.user.is_anonymous) return unauthorized();
   const body = await request.json().catch(() => null) as { key?: unknown; verdict?: unknown } | null;
-  const key = typeof body?.key === "string" && body.key.length >= 3 && body.key.length <= 200 ? body.key : null;
+  // kind:subject from the engine (or weekly_brief:all) — nothing else is stored.
+  const key = typeof body?.key === "string" && body.key.length <= 200 && /^(pending_question|stock_low|money_pace|category_spike|bill_due|stage_size|weight_missing|weight_stale|weekly_brief):[\p{L}\p{N}:._ -]{1,180}$/u.test(body.key) ? body.key : null;
   const verdict = FEEDBACK_VERDICTS.includes(body?.verdict as FeedbackVerdict) ? body!.verdict as FeedbackVerdict : null;
   if (!key || !verdict) return NextResponse.json({ error: "Phản hồi không hợp lệ" }, { status: 400 });
   const entry = feedbackFor(key, verdict, new Date(Date.now() + 7 * 3_600_000));

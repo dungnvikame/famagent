@@ -44,3 +44,20 @@ test("nhắc: từ attention engine — sắp hết theo ngưỡng policy, chi b
   assert.deepEqual(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:c"]), recent: new Map([["stock_low:a", 3]]) }).map((reminder) => reminder.key), ["stock_low:b"]);
   assert.ok(!remindersFor(insights, base).some((reminder) => reminder.key === "stock_low:d"), "64 miếng còn >3 ngày");
 });
+
+test("review 260924-1609: giới hạn 2 nhắc mỗi ngày tính cả lần chạy trước; chi bất thường tối đa 1 lần/tuần", async () => {
+  const { allInsights } = await import("../src/lib/attention/engine.ts");
+  const { familyPolicy } = await import("../src/lib/policy/family-policy.ts");
+  const now = new Date(2026, 8, 24, 9);
+  const items = ["a", "b", "c"].map((id): ShoppingItem => ({ ...merries, id, name: `Món ${id}` }));
+  const purchases = ["a", "b", "c"].map((itemId) => ({ id: crypto.randomUUID(), itemId, productName: "x", amount: 100_000, packs: 1, unitCount: 5, purchasedOn: "2026-09-23" }));
+  const estimates = estimateItems(items, purchases, () => 6, now);
+  const policy = familyPolicy(null);
+  const insights = allInsights({ profile: null, conversations: [], month: null, history: [], goals: [], estimates, plan: [], counts: { transactions: 0, items: 3 } }, policy, now);
+  const base = { feedback: [], recent: new Map<string, number>(), today: "2026-09-24", policy, estimates };
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:a"]) }).length, 1);
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["stock_low:a", "stock_low:b"]) }).length, 0);
+  assert.equal(remindersFor(insights, { ...base, sentToday: new Set(["weekly_brief:2026-09-24"]) }).length, 2);
+  const spike = { key: "category_spike:Ăn uống", kind: "category_spike" as const, tone: "info" as const, badge: "+32%", title: "x", detail: "y", source: "z", cta: { label: "Xem", href: "/money" }, priority: 65 };
+  assert.equal(remindersFor([spike], { ...base, sentToday: new Set(), sentThisWeek: new Set([spike.key]) }).length, 0);
+});

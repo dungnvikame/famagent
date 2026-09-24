@@ -30,11 +30,12 @@ export function detectBigPurchase(text: string): BigPurchase | null {
 }
 
 /** Financial fit this month: remaining plan, projected savings vs the goals' monthly plan, and the price that keeps it. */
-export function decide(purchase: BigPurchase, summary: MonthSummary | null, goals: MoneyGoal[], monthlyIncome?: number): Decision {
+export function decide(purchase: BigPurchase, summary: MonthSummary | null, goals: MoneyGoal[], monthlyIncome?: number, recurringIncome = 0): Decision {
   const { what, amount } = purchase;
   const lines = [`FamAgent chưa có dữ liệu sản phẩm ${what} nên chưa đánh giá được model nào hợp nhu cầu nhà mình — dưới đây là phần tài chính.`];
   const target = goals.reduce((sum, goal) => sum + (goal.monthlyPlan ?? 0), 0);
-  const income = summary?.income || monthlyIncome || 0;
+  // Early in the month salary is often not logged yet: use the largest of logged, profile and recurring income.
+  const income = Math.max(summary?.income ?? 0, monthlyIncome ?? 0, recurringIncome);
   const expected = summary ? summary.expectedExpense ?? summary.expense : 0;
   let keepsGoalUnder: number | null = null; let shortfall: number | null = null;
   if (summary?.plan) {

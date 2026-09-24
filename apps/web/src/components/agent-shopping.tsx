@@ -27,7 +27,9 @@ import { explainMonth } from "@/lib/money/explain";
 import { shiftMonth } from "@/lib/shopping/plan";
 import { PurchaseDraftCard } from "@/components/shopping/purchase-draft-card";
 import { DecisionCard } from "@/components/agent/decision-card";
+import { ASK_AGENT } from "@/components/inbox/inbox";
 import { decide, detectBigPurchase } from "@/lib/money/decision";
+import { looksLikePurchaseLog } from "@/lib/shopping/capture";
 import { brandsToAvoid, extractNotes } from "@/lib/ai/notes";
 import { loadNotes, recordLocalNotes } from "@/lib/notes/client";
 
@@ -62,6 +64,9 @@ export function AgentShopping() {
   const [shoppingItems, setShoppingItems] = useState<ShoppingItem[]>([]);
   const [shoppingPurchases, setShoppingPurchases] = useState<Purchase[]>([]);
   const pendingPrefill = useRef<string | null>(null);
+  // Questions from the global Inbox while this page is open (the ?q= prefill only works on first load).
+  const [askTick, setAskTick] = useState(0);
+  useEffect(() => { const ask = (event: Event) => { const text = (event as CustomEvent<string>).detail; if (typeof text === "string" && text.trim()) { pendingPrefill.current = text; setAskTick((value) => value + 1); } }; window.addEventListener(ASK_AGENT, ask); return () => window.removeEventListener(ASK_AGENT, ask); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -101,7 +106,7 @@ export function AgentShopping() {
   const recentRecommendations = [...(active?.turns ?? [])].reverse().find((turn) => turn.recommendations?.length)?.recommendations ?? [];
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [active?.turns.length, busy]);
   // Send the ?q= message once the profile, catalog and conversation are in place.
-  useEffect(() => { if (pendingPrefill.current && profile && active && products.length && !busy) { const text = pendingPrefill.current; pendingPrefill.current = null; void send(text); } }, [profile, active, products.length, busy]); // eslint-disable-line react-hooks/exhaustive-deps -- send is recreated each render; guard runs once via the ref
+  useEffect(() => { if (pendingPrefill.current && profile && active && products.length && !busy) { const text = pendingPrefill.current; pendingPrefill.current = null; void send(text); } }, [profile, active, products.length, busy, askTick]); // eslint-disable-line react-hooks/exhaustive-deps -- send is recreated each render; guard runs once via the ref
 
 
   /** Inline edit from the family panel (already stamped + validated there). */
@@ -138,10 +143,11 @@ export function AgentShopping() {
       if (cloudEnabled) await saveCloudConversation(next.find((item) => item.id === activeId)!);
       // Coordinator, money side: in demo mode the ledger lives in this browser, so the answer is built here
       // with the same templates the server uses for signed-in users (/api/chat).
-      const moneyQuestion = !cloudEnabled ? detectMoneyQuestion(input) : null;
-      const big = !cloudEnabled ? detectBigPurchase(input) : null;
+      const logged = looksLikePurchaseLog(input);
+      const big = !cloudEnabled && !logged ? detectBigPurchase(input) : null;
+      const moneyQuestion = !cloudEnabled && !logged && !big ? detectMoneyQuestion(input) : null;
       const result: ChatResponse = big
-        ? await loadMoney(monthKey(new Date())).catch(() => null).then((bundle): ChatResponse => { const decision = decide(big, bundle ? summarizeMonth(bundle) : null, bundle?.goals ?? [], profile?.household?.monthlyIncome); return { text: decision.text, intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "decision-rules-v1", mode: "rules", decision }; })
+        ? await loadMoney(monthKey(new Date())).catch(() => null).then((bundle): ChatResponse => { const decision = decide(big, bundle ? summarizeMonth(bundle) : null, bundle?.goals ?? [], profile?.household?.monthlyIncome, (bundle?.recurring ?? []).filter((item) => item.active && item.kind === "income").reduce((sum, item) => sum + item.amount, 0)); return { text: decision.text, intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "decision-rules-v1", mode: "rules", decision }; })
         : moneyQuestion
         ? await Promise.all([0, -1, -2, -3].map((delta) => loadMoney(shiftMonth(monthKey(new Date()), delta)).catch(() => null))).then(([bundle, ...previous]): ChatResponse => { if (!bundle) throw new Error("Không thể tải sổ thu chi."); const summary = summarizeMonth(bundle); return { ...answerMoney(moneyQuestion, summary, input, explainMonth(summary, bundle.transactions, previous.flatMap((entry) => entry?.transactions ?? []), shoppingPurchases, shoppingItems)), intent: lastIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "money-rules-v1", mode: "rules" }; })
         : await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: input, profile, previousIntent: lastIntent, conversationId: activeId, stock: cloudEnabled ? undefined : stock, items: cloudEnabled ? undefined : shoppingItems, avoidBrands: cloudEnabled ? undefined : brandsToAvoid(await loadNotes()) }) }).then(async (response) => {

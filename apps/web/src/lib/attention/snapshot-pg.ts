@@ -11,9 +11,9 @@ import { purchaseFromRow } from "../shopping/purchase-store-server.ts";
 import type { Purchase } from "../shopping/purchases.ts";
 import type { FamilySnapshot, FeedbackVerdict, InsightFeedback } from "./engine.ts";
 
-export interface ServerState { snapshot: FamilySnapshot; purchases: Purchase[]; feedback: InsightFeedback[]; /** Reminders sent per insight key in the last 14 days. */ recent: Map<string, number>; sentToday: Set<string> }
+export interface ServerState { snapshot: FamilySnapshot; purchases: Purchase[]; feedback: InsightFeedback[]; /** Reminders sent per insight key in the last 14 days. */ recent: Map<string, number>; sentToday: Set<string>; sentThisWeek: Set<string> }
 
-export async function loadSnapshotPg(client: pg.Client, userId: string, today: string, now: Date): Promise<ServerState> {
+export async function loadSnapshotPg(client: Pick<pg.Pool, "query">, userId: string, today: string, now: Date): Promise<ServerState> {
   const month = monthKey(now);
   const q = (sql: string, params: unknown[] = [userId]) => client.query(sql, params).then((result) => result.rows as Record<string, unknown>[]);
   const [family, items, purchases, checks, plan, txMonth, history, totals, settings, budgets, recurring, goals, feedback, log] = await Promise.all([
@@ -47,5 +47,5 @@ export async function loadSnapshotPg(client: pg.Client, userId: string, today: s
   };
   const recent = new Map<string, number>();
   for (const row of log) recent.set(row.key as string, (recent.get(row.key as string) ?? 0) + 1);
-  return { snapshot, purchases: shoppingPurchases, feedback: feedback.map((row) => ({ key: row.key as string, verdict: row.verdict as FeedbackVerdict, until: (row.until as string | null) ?? undefined })), recent, sentToday: new Set(log.filter((row) => row.day === today).map((row) => row.key as string)) };
+  return { snapshot, purchases: shoppingPurchases, feedback: feedback.map((row) => ({ key: row.key as string, verdict: row.verdict as FeedbackVerdict, until: (row.until as string | null) ?? undefined })), recent, sentToday: new Set(log.filter((row) => row.day === today).map((row) => row.key as string)), sentThisWeek: new Set(log.filter((row) => (row.day as string) > new Date(new Date(`${today}T00:00:00Z`).getTime() - 7 * 86_400_000).toISOString().slice(0, 10)).map((row) => row.key as string)) };
 }

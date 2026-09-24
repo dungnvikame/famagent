@@ -14,9 +14,10 @@ export function MoneyDraftCard({ draft, summary, onSaved, onCancel }: { draft: E
   const [amount, setAmount] = useState(String(draft.amount));
   const [category, setCategory] = useState(draft.category);
   const [date, setDate] = useState(draft.occurredOn);
+  const [kind, setKind] = useState(draft.kind);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const categories = DEFAULT_CATEGORIES.filter((entry) => entry.kind === draft.kind).map((entry) => entry.name);
+  const categories = DEFAULT_CATEGORIES.filter((entry) => entry.kind === kind).map((entry) => entry.name);
 
   async function save() {
     const value = parseVnd(amount);
@@ -24,9 +25,9 @@ export function MoneyDraftCard({ draft, summary, onSaved, onCancel }: { draft: E
     if (!content.trim()) { setError("Nhập nội dung."); setEditing(true); return; }
     setBusy(true); setError("");
     try {
-      await saveMoneyItem("transactions", { id: crypto.randomUUID(), occurredOn: date, content: content.trim().slice(0, 120), category, kind: draft.kind, amount: value, forChild: category === "Con", source: "manual" });
-      trackEvent("inbox_money_saved", { kind: draft.kind, category });
-      onSaved(`✓ Đã ghi ${draft.kind === "income" ? "khoản thu" : "khoản chi"} ${content.trim()} vào Tiền`);
+      await saveMoneyItem("transactions", { id: crypto.randomUUID(), occurredOn: date, content: content.trim().slice(0, 120), category, kind, amount: value, forChild: category === "Con", source: "manual" });
+      trackEvent("inbox_money_saved", { kind, category });
+      onSaved(`✓ Đã ghi ${kind === "income" ? "khoản thu" : "khoản chi"} ${content.trim()} vào Tiền`);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa ghi được."); }
     finally { setBusy(false); }
   }
@@ -37,7 +38,7 @@ export function MoneyDraftCard({ draft, summary, onSaved, onCancel }: { draft: E
     <span className="purchase-actions"><button type="button" className="app-btn" disabled={busy} onClick={() => void save()}>{busy ? "Đang ghi…" : "Đúng"}</button><button type="button" className="app-btn ghost" onClick={() => setEditing(true)}>Sửa</button><button type="button" className="ledger-link" onClick={onCancel}>Bỏ</button></span>
   </div>;
   return <form className="app-card draft-card" aria-label="Sửa khoản tiền" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-    <b>{draft.kind === "income" ? "Khoản thu" : "Khoản chi"}</b>
+    <span className="chip-row" role="radiogroup" aria-label="Loại khoản">{(["expense", "income"] as const).map((value) => <button key={value} type="button" role="radio" aria-checked={kind === value} className={`chip${kind === value ? " on" : ""}`} onClick={() => { setKind(value); const first = DEFAULT_CATEGORIES.find((entry) => entry.kind === value)?.name; if (first && !DEFAULT_CATEGORIES.some((entry) => entry.kind === value && entry.name === category)) setCategory(first); }}>{value === "income" ? "Khoản thu" : "Khoản chi"}</button>)}</span>
     <div className="draft-row">
       <label className="grow">Nội dung<input value={content} onChange={(event) => setContent(event.target.value)} /></label>
       <label>Số tiền<input inputMode="decimal" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>

@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Trả lời Tiền & Mua sắm"
-status: pending
+status: completed
 priority: P1
 effort: "0.75d"
 dependencies: [3]
@@ -19,5 +19,5 @@ dependencies: [3]
 - `lib/ai/shopping/pipeline.ts`: `StockLine` giàu hơn (itemId, lastPackPrice, minPackPrice, size fit); reorder reply theo spec.
 
 ## Success Criteria
-- [ ] Test: tháng này 18,2M vs bình thường → “cao hơn ~9%”, top 2 nhóm tăng; bỉm tăng do lượng khi giá/miếng gần như không đổi.
-- [ ] Test reorder: câu có lần trước, giá thấp nhất, còn N ngày, cảnh báo size khi gần trần.
+- [x] Test: tháng này 18,2M vs bình thường → “cao hơn ~9%”, top 2 nhóm tăng; bỉm tăng do lượng khi giá/miếng gần như không đổi.
+- [x] Test reorder: câu có lần trước, giá thấp nhất, còn N ngày, cảnh báo size khi gần trần.

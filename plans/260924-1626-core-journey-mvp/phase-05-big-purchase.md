@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Quyết định mua lớn"
-status: pending
+status: completed
 priority: P2
 effort: "0.5d"
 dependencies: [4]
@@ -17,5 +17,5 @@ dependencies: [4]
 - `/api/chat` (và demo client): thứ tự: ghi lần mua → quyết định mua lớn → câu hỏi tiền → pipeline mua sắm. `Để tháng sau` → mục kế hoạch tháng sau; `Mua ngay` → nháp khoản chi.
 
 ## Success Criteria
-- [ ] Test: 8tr với còn 4,5tr kế hoạch và mục tiêu 5tr/tháng → nói thiếu mục tiêu ~3,5tr, gợi ý ≤ X, 3 lựa chọn.
-- [ ] “muốn mua bỉm dưới 400k” vẫn đi pipeline bỉm.
+- [x] Test: 8tr với còn 4,5tr kế hoạch và mục tiêu 5tr/tháng → nói thiếu mục tiêu ~3,5tr, gợi ý ≤ X, 3 lựa chọn.
+- [x] “muốn mua bỉm dưới 400k” vẫn đi pipeline bỉm.

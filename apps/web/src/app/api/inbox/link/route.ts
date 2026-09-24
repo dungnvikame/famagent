@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { readProductMeta, shopOf, titleFromUrl, type LinkInfo } from "@/lib/inbox/link";
 import { authenticated, authConfigured } from "@/lib/supabase/server";
+import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,10 @@ async function readCapped(response: Response): Promise<string> {
  * shops; no cookies, 5 s, 1 MB. A page that hides its price (most marketplaces) returns price: null — the UI asks.
  */
 export async function POST(request: Request) {
-  if (authConfigured()) { const auth = await authenticated(); if (!auth || auth.user.is_anonymous) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 }); }
+  let who = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
+  if (authConfigured()) { const auth = await authenticated(); if (!auth || auth.user.is_anonymous) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 }); who = auth.user.id; }
+  // 30 links an hour per family (per instance): enough for real use, not a free page fetcher.
+  if (!allowInMemory(`link:${who}`, Date.now(), 30)) return NextResponse.json({ error: "Bạn đã dán nhiều link trong giờ này. Thử lại sau nhé." }, { status: 429 });
   const body = await request.json().catch(() => null) as { url?: unknown } | null;
   let url = typeof body?.url === "string" && body.url.length <= 2000 ? body.url.trim() : "";
   const merchant = shopOf(url);

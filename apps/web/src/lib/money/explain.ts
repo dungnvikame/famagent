@@ -23,9 +23,14 @@ const CHILD = "Con";
 const dayOf = (iso: string) => Number(iso.slice(8));
 const monthOf = (iso: string) => iso.slice(0, 7);
 
-/** Earlier months (YYYY-MM) that have expenses, most recent first, at most 3. */
+/** A half-logged month (one expense) is not "normal": it would make any month look +200%. */
+export const MIN_LOGGED_EXPENSES = 5;
+
+/** Earlier months (YYYY-MM) that were really logged, most recent first, at most 3. */
 function earlierMonths(history: MoneyTransaction[], month: string): string[] {
-  return [...new Set(history.filter((tx) => tx.kind === "expense" && monthOf(tx.occurredOn) < month).map((tx) => monthOf(tx.occurredOn)))].sort().reverse().slice(0, 3);
+  const counts = new Map<string, number>();
+  for (const tx of history) if (tx.kind === "expense" && monthOf(tx.occurredOn) < month) counts.set(monthOf(tx.occurredOn), (counts.get(monthOf(tx.occurredOn)) ?? 0) + 1);
+  return [...counts.entries()].filter(([, count]) => count >= MIN_LOGGED_EXPENSES).map(([key]) => key).sort().reverse().slice(0, 3);
 }
 
 export function explainMonth(summary: MonthSummary, current: MoneyTransaction[], history: MoneyTransaction[], purchases: Purchase[], items: ShoppingItem[], now = new Date()): MonthExplain {

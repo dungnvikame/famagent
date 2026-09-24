@@ -25,7 +25,9 @@ export function pushReady(): boolean {
 
 // DATE columns stay "YYYY-MM-DD" strings (the estimate math is date-only, in the family's local calendar).
 const types = { getTypeParser: (oid: number, format?: string) => oid === 1082 ? (value: string) => value : pg.types.getTypeParser(oid, format as "text") };
-export const jobClient = () => new pg.Client({ connectionString: process.env.DATABASE_URL, types });
+/** Up to 5 connections: FAMILY_BATCH families load their state in parallel instead of queueing on one connection. */
+export const jobClient = () => new pg.Pool({ connectionString: process.env.DATABASE_URL, types, max: 5, idleTimeoutMillis: 5_000 });
+export type JobDb = Pick<pg.Pool, "query">;
 
 /** Vietnam date and a Date at noon of it, so local-date math gives that day whatever the server timezone. */
 export function vietnamToday(): { today: string; now: Date } {
@@ -34,7 +36,7 @@ export function vietnamToday(): { today: string; now: Date } {
 }
 
 /** Sends one payload to every device of a family in parallel; drops subscriptions the push service says are gone. */
-export async function sendToDevices(client: pg.Client, devices: PushSub[], payload: object): Promise<{ delivered: number; removed: number }> {
+export async function sendToDevices(client: JobDb, devices: PushSub[], payload: object): Promise<{ delivered: number; removed: number }> {
   const results = await Promise.allSettled(devices.map((sub) => webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), { TTL: 12 * 3600, timeout: SEND_TIMEOUT_MS })));
   let delivered = 0; let removed = 0;
   for (const [index, result] of results.entries()) {
@@ -47,14 +49,14 @@ export async function sendToDevices(client: pg.Client, devices: PushSub[], paylo
 }
 
 /** Claims (user, key, day) in notification_log; false when another run already sent it. */
-export async function claim(client: pg.Client, userId: string, key: string, day: string): Promise<boolean> {
+export async function claim(client: JobDb, userId: string, key: string, day: string): Promise<boolean> {
   const result = await client.query("insert into public.notification_log (user_id, key, day) values ($1, $2, $3) on conflict do nothing", [userId, key, day]);
   return Boolean(result.rowCount);
 }
-export const release = (client: pg.Client, userId: string, key: string, day: string) => client.query("delete from public.notification_log where user_id = $1 and key = $2 and day = $3", [userId, key, day]);
+export const release = (client: JobDb, userId: string, key: string, day: string) => client.query("delete from public.notification_log where user_id = $1 and key = $2 and day = $3", [userId, key, day]);
 
 /** Runs `work` for every family with a device, FAMILY_BATCH at a time. */
-export async function forEachFamily(client: pg.Client, work: (userId: string, devices: PushSub[]) => Promise<void>): Promise<number> {
+export async function forEachFamily(client: JobDb, work: (userId: string, devices: PushSub[]) => Promise<void>): Promise<number> {
   const subs = (await client.query<PushSub>("select id, user_id, endpoint, p256dh, auth from public.push_subscriptions")).rows;
   const users = [...new Set(subs.map((sub) => sub.user_id))];
   for (let index = 0; index < users.length; index += FAMILY_BATCH) {

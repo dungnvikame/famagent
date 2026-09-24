@@ -13,6 +13,7 @@ import { monthKey, shortVnd, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyBundle } from "@/lib/money/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { LedgerTable } from "./ledger-table";
+import { DATA_CHANGED } from "@/components/inbox/inbox";
 import { MonthView } from "./month-view";
 import { RecurringGoals } from "./recurring-goals";
 
@@ -36,6 +37,8 @@ export function MoneyPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải sổ thu chi."); }
   }, [month]);
   useEffect(() => { void reload(month); }, [month, reload]);
+  // The global Inbox logs expenses/income: refresh the ledger when it says so.
+  useEffect(() => { const refresh = () => void reload(); window.addEventListener(DATA_CHANGED, refresh); return () => window.removeEventListener(DATA_CHANGED, refresh); }, [reload]);
   const [suggested, setSuggested] = useState<Assessment["plan"] | null>(null);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((loaded) => { setProfile(loaded); setChildren(loaded?.children ?? []); if (loaded?.household) setSuggested(buildAssessment(loaded).plan); }).catch(() => {}); }, []);
