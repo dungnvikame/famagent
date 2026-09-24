@@ -109,3 +109,16 @@
 .auth-google:disabled{opacity:.6;cursor:progress}
 .auth-or{display:flex;align-items:center;gap:12px;width:100%;max-width:360px;margin:4px 0 0;color:#8a86a3;font-size:12.5px}
 .auth-or:before,.auth-or:after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* Landing v3: purpose-first sections (why a personal assistant; three daily jobs with a worked example each). */
+.lp-trust.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.lp-lead em{font-style:normal;color:var(--primary-ink);font-weight:700}
+.lp-lead b{color:var(--ink)}
+.lp-daily{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.lp-daily article{background:var(--glass);backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:var(--r-lg);padding:22px;box-shadow:var(--shadow);display:flex;flex-direction:column}
+.lp-daily h3{font-size:17px;margin:0 0 6px;font-weight:700}
+.lp-daily>article>p{margin:0 0 14px;color:var(--muted);font-size:14px;line-height:1.6}
+.lp-example{margin-top:auto;display:grid;gap:8px;background:#ffffffa6;border:1px solid var(--glass-border);border-radius:16px;padding:12px}
+.lp-example .lp-bubble.me{font-size:13px;padding:9px 12px}
+.lp-example .lp-bubble.ai p{font-size:13px;padding:9px 12px}
+@media(max-width:960px){.lp-trust.three,.lp-daily{grid-template-columns:1fr}}
