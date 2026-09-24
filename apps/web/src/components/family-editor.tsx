@@ -38,7 +38,7 @@ export function FamilyEditor() {
     const load = (value: FamilyProfile | null) => { setOriginal(value); setProfile(value); };
     if (cloudEnabled) void loadCloudProfile().then(load).catch(() => setError("Không thể tải hồ sơ.")); else load(getProfile());
   }, []);
-  if (!profile) return <div className="container account-page"><h1>Chưa có hồ sơ gia đình</h1>{error && <p className="form-error">{error}</p>}<Link href="/">Bắt đầu trò chuyện với Family AI →</Link></div>;
+  if (!profile) return <div className="container account-page"><h1>Chưa có hồ sơ gia đình</h1>{error && <p className="form-error">{error}</p>}<Link href="/">Bắt đầu trò chuyện với FamAgent →</Link></div>;
 
   function update(patch: Partial<FamilyProfile>) { setProfile((current) => current ? { ...current, ...patch } : current); setSaved(false); }
   function updateChild(index: number, patch: Partial<ChildProfile>) { setProfile((current) => current ? { ...current, children: current.children.map((child, at) => at === index ? { ...child, ...patch } : child) } : current); setSaved(false); }
@@ -59,7 +59,7 @@ export function FamilyEditor() {
   const now = new Date();
   const today = localDate(now);
   const oldestBirthDate = localDate(new Date(now.getFullYear() - INPUT_BIRTH_YEARS, now.getMonth(), now.getDate()));
-  return <div className="container account-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>Gia đình</div><div className="account-heading"><p className="eyebrow accent">BỐI CẢNH GIA ĐÌNH</p><h1>Family AI hiểu gia đình bạn hơn</h1><p>Chỉ giữ thông tin cần để chọn sản phẩm. Bạn có thể chỉnh sửa hoặc xóa bất cứ lúc nào.</p></div>
+  return <div className="container account-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>Gia đình</div><div className="account-heading"><p className="eyebrow accent">BỐI CẢNH GIA ĐÌNH</p><h1>FamAgent hiểu gia đình bạn hơn</h1><p>Chỉ giữ thông tin cần để chọn sản phẩm. Bạn có thể chỉnh sửa hoặc xóa bất cứ lúc nào.</p></div>
     <form className="family-form" onSubmit={submit}>
       <section className="form-card"><div><span className="section-number">01</span><h2>Hộ gia đình</h2><p>Giúp ước lượng nhu cầu đồ dùng chung.</p></div><div className="form-grid">
         <label>Tên gọi gia đình<input value={profile.familyName ?? ""} maxLength={80} onChange={(event) => update({ familyName: event.target.value || undefined })} placeholder="Ví dụ: Nhà Gold" /></label>
@@ -81,7 +81,7 @@ export function FamilyEditor() {
         <fieldset className="form-grid"><legend>Lưu ý khi chọn đồ</legend>{(Object.keys(sensitivityLabels) as Sensitivity[]).map((value) => <label className="consent-line" key={value}><input type="checkbox" checked={child.sensitivities?.includes(value) ?? false} onChange={(event) => toggleSensitivity(index, child, value, event.target.checked)} /> {sensitivityLabels[value]}</label>)}</fieldset>
       </div>; })}{profile.children.length < 5 && <button className="add-child" type="button" onClick={addChild}>＋ Thêm bé</button>}</div></section>
 
-      <section className="form-card"><div><span className="section-number">03</span><h2>Ưu tiên mua sắm</h2><p>Giúp Family AI sắp xếp các lựa chọn theo nhu cầu của bạn.</p></div><div className="form-grid">
+      <section className="form-card"><div><span className="section-number">03</span><h2>Ưu tiên mua sắm</h2><p>Giúp FamAgent sắp xếp các lựa chọn theo nhu cầu của bạn.</p></div><div className="form-grid">
         <label>Ưu tiên giá<select value={profile.pricePreference} onChange={(event) => update({ pricePreference: event.target.value as FamilyProfile["pricePreference"] })}>{PRICE_PREFERENCES.map((value) => <option key={value} value={value}>{PRICE_PREFERENCE_LABELS[value]}</option>)}</select></label>
         <label>Ưu tiên giao hàng<select value={profile.deliveryPreference ?? ""} onChange={(event) => update({ deliveryPreference: (event.target.value || undefined) as FamilyProfile["deliveryPreference"] })}><option value="">Chưa chọn</option><option value="cheapest">Phí giao thấp</option><option value="fastest">Giao nhanh</option><option value="balanced">Cân bằng</option></select></label>
         <label>Điều quan trọng nhất<select value={profile.mainConcern ?? ""} onChange={(event) => update({ mainConcern: (event.target.value || undefined) as FamilyProfile["mainConcern"] })}><option value="">Chưa chọn</option><option value="night">Dùng ban đêm</option><option value="leak">Hạn chế tràn</option><option value="soft">Mỏng nhẹ</option><option value="sensitive">Da nhạy cảm</option><option value="value">Giá trị theo đơn vị</option></select></label>

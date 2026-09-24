@@ -5,9 +5,10 @@ import { useState } from "react";
 import { childAgeMonths } from "@/lib/experience/profile-mapper";
 import { stampChanges } from "@/lib/experience/profile-meta";
 import { validProfile } from "@/lib/experience/validate";
+import { formatWeight } from "@/lib/onboarding/questions";
 import { DIAPER_SIZES, PRICE_PREFERENCE_LABELS, PRICE_PREFERENCES, SHOPPING_CONCERN_LABELS, WASHING_MACHINE_LABELS, type ChildProfile, type FamilyProfile, type FieldMeta } from "@/lib/experience/types";
 
-// "Family AI đang hiểu" — what the agent currently knows, editable inline (P4, mockup note 5).
+// "FamAgent đang hiểu" — what the agent currently knows, editable inline (P4, mockup note 5).
 // Shared by onboarding and /shop so both show the same context (DRY).
 
 export interface PendingValue { path: string; label: string; value?: unknown }
@@ -35,7 +36,7 @@ function childRows(child: ChildProfile): Row[] {
   const notes = [...(child.sensitivities ?? []).map((item) => SENSITIVITY_LABELS[item]), child.currentBrand ? `đang dùng ${child.currentBrand}` : null, child.dislikedBrands?.length ? `tránh ${child.dislikedBrands.join(", ")}` : null].filter(Boolean).join(" · ");
   return [
     { path: `${base}.name`, label: "Tên gọi", display: child.name ?? null, editor: { kind: "text", max: 30 }, raw: child.name },
-    { path: `${base}.weightKg`, label: "Cân nặng", display: child.weightKg !== undefined ? `${child.weightKg} kg` : null, editor: { kind: "number", min: 2, max: 30, step: 0.1 }, raw: child.weightKg },
+    { path: `${base}.weightKg`, label: "Cân nặng", display: child.weightKg !== undefined ? formatWeight(child.weightKg) : null, editor: { kind: "number", min: 2, max: 30, step: 0.1 }, raw: child.weightKg },
     { path: `${base}.diaperSize`, label: "Size bỉm", display: child.diaperSize ?? null, editor: { kind: "select", options: DIAPER_SIZES.map((size) => ({ value: size, label: size })) }, raw: child.diaperSize },
     // Age is shown but edited as a birth date in /family; the agent collects it in chat.
     { path: child.birthDate ? `${base}.birthDate` : `${base}.ageMonths`, label: "Tuổi", display: age !== undefined ? `${age} tháng` : null },
@@ -71,7 +72,7 @@ function applyEdit(profile: FamilyProfile, path: string, raw: string): FamilyPro
   return validProfile(stamped) ? stamped : null;
 }
 
-export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disabled = false, title = "Family AI đang hiểu" }: {
+export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disabled = false, title = "FamAgent đang hiểu" }: {
   profile: FamilyProfile;
   fresh?: Set<string>;
   pending?: PendingValue[];
@@ -90,7 +91,7 @@ export function FamilyContextPanel({ profile, fresh, pending = [], onEdit, disab
   const allRows = groups.flatMap((group) => group.rows);
   const filled = allRows.filter((row) => row.display).length;
   const first = profile.children[0];
-  const compact = [profile.adultsCount ? `${profile.adultsCount} người lớn` : null, first && (first.name || first.weightKg || first.diaperSize) ? [first.name ? `Bé ${first.name}` : "Bé", first.weightKg ? `${first.weightKg} kg` : null, first.diaperSize].filter(Boolean).join(" ") : null, profile.maxBudget ? `≤ ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean).join(" · ") || "Chưa có thông tin";
+  const compact = [profile.adultsCount ? `${profile.adultsCount} người lớn` : null, first && (first.name || first.weightKg || first.diaperSize) ? [first.name ? `Bé ${first.name}` : "Bé", first.weightKg ? formatWeight(first.weightKg) : null, first.diaperSize].filter(Boolean).join(" ") : null, profile.maxBudget ? `≤ ${profile.maxBudget.toLocaleString("vi-VN")}đ` : null].filter(Boolean).join(" · ") || "Chưa có thông tin";
 
   function save(path: string) {
     const next = applyEdit(profile, path, draft);

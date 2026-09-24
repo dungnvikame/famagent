@@ -3,6 +3,7 @@
 import { childAgeMonths } from "../../experience/profile-mapper.ts";
 import { PRICE_PREFERENCE_LABELS, SHOPPING_CONCERN_LABELS, WASHING_MACHINE_LABELS, type ChildProfile, type FamilyProfile } from "../../experience/types.ts";
 import type { ActiveSlot } from "./slots.ts";
+import { formatWeight } from "../../onboarding/questions.ts";
 
 export interface PendingConfirmation { path: string; value: unknown; label: string }
 
@@ -49,7 +50,7 @@ export function profileSummary(profile: FamilyProfile): string[] {
   if (profile.adultsCount) lines.push(`${profile.adultsCount} người lớn`);
   profile.children.forEach((child, index) => {
     const age = childAgeMonths(child);
-    const details = [child.weightKg ? `${child.weightKg} kg` : null, child.diaperSize ? `size ${child.diaperSize}` : null, age !== undefined ? `${age} tháng` : null].filter(Boolean);
+    const details = [child.weightKg ? formatWeight(child.weightKg) : null, child.diaperSize ? `size ${child.diaperSize}` : null, age !== undefined ? `${age} tháng` : null].filter(Boolean);
     lines.push(`${childLabel(child, index).replace(/^b/, "B")}: ${details.length ? details.join(", ") : "chưa có cân nặng/size"}`);
   });
   // Only what the user actually said: the default price preference is not shown as a choice.

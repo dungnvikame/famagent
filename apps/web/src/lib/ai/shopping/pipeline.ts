@@ -23,7 +23,7 @@ export interface ShoppingTurnResult {
 }
 
 const COMING_SOON: Partial<Record<ShoppingIntent["intentType"], string>> = {
-  reorder: "Mua lại theo lần trước sẽ có khi Family AI ghi nhận được lịch sử mua. Hiện mình có thể tìm lại loại phù hợp theo cân nặng và ngân sách.",
+  reorder: "Mua lại theo lần trước sẽ có khi FamAgent ghi nhận được lịch sử mua. Hiện mình có thể tìm lại loại phù hợp theo cân nặng và ngân sách.",
   check_replenishment: "Theo dõi lượng còn và nhắc mua lại đang được phát triển. Bạn có thể cho mình biết cần tìm gì ngay bây giờ.",
   monthly_basket: "Giỏ hàng tháng đang được phát triển. Hiện mình giúp chọn bỉm cho bé theo cân nặng và ngân sách.",
   price_check: "Theo dõi giá đang được phát triển. Mình có thể tìm các lựa chọn đang có trong ngân sách của bạn.",
