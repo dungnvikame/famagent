@@ -1,12 +1,11 @@
 import { shortVnd, type MonthSummary } from "./summary.ts";
-import { planRestOfMonth, type MonthExplain } from "./explain.ts";
 
 /**
  * Family Coordinator, money side (SPEC_V2 §18): detect a finance question and answer it from the month
  * summary with templates — rules before models (§43). Shopping phrasing ("bỉm dưới 350k", "nới ngân sách")
  * is deliberately left to the shopping pipeline.
  */
-export type MoneyQuestion = "overview" | "remaining" | "category" | "upcoming" | "savings" | "child" | "balance" | "plan_rest";
+export type MoneyQuestion = "overview" | "remaining" | "category" | "upcoming" | "savings" | "child" | "balance";
 
 const fold = (text: string) => text.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
 const SHOPPING = /\b(bim|ta|sua|khan|nuoc giat|mua|tim|so sanh|size|kg|mieng|noi|tang ngan sach|duoi \d|tren \d|goi y|de xuat)\b/;
@@ -14,7 +13,6 @@ const SHOPPING = /\b(bim|ta|sua|khan|nuoc giat|mua|tim|so sanh|size|kg|mieng|noi
 export function detectMoneyQuestion(message: string): MoneyQuestion | null {
   const plain = fold(message);
   if (SHOPPING.test(plain)) return null;
-  if (/(lap ke hoach|phan con lai|con lai (cua )?thang|chia tien|chia chi tieu)/.test(plain)) return "plan_rest";
   if (/(so du|con bao nhieu tien|tien mat|tai khoan con)/.test(plain)) return "balance";
   if (/(sap toi|den han|hoa don|dinh ky|phai tra)/.test(plain)) return "upcoming";
   if (/(tiet kiem|de danh|muc tieu)/.test(plain)) return "savings";
@@ -25,22 +23,13 @@ export function detectMoneyQuestion(message: string): MoneyQuestion | null {
   return null;
 }
 
-export function answerMoney(kind: MoneyQuestion, summary: MonthSummary, message = "", explain?: MonthExplain, now = new Date()): { text: string; choices: string[] } {
+export function answerMoney(kind: MoneyQuestion, summary: MonthSummary, message = ""): { text: string; choices: string[] } {
   const m = `tháng ${Number(summary.month.slice(5))}`;
   if (summary.transactionCount === 0 && kind !== "upcoming" && kind !== "balance") return { text: `Sổ thu chi ${m} chưa có khoản nào nên mình chưa trả lời được. Ghi vài khoản ở mục Tiền (như Excel: ngày · nội dung · nhóm · số tiền) rồi hỏi lại nhé.`, choices: ["Mở Tiền", "Khoản nào sắp đến hạn?"] };
   const top = summary.byCategory.slice(0, 3).map((line) => `${line.category} ${shortVnd(line.spent)}${line.limit ? ` (${Math.round((line.ratio ?? 0) * 100)}% ngân sách)` : ""}`).join(", ");
   const pace = summary.plan && summary.expectedExpense ? summary.paceRatio! > 1.05 ? ` Với nhịp này, cuối tháng sẽ chi khoảng ${shortVnd(summary.expectedExpense)} — cao hơn kế hoạch ${shortVnd(summary.plan)} khoảng ${Math.round((summary.paceRatio! - 1) * 100)}%.` : ` Nhịp chi đang trong kế hoạch ${shortVnd(summary.plan)} (dự kiến ${shortVnd(summary.expectedExpense)}).` : "";
   switch (kind) {
-    case "plan_rest":
-      return { text: planRestOfMonth(summary, now), choices: ["Tháng này tiêu thế nào?", "Khoản nào sắp đến hạn?"] };
     case "overview":
-      // Spec §4: vs the family's normal pace, what rose most, and why the kids' category rose (amount vs price).
-      if (explain && explain.basis === "history" && explain.normalAtDay && explain.paceRatio) {
-        const pct = Math.round((explain.paceRatio - 1) * 100);
-        const pace = Math.abs(pct) < 3 ? "Gần bằng nhịp bình thường của nhà mình" : `${pct > 0 ? "Cao" : "Thấp"} hơn nhịp bình thường khoảng ${Math.abs(pct)}%`;
-        const rises = explain.rises.slice(0, 2).map((rise) => `${rise.category} +${shortVnd(rise.diff)}`).join(", ");
-        return { text: `Đã chi ${shortVnd(explain.spent)}. ${pace} (bình thường tới hôm nay ~${shortVnd(explain.normalAtDay)}).${rises ? ` Tăng nhiều nhất: ${rises}.` : ""}${explain.childCause ? ` ${explain.childCause}` : ""}`, choices: ["Lập kế hoạch phần còn lại tháng", "Tiền đi đâu nhiều nhất?"] };
-      }
       return { text: `${m.charAt(0).toUpperCase()}${m.slice(1)}: thu ${shortVnd(summary.income)}, đã chi ${shortVnd(summary.expense)}${summary.saving ? `, chuyển tiết kiệm ${shortVnd(summary.saving)}` : ""}.${top ? ` Chi nhiều nhất: ${top}.` : ""}${pace}`, choices: ["Tiền đi đâu nhiều nhất?", "Còn bao nhiêu trong kế hoạch?", "Khoản nào sắp đến hạn?"] };
     case "remaining":
       if (!summary.plan) return { text: `Bạn chưa đặt kế hoạch chi tháng nên mình chưa so được. ${m.charAt(0).toUpperCase()}${m.slice(1)} đã chi ${shortVnd(summary.expense)}; đặt kế hoạch ở Tiền → Định kỳ & mục tiêu để mình theo dõi nhịp chi.`, choices: ["Mở Tiền", "Tháng này tiêu thế nào?"] };

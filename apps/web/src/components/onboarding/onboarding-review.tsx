@@ -68,12 +68,11 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
       </li>)}</ol>
     </div>}
 
-    <details className="ob-assess-block advanced">
-      <summary>Nâng cao · chọn một phương pháp quản lý tiền</summary>
+    <div className="ob-assess-block">
       <h3><IconWallet size={18} /> Chọn cách quản lý tiền cho nhà mình</h3>
       <p className="ob-assess-why">Đây là những phương pháp được nhiều gia đình trên thế giới áp dụng. Chọn một cách bạn thấy hợp — đổi lại lúc nào cũng được trong mục Tiền.</p>
       <FrameworkChooser profile={profile} value={profile.household?.moneyMethod} onChange={onMethod} />
-    </details>
+    </div>
 
     {assessment.careCheck.score !== undefined && <div className="ob-assess-block fh-block">
       <h3><IconSparkle size={18} /> Chăm sóc các con: {assessment.careCheck.score}/100 · {HEALTH_LABELS[assessment.careCheck.tier!]}</h3>
@@ -97,12 +96,11 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
       <ul>{assessment.care.points.map((point) => <li key={point}>{point}</li>)}</ul>
     </div>}
 
-    {(profile.children.length > 0 || profile.household?.setup === "expecting") && <details className="ob-assess-block advanced">
-      <summary>Nâng cao · chọn một phương pháp nuôi dạy</summary>
+    {(profile.children.length > 0 || profile.household?.setup === "expecting") && <div className="ob-assess-block">
       <h3><IconSparkle size={18} /> Chọn phương pháp nuôi dạy cho nhà mình</h3>
       <p className="ob-assess-why">Những phương pháp được nhiều gia đình trên thế giới áp dụng. Chọn một cách bạn thấy hợp — FamAgent sẽ nhắc các việc hằng ngày của phương pháp đó; đổi lại được trong mục Gia đình.</p>
       <CareMethodChooser profile={profile} value={profile.household?.careMethod} onChange={onCareMethod} />
-    </details>}
+    </div>}
 
     <div className="ob-assess-block">
       <h3><IconCheck size={18} /> 3 việc nên làm trong tuần đầu</h3>

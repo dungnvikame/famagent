@@ -47,7 +47,7 @@ test("câu hỏi phân tích sâu chỉ xuất hiện khi người dùng đồng
   const ids = (h: HouseholdContext) => buildQuestions(base(h)).map((q) => q.id);
   assert.ok(ids({}).includes("deep"));
   assert.ok(!ids({ deepDive: false }).includes("stability"));
-  assert.deepEqual(ids({ deepDive: true }).slice(-7, -1), ["stability", "bills", "debt-types", "long-term", "insurance", "planning"]);
+  assert.deepEqual(ids({ deepDive: true }).slice(-6), ["stability", "bills", "debt-types", "long-term", "insurance", "planning"]);
   assert.ok(!ids({ deepDive: true, monthlyDebt: 0 }).includes("debt-types"));
   const q = buildQuestions(base({ deepDive: true })).find((item) => item.id === "long-term")!;
   assert.deepEqual(q.apply(base({}), ["gold", "none"]).household?.longTermSavings, ["none"], "'Chưa có' loại trừ lựa chọn khác");

@@ -173,3 +173,6 @@ export function matchItem(text: string, items: ShoppingItem[]): ShoppingItem | u
   return best?.item;
 }
 
+/** Stock lines for the agent's reorder / "còn không?" answers (lib/ai/shopping/pipeline StockLine). */
+export const stockLines = (estimates: ItemEstimate[]) => estimates.filter((estimate) => estimate.known && estimate.daysLeft !== null && estimate.lastPurchase)
+  .map((estimate) => ({ productName: estimate.item.name, brand: estimate.item.brand, daysLeft: estimate.daysLeft!, remaining: estimate.remaining, lastPurchasedOn: estimate.lastPurchase!.purchasedOn }));

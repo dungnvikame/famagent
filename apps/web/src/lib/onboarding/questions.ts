@@ -1,17 +1,8 @@
 // Multiple-choice onboarding (tap, don't type): each question reads its current answer from the profile and
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
-import { CHECKUP_RECENCY, NUTRITION_LEVELS, PLAY_TIME, READING_FREQ, SAFETY_MEASURES, SCREEN_TIME, SLEEP_QUALITY, VACCINE_STATUS, BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_STYLES, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
+import { CHECKUP_RECENCY, NUTRITION_LEVELS, PLAY_TIME, READING_FREQ, SAFETY_MEASURES, SCREEN_TIME, SLEEP_QUALITY, VACCINE_STATUS, BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
 export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền" | "Phân tích";
-/**
- * core = the 4-step onboarding (nhà mình · thành viên · ưu tiên · phong cách); money / care = the deeper parts the family
- * opens later from a starter card ("Thêm tình hình tài chính"); all = every question (tests, profile update).
- */
-export type QuestionSection = "all" | "core" | "money" | "care";
-const CORE = /^(setup|kids|child-name:|child-age:|child-weight:|focus|style)/;
-const CARE = /^(child-care:|care-worry|care-deep|vaccines|checkup|nutrition|sleep|play|screen|reading|safety)/;
-/** Style → how prices are weighed when ranking (pricePreference). */
-const STYLE_PRICE = { saving: "budget", balanced: "balanced", convenience: "value" } as const;
 export interface Choice { value: string; label: string; hint?: string }
 export interface Question {
   /** Stable id, also recorded in profile.onboarding (≤ 80 chars). */
@@ -99,16 +90,17 @@ function withOther(question: Question): Question {
  * household, each child, what worries them about raising the kids, housing, income/spend/debt/buffer, how they track
  * money today, what hurts, and what they save for. Every question is skippable; many accept a typed "Khác" answer.
  */
-export function buildQuestions(profile: FamilyProfile, newId: () => string = () => crypto.randomUUID(), now = Date.now(), section: QuestionSection = "all"): Question[] {
+export function buildQuestions(profile: FamilyProfile, newId: () => string = () => crypto.randomUUID(), now = Date.now()): Question[] {
   const kids = HAS_KIDS(profile);
   const expecting = profile.household?.setup === "expecting";
   const questions: Question[] = [
     {
       id: "focus", group: "Mục tiêu", title: "Bạn muốn FamAgent đỡ việc gì cho nhà mình?", help: "Chọn một hoặc vài việc — mình sẽ đề xuất kế hoạch xoay quanh những việc này.", mode: "multi", other: { placeholder: "Ví dụ: lên kế hoạch cho con đi học" },
       choices: [
-        { value: "money", label: "Quản lý tiền", hint: "biết tiền đi đâu, còn tiêu được bao nhiêu" },
-        { value: "shopping", label: "Quản lý mua sắm", hint: "mua đúng, không thừa, biết khi nào cần mua" },
-        { value: "replenish", label: "Giảm việc phải nhớ", hint: "FamAgent nhắc đồ sắp hết, hóa đơn đến hạn" },
+        { value: "money", label: "Quản lý thu chi hằng tháng", hint: "biết tiền đi đâu, còn tiêu được bao nhiêu" },
+        { value: "shopping", label: "Mua sắm cho gia đình hợp lý hơn", hint: "chọn đúng, không mua thừa" },
+        { value: "replenish", label: "Nhắc những thứ dễ quên", hint: "đồ dùng sắp hết, hóa đơn đến hạn" },
+        { value: "care", label: "Chăm sóc và theo dõi các con", hint: "sức khỏe, cân nặng, điều cần tránh" },
       ],
       current: (p) => p.household?.focus ? [...p.household.focus] : [],
       apply: (p, values) => household(p, { focus: pick(HOUSEHOLD_FOCUS, values) }),
@@ -324,23 +316,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       },
     );
   }
-  questions.push({
-    id: "style", group: "Mục tiêu", title: "Nhà mình thích cách nào khi chi tiêu và mua sắm?", help: "FamAgent sẽ gợi ý và nhắc theo cách này. Đổi được bất cứ lúc nào.", mode: "single",
-    choices: [
-      { value: "saving", label: "Tiết kiệm", hint: "ưu tiên giá tốt, chờ sale nếu còn đồ, báo sớm khi chi vượt" },
-      { value: "balanced", label: "Cân bằng", hint: "giá hợp lý, không mất nhiều thời gian so sánh" },
-      { value: "convenience", label: "Tiện lợi", hint: "mua lại nhanh món quen, nhắc sớm để không bị hết" },
-    ],
-    current: (p) => p.household?.style ? [p.household.style] : [],
-    apply: (p, [value]) => { const style = pick(HOUSEHOLD_STYLES, [value])[0]; return style ? { ...household(p, { style }), pricePreference: STYLE_PRICE[style] } : p; },
-  });
-  const all = questions.map(withOther);
-  if (section === "all") return all;
-  if (section === "care") return all.filter((question) => CARE.test(question.id));
-  if (section === "money") return all.filter((question) => !CORE.test(question.id) && !CARE.test(question.id));
-  // Core: nhà mình → thành viên → ưu tiên → phong cách (spec order).
-  const core = all.filter((question) => CORE.test(question.id));
-  return [...core.filter((question) => question.id !== "focus" && question.id !== "style"), ...core.filter((question) => question.id === "focus"), ...core.filter((question) => question.id === "style")];
+  return questions.map(withOther);
 }
 
 /** Records answered/skipped ids (profile.onboarding v2) so analytics and resume see the same state. */

@@ -13,14 +13,10 @@ import { ensureSession } from "@/lib/supabase/browser";
 import { FamilyContextPanel } from "./family-context-panel";
 import { IconCheck } from "./icons";
 import { OnboardingReview } from "./onboarding-review";
-import { OnboardingSummary } from "./onboarding-summary";
-import type { QuestionSection } from "@/lib/onboarding/questions";
 
 // AI is the product's core value, so new profiles start opted in; the review switch and /family let people opt out.
 const freshProfile = (): FamilyProfile => ({ id: crypto.randomUUID(), children: [], pricePreference: "balanced", aiConsent: true, updatedAt: new Date().toISOString() });
 const GROUPS = ["Mục tiêu", "Gia đình", "Các con", "Nhà ở", "Tiền", "Phân tích"] as const;
-/** Progress groups per section: the 4-step onboarding only walks Gia đình → Các con → Mục tiêu. */
-const SECTION_GROUPS: Record<QuestionSection, readonly string[]> = { core: ["Gia đình", "Các con", "Mục tiêu"], money: ["Nhà ở", "Tiền", "Phân tích"], care: ["Các con"], all: GROUPS };
 /** Short pause so the tapped choice visibly registers before the next question (≤ 300 ms). */
 const ADVANCE_MS = 220;
 
@@ -38,8 +34,6 @@ export function OnboardingWizard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
-  // ?section=money|care opens a deeper part later (starter card "Thêm tình hình tài chính"); default = 4-step onboarding.
-  const [section, setSection] = useState<QuestionSection>("core");
   const [session, setSession] = useState<{ anonymous: boolean } | null>(null);
   const [remoteFailed, setRemoteFailed] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
@@ -47,11 +41,8 @@ export function OnboardingWizard() {
   const advancing = useRef(false);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const updateMode = params.get("update") === "1";
+    const updateMode = new URLSearchParams(window.location.search).get("update") === "1";
     setUpdating(updateMode);
-    const wanted = params.get("section");
-    setSection(wanted === "money" || wanted === "care" || wanted === "all" ? wanted : "core");
     let cancelled = false;
     async function load() {
       const local = getProfile();
@@ -80,7 +71,7 @@ export function OnboardingWizard() {
     return () => { cancelled = true; };
   }, [router]);
 
-  const questions = useMemo(() => profile ? buildQuestions(profile, undefined, undefined, section) : [], [profile, section]);
+  const questions = useMemo(() => profile ? buildQuestions(profile) : [], [profile]);
   const question: Question | undefined = questions[index];
   const reviewing = Boolean(profile) && index >= questions.length;
 
@@ -158,8 +149,7 @@ export function OnboardingWizard() {
   }
 
   if (!profile) return <div className="ob-app ob-loading" aria-busy="true"><p>Đang chuẩn bị…</p></div>;
-  const groups = SECTION_GROUPS[section];
-  const groupIndex = reviewing ? groups.length : groups.indexOf(question!.group);
+  const groupIndex = reviewing ? GROUPS.length : GROUPS.indexOf(question!.group);
   const total = questions.length;
 
   return <div className="ob-app ob-wizard">
@@ -168,15 +158,14 @@ export function OnboardingWizard() {
       <header className="ob-top">
         <span className="ob-who"><span className="ob-orb" aria-hidden="true"/><span><b>FamAgent</b><small>{updating ? "Cập nhật hồ sơ" : "Làm quen với gia đình bạn"}</small></span></span>
         <span className="ob-progress" role="progressbar" aria-label="Tiến độ" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(index, total)} aria-valuetext={reviewing ? "Đã xong" : `Câu ${index + 1} trên ${total}`}>
-          {groups.map((group, position) => <i key={group} className={position < groupIndex ? "on" : position === groupIndex ? "now" : ""}/>)}
-          <em>{reviewing ? (section === "core" ? "Xong" : "Nhận định & kế hoạch") : <>Câu {index + 1}/{total} · <b>{question!.group}</b></>}</em>
+          {GROUPS.map((group, position) => <i key={group} className={position < groupIndex ? "on" : position === groupIndex ? "now" : ""}/>)}
+          <em>{reviewing ? "Nhận định & kế hoạch" : <>Câu {index + 1}/{total} · <b>{question!.group}</b></>}</em>
         </span>
       </header>
       <div className="ob-stage">
         {reviewing
           ? <div className="ob-step" key="review">
-              {section === "core" ? <OnboardingSummary profile={profile} busy={busy} onStart={() => void finish()} onEdit={() => setIndex(0)} /> : <OnboardingReview profile={profile} cloud={cloudEnabled} busy={busy} onStart={() => void finish()} onEdit={() => setIndex(0)} onReset={() => { if (window.confirm("Xóa các câu trả lời và bắt đầu lại?")) { persist({ ...freshProfile(), aiConsent: profile.aiConsent }); setIndex(0); } }} onMethod={(moneyMethod) => { persist({ ...profile, household: { ...profile.household, moneyMethod }, updatedAt: new Date().toISOString() }); trackEvent("money_method_chosen", { method: moneyMethod, source: "onboarding" }); }} onCareMethod={(careMethod) => { persist({ ...profile, household: { ...profile.household, careMethod }, updatedAt: new Date().toISOString() }); trackEvent("care_method_chosen", { method: careMethod, source: "onboarding" }); }}/>
-              }
+              <OnboardingReview profile={profile} cloud={cloudEnabled} busy={busy} onStart={() => void finish()} onEdit={() => setIndex(0)} onReset={() => { if (window.confirm("Xóa các câu trả lời và bắt đầu lại?")) { persist({ ...freshProfile(), aiConsent: profile.aiConsent }); setIndex(0); } }} onMethod={(moneyMethod) => { persist({ ...profile, household: { ...profile.household, moneyMethod }, updatedAt: new Date().toISOString() }); trackEvent("money_method_chosen", { method: moneyMethod, source: "onboarding" }); }} onCareMethod={(careMethod) => { persist({ ...profile, household: { ...profile.household, careMethod }, updatedAt: new Date().toISOString() }); trackEvent("care_method_chosen", { method: careMethod, source: "onboarding" }); }}/>
               <label className="ob-consent ob-consent-card">
                 <input type="checkbox" role="switch" checked={profile.aiConsent} onChange={(event) => persist({ ...profile, aiConsent: event.target.checked })}/>
                 <span className="ob-consent-text"><span><b>Dùng AI để hiểu câu hỏi của bạn tốt hơn.</b> Tên bé được thay bằng mã khi nhận ra được. Tắt vẫn dùng được theo quy tắc.</span></span>

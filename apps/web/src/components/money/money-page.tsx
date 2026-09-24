@@ -13,7 +13,6 @@ import { monthKey, shortVnd, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyBundle } from "@/lib/money/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { LedgerTable } from "./ledger-table";
-import { DATA_CHANGED } from "@/components/inbox/inbox";
 import { MonthView } from "./month-view";
 import { RecurringGoals } from "./recurring-goals";
 
@@ -37,8 +36,6 @@ export function MoneyPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải sổ thu chi."); }
   }, [month]);
   useEffect(() => { void reload(month); }, [month, reload]);
-  // The global Inbox logs expenses/income: refresh the ledger when it says so.
-  useEffect(() => { const refresh = () => void reload(); window.addEventListener(DATA_CHANGED, refresh); return () => window.removeEventListener(DATA_CHANGED, refresh); }, [reload]);
   const [suggested, setSuggested] = useState<Assessment["plan"] | null>(null);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((loaded) => { setProfile(loaded); setChildren(loaded?.children ?? []); if (loaded?.household) setSuggested(buildAssessment(loaded).plan); }).catch(() => {}); }, []);
@@ -77,8 +74,7 @@ export function MoneyPage() {
         {summary.plan ? <div className="money-plan"><span className="bar"><span style={{ width: `${Math.min(100, Math.round(summary.expense / summary.plan * 100))}%` }} className={summary.expense > summary.plan ? "over" : undefined} /></span><small>{shortVnd(summary.expense)} / kế hoạch {shortVnd(summary.plan)}{summary.expectedExpense ? ` · dự kiến cuối tháng ${shortVnd(summary.expectedExpense)}` : ""}{summary.paceRatio && summary.paceRatio > 1.05 ? <span className="app-pill warn">Cao hơn kế hoạch</span> : summary.paceRatio ? <span className="app-pill ok">Đúng nhịp</span> : null}</small></div>
           : <div className="money-plan"><small>Chưa đặt kế hoạch chi tháng. <button type="button" className="ledger-link" onClick={() => setTab("plan")}>Đặt kế hoạch</button> để FamAgent so nhịp chi cho bạn.</small></div>}
       </div>
-      {/* Decision 24/09: Family Policy (style) leads; the named money methods stay available under "Nâng cao". */}
-      {profile && <details className="app-card advanced"><summary>Nâng cao · phương pháp quản lý tiền{profile.household?.moneyMethod ? " (đang dùng)" : ""}</summary><FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} /></details>}
+      {profile && <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
       {tab === "ledger" && <LedgerTable transactions={bundle.transactions} categories={bundle.settings.categories} familyChildren={children} month={month} onSave={(item) => act("money_transaction_saved")(() => saveMoneyItem("transactions", item))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />}
       {tab === "month" && <MonthView summary={summary} categories={bundle.settings.categories} budgets={bundle.budgets} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} />}
