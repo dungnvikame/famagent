@@ -127,6 +127,7 @@ export function upgradeIntent(value: unknown): ShoppingIntent | null {
       constraints: { maxTotalPriceVnd: num(cons.maxTotalPriceVnd, 50_000, 100_000_000), maxUnitPriceVnd: num(cons.maxUnitPriceVnd, 500, 50_000), excludedBrands: brands(cons.excludedBrands), priceLimitRemoved: cons.priceLimitRemoved === true || undefined, liftedBrands: brands(cons.liftedBrands) },
       preferences: { priority: typeof pref.priority === "string" && ["lowest_cost", "best_value", "quality", "fast_delivery"].includes(pref.priority) ? pref.priority as Priority : undefined, preferredBrands: brands(pref.preferredBrands) },
       fieldEvidence: {}, ambiguity: allowedAmbiguity(raw.ambiguity),
+      pendingQuestion: ["weight_or_size", "member", "category", "brand_conflict", "price"].includes(raw.pendingQuestion as string) ? raw.pendingQuestion as ShoppingIntent["pendingQuestion"] : undefined,
     };
   }
   // Legacy flat shape (before spec v1).

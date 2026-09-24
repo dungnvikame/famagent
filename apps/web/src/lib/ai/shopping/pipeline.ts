@@ -10,6 +10,7 @@ import { routeWorkspace } from "../workspace.ts";
 import { composeSummary, noResultAdvice } from "./composer.ts";
 import { mergeIntent } from "./context-merger.ts";
 import { brandMentions, extractShopping } from "./extract.ts";
+import { resolvePending, RETRY_WORDING, type PendingQuestion } from "./pending.ts";
 
 export interface TraceStep { state: string; ms: number; detail?: Record<string, string | number | boolean> }
 export interface ShoppingTurnResult {
@@ -45,12 +46,24 @@ export function emptyIntent(previous: ShoppingIntent | null = null): ShoppingInt
   return previous ?? { schemaVersion: "1", intentType: "unknown", requiredAttributes: {}, constraints: {}, preferences: {}, fieldEvidence: {}, ambiguity: [] };
 }
 
-export async function runShoppingTurn(input: { message: string; profile: FamilyProfile | null; previousIntent: ShoppingIntent | null; products: Product[]; allowAi: boolean; now?: number; stock?: StockLine[] }, chat = chatJson): Promise<ShoppingTurnResult> {
+export async function runShoppingTurn(rawInput: { message: string; profile: FamilyProfile | null; previousIntent: ShoppingIntent | null; products: Product[]; allowAi: boolean; now?: number; stock?: StockLine[]; /** Brands a health note says to avoid, with the note text as the reason. */ avoidBrands?: Array<{ brand: string; reason: string }> }, chat = chatJson): Promise<ShoppingTurnResult> {
   const trace: TraceStep[] = [];
   let clock = Date.now();
   const step = (state: string, detail?: TraceStep["detail"]) => { const now = Date.now(); trace.push({ state, ms: now - clock, ...(detail ? { detail } : {}) }); clock = now; };
   const base = (intent: ShoppingIntent, mode: "ai" | "rules"): ChatResponse => ({ text: "", intent, recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: RANKING_VERSION, mode });
   const done = (response: ChatResponse, finalState: string, extra: Partial<ShoppingTurnResult> = {}): ShoppingTurnResult => { step("RESPONDED"); return { response, finalState, trace, ...extra }; };
+  // A bare "ok"/"không" answers the question asked last turn instead of starting over (no-repeat rule).
+  const resolved = resolvePending(rawInput.message, rawInput.previousIntent);
+  const input = resolved ? { ...rawInput, message: resolved.message } : rawInput;
+  if (resolved) step("PENDING_RESOLVED", { pending: rawInput.previousIntent?.pendingQuestion ?? "", as: resolved.message });
+  const prefix = resolved?.note ? `${resolved.note} ` : "";
+  /** Clarification that never repeats itself: the second time the same question is due, the wording and choices change. */
+  const clarify = (reply: ChatResponse, pending: PendingQuestion, text: string, choices: string[], question?: string): ShoppingTurnResult => {
+    const repeat = input.previousIntent?.pendingQuestion === pending;
+    const retry = RETRY_WORDING[pending];
+    step("CLARIFICATION_REQUIRED", { reason: pending, repeat });
+    return done({ ...reply, intent: { ...reply.intent, pendingQuestion: pending }, text: repeat ? retry.text : text, question: repeat ? undefined : question, choices: repeat && retry.choices.length ? retry.choices : choices }, "CLARIFICATION_REQUIRED");
+  };
 
   // update_family: explicit profile edits in chat.
   const profileChange = parseProfileChange(input.message, input.profile);
@@ -83,22 +96,26 @@ export async function runShoppingTurn(input: { message: string; profile: FamilyP
   if (replenishment) { step("CLARIFICATION_REQUIRED", { reason: intent.intentType }); return done({ ...reply, ...replenishment }, "CLARIFICATION_REQUIRED"); }
   const soon = COMING_SOON[intent.intentType];
   if (soon) { step("CLARIFICATION_REQUIRED", { reason: intent.intentType }); return done({ ...reply, text: soon, choices: ["Tìm bỉm cho bé"] }, "CLARIFICATION_REQUIRED"); }
-  if (intent.categoryId === "unsupported") { step("CLARIFICATION_REQUIRED", { reason: "unsupported_category" }); return done({ ...reply, text: "Hiện mình đang hoàn thiện tư vấn bỉm. Các danh mục khác sẽ được mở sau khi dữ liệu sản phẩm được kiểm tra.", choices: ["Tìm bỉm cho bé"] }, "CLARIFICATION_REQUIRED"); }
-  if (!intent.categoryId) { step("CLARIFICATION_REQUIRED", { reason: "category" }); return done({ ...reply, text: "Bạn đang muốn tìm sản phẩm nào? Hiện mình có thể giúp chọn bỉm cho bé.", question: "Bạn cần tìm bỉm cho bé phải không?", choices: ["Tìm bỉm cho bé"] }, "CLARIFICATION_REQUIRED"); }
+  if (intent.categoryId === "unsupported") return clarify(reply, "category", "Hiện mình đang hoàn thiện tư vấn bỉm. Các danh mục khác sẽ được mở sau khi dữ liệu sản phẩm được kiểm tra.", ["Tìm bỉm cho bé"]);
+  if (!intent.categoryId) return clarify(reply, "category", "Bạn đang muốn tìm sản phẩm nào? Hiện mình có thể giúp chọn bỉm cho bé.", ["Tìm bỉm cho bé"], "Bạn cần tìm bỉm cho bé phải không?");
   if (intent.ambiguity.includes("member")) {
-    step("CLARIFICATION_REQUIRED", { reason: "member" });
     // Choices carry weight/size so same-name children resolve on the next turn.
     const choices = children.filter((child) => child.name).map((child) => `Cho bé ${child.name}${child.weightKg ? ` ${child.weightKg}kg` : child.diaperSize ? ` size ${child.diaperSize}` : ""}`);
-    return done({ ...reply, text: "Bạn đang tìm cho bé nào?", question: "Bạn đang tìm cho bé nào?", choices: choices.length ? choices : ["Bé 10kg", "Size L"] }, "CLARIFICATION_REQUIRED");
+    return clarify(reply, "member", "Bạn đang tìm cho bé nào?", choices.length ? choices : ["Bé 10kg", "Size L"], "Bạn đang tìm cho bé nào?");
   }
   if (intent.ambiguity.includes("brand_conflict")) {
-    step("CLARIFICATION_REQUIRED", { reason: "brand_conflict" });
     const conflicting = mentions.preferred.filter((brand) => intent.constraints.excludedBrands?.some((item) => item.toLocaleLowerCase("vi") === brand.toLocaleLowerCase("vi")));
     // "Vẫn tìm X" lifts the exclusion for this conversation only; the profile is unchanged.
-    return done({ ...reply, text: `${conflicting.join(", ")} đang nằm trong danh sách muốn tránh. Bạn vẫn muốn tìm thương hiệu này cho lần này không?`, choices: [...conflicting.map((brand) => `Vẫn tìm ${brand}`), "Giữ nguyên, tìm loại khác"] }, "CLARIFICATION_REQUIRED");
+    return clarify(reply, "brand_conflict", `${conflicting.join(", ")} đang nằm trong danh sách muốn tránh. Bạn vẫn muốn tìm thương hiệu này cho lần này không?`, [...conflicting.map((brand) => `Vẫn tìm ${brand}`), "Giữ nguyên, tìm loại khác"]);
   }
   const { weightKg, sizeLabel } = intent.requiredAttributes;
-  if (weightKg === undefined && !sizeLabel) { step("CLARIFICATION_REQUIRED", { reason: "weight_or_size" }); return done({ ...reply, text: "Để tránh gợi ý bỉm sai cỡ, mình cần cân nặng hoặc size hiện tại của bé.", question: "Bé hiện nặng khoảng bao nhiêu kg hoặc đang dùng size nào?", choices: ["Bé 10kg", "Size L"] }, "CLARIFICATION_REQUIRED"); }
+  if (weightKg === undefined && !sizeLabel) return clarify(reply, "weight_or_size", "Để tránh gợi ý bỉm sai cỡ, mình cần cân nặng hoặc size hiện tại của bé.", ["Bé 10kg", "Size L"], "Bé hiện nặng khoảng bao nhiêu kg hoặc đang dùng size nào?");
+
+  // Family memory (spec v2 §31): a health note about a brand excludes it unless the family lifted it this conversation.
+  const lifted = new Set((intent.constraints.liftedBrands ?? []).map((brand) => brand.toLocaleLowerCase("vi")));
+  const avoided = (input.avoidBrands ?? []).filter((item) => !lifted.has(item.brand.toLocaleLowerCase("vi")) && !intent.constraints.excludedBrands?.some((brand) => brand.toLocaleLowerCase("vi") === item.brand.toLocaleLowerCase("vi")));
+  if (avoided.length) { intent.constraints.excludedBrands = [...(intent.constraints.excludedBrands ?? []), ...avoided.map((item) => item.brand)]; step("MEMORY_APPLIED", { avoided: avoided.map((item) => item.brand).join(",") }); }
+  const memoryNote = avoided.length ? ` Mình bỏ ${avoided.map((item) => item.brand).join(", ")} vì bạn từng ghi nhận: “${avoided[0].reason}”.` : "";
 
   step("CANDIDATES_RETRIEVED", { count: input.products.length });
   const { candidates, rejected } = hardFilter(input.products, intent);
@@ -111,9 +128,12 @@ export async function runShoppingTurn(input: { message: string; profile: FamilyP
   if (!recommendations.length) {
     const advice = noResultAdvice(intent, rejected);
     step("RESPONSE_VALIDATED", { source: "template" });
-    return done({ ...reply, text: advice.text, choices: advice.choices, candidateCount, candidateProductIds }, "RESPONDED", { rejected });
+    // A price question is pending when the advice offers to lift the cap; the next "ok" lifts it (no re-asking).
+    const pending: PendingQuestion | undefined = advice.choices.includes("Bỏ giới hạn giá") ? "price" : undefined;
+    const repeat = pending && input.previousIntent?.pendingQuestion === pending && !resolved;
+    return done({ ...reply, intent: { ...intent, pendingQuestion: pending }, text: `${prefix}${repeat ? RETRY_WORDING.price.text : advice.text}${memoryNote}`, choices: advice.choices, candidateCount, candidateProductIds }, "RESPONDED", { rejected });
   }
   const summary = await composeSummary(intent, candidateCount, recommendations, input.allowAi, chat, input.products);
   step("RESPONSE_VALIDATED", { source: summary.source });
-  return done({ ...reply, text: summary.text, recommendations, candidateCount, candidateProductIds }, "RESPONDED", { rejected });
+  return done({ ...reply, intent: { ...intent, pendingQuestion: undefined }, text: `${prefix}${summary.text}${memoryNote}`, recommendations, candidateCount, candidateProductIds }, "RESPONDED", { rejected });
 }

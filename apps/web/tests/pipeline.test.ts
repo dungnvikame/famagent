@@ -257,3 +257,25 @@ test("review P5 — gỡ tránh chỉ khi trả lời câu hỏi xung đột; 't
   assert.ok(reExcluded.response.intent.constraints.excludedBrands?.includes("Nhãn mẫu A"));
   assert.ok(reExcluded.response.recommendations.every((item) => item.product.brand !== "Nhãn mẫu A"));
 });
+
+test("không lặp câu hỏi: 'ok' sau câu hỏi nới giá được hiểu là nới; hỏi cân nặng lần hai đổi cách nói", async () => {
+  const noResult = await turn("bỉm cho bé 10kg dưới 200k");
+  assert.equal(noResult.response.intent.pendingQuestion, "price");
+  const yes = await turn("ok", { previousIntent: rt(noResult.response.intent) });
+  assert.ok(yes.response.recommendations.length > 0, "'ok' nới giá và có kết quả");
+  assert.match(yes.response.text, /^Mình nới mức giá theo ý bạn\./);
+  assert.equal(yes.response.intent.pendingQuestion, undefined);
+  const first = await turn("tìm bỉm ban đêm", { profile: profile({ children: [{ id: gold.id, name: "Gold" }] }) });
+  assert.equal(first.response.intent.pendingQuestion, "weight_or_size");
+  const second = await turn("bỉm nào tốt", { profile: profile({ children: [{ id: gold.id, name: "Gold" }] }), previousIntent: rt(first.response.intent) });
+  assert.notEqual(second.response.text, first.response.text);
+  assert.deepEqual(second.response.choices, ["Bé ~7 kg (size M)", "Bé ~10 kg (size L)", "Bé ~13 kg (size XL)"]);
+});
+
+test("ghi nhớ sức khỏe: hãng gây hăm bị loại và được nêu lý do; 'vẫn tìm' bỏ qua ghi nhớ trong hội thoại", async () => {
+  const avoid = [{ brand: "Nhãn mẫu A", reason: "Bé Gold bị hăm khi dùng Nhãn mẫu A" }];
+  const { response } = await turn("bỉm cho bé 10kg", { avoidBrands: avoid });
+  assert.ok(response.recommendations.every((item) => item.product.brand !== "Nhãn mẫu A"));
+  assert.match(response.text, /Mình bỏ Nhãn mẫu A vì bạn từng ghi nhận/);
+  assert.ok(response.intent.constraints.excludedBrands?.includes("Nhãn mẫu A"));
+});

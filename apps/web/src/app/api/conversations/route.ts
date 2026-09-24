@@ -26,7 +26,7 @@ export async function PUT(request: Request) {
   if (conversationError) return NextResponse.json({ error: "Không thể lưu hội thoại" }, { status: 500 });
   if (item.turns.length) {
     const { error } = await auth.client.from("messages").upsert(item.turns.map((turn) => ({ id: turn.id, conversation_id: item.id, role: turn.role, content: turn.text,
-      created_at: turn.createdAt, metadata: turn.role === "assistant" ? { recommendations: turn.recommendations, intent: turn.intent, candidateCount: turn.candidateCount, candidateProductIds: turn.candidateProductIds, rankingVersion: turn.rankingVersion, view: turn.view } : {},
+      created_at: turn.createdAt, metadata: turn.role === "assistant" ? { recommendations: turn.recommendations, intent: turn.intent, candidateCount: turn.candidateCount, candidateProductIds: turn.candidateProductIds, rankingVersion: turn.rankingVersion, view: turn.view, choices: turn.choices, notesRecorded: turn.notesRecorded } : {},
     })));
     if (error) return NextResponse.json({ error: "Không thể lưu tin nhắn" }, { status: 500 });
   }

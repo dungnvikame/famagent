@@ -103,6 +103,8 @@ export interface ShoppingIntent {
   fieldEvidence: Record<string, ExtractedField>;
   /** Codes of unresolved ambiguity, e.g. "member" when several children could be meant. */
   ambiguity: string[];
+  /** Clarification asked in this turn; the next short yes/no is read against it (lib/ai/shopping/pending). */
+  pendingQuestion?: "weight_or_size" | "member" | "category" | "brand_conflict" | "price";
 }
 
 /** product_score_v1 components (0–100); null = unknown, excluded from the weighted sum (spec v1 §11.3). */
@@ -146,6 +148,8 @@ export interface ChatTurn {
   view?: AgentView;
   /** Quick replies offered with a clarification (e.g. "Bỏ giới hạn giá"). */
   choices?: string[];
+  /** Family notes recorded from this message (shown as “Ghi nhận” chips). */
+  notesRecorded?: string[];
 }
 
 export type AgentView = { kind: "family" | "saved" | "catalog" | "compare" | "product" | "history" | "help"; productId?: string };
@@ -169,4 +173,5 @@ export interface ChatResponse {
   mode: "ai" | "rules";
   view?: AgentView;
   profile?: FamilyProfile;
+  notesRecorded?: string[];
 }

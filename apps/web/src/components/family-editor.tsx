@@ -11,6 +11,7 @@ import { childAgeMonths } from "@/lib/experience/profile-mapper";
 import { INPUT_BIRTH_YEARS, validProfile } from "@/lib/experience/validate";
 import { createAuthBrowserClient } from "@/lib/supabase/browser";
 import { AccountSection } from "@/components/account-section";
+import { FamilyNotes } from "@/components/family-notes";
 
 const sensitivityLabels: Record<Sensitivity, string> = { sensitive_skin: "Da nhạy cảm", rash_prone: "Dễ hăm", fragrance_free: "Cần không hương liệu" };
 const toList = (value: string) => [...new Set(value.split(",").map((item) => item.trim().slice(0, 40)).filter(Boolean))].slice(0, 10);
@@ -102,7 +103,7 @@ export function FamilyEditor() {
         <label>Máy giặt<select value={profile.appliances?.washingMachine ?? ""} onChange={(event) => update({ appliances: event.target.value ? { washingMachine: event.target.value as NonNullable<FamilyProfile["appliances"]>["washingMachine"] } : undefined })}><option value="">Chưa chọn</option><option value="front">Cửa trước</option><option value="top">Cửa trên</option><option value="none">Không dùng máy giặt</option></select></label>
       </div></section>
 
-      <section className="form-card"><div><span className="section-number">05</span><h2>Điều FamAgent đã ghi nhớ</h2><p>Ghi chú rút ra từ các cuộc trò chuyện, gắn nhãn “Ghi nhận” cho tới khi bạn xác nhận.</p></div><p className="memory-empty">Chưa có ghi chú nào. Khi bạn kể “bé bị hăm với hãng X” hay “nhà thường mua trên Shopee”, FamAgent sẽ ghi lại ở đây và dùng cho lần sau.</p></section>
+      <section className="form-card"><div><span className="section-number">05</span><h2>Điều FamAgent đã ghi nhớ</h2><p>Ghi chú rút ra từ các cuộc trò chuyện, gắn nhãn “Ghi nhận” cho tới khi bạn xác nhận.</p></div><FamilyNotes /></section>
       <div className="form-actions"><button className="button primary" type="submit">Lưu hồ sơ</button>{saved && <span>Đã lưu thay đổi.</span>}{error && <span className="form-error">{error}</span>}<Link href="/agent">Hỏi FamAgent →</Link></div></form>
     <AccountSection cloud={cloudEnabled} aiConsent={profile.aiConsent} onAiConsent={(value) => void saveConsent(value)} onErase={() => void erase()} onSignOut={() => void signOut()} /></div>;
 }

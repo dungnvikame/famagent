@@ -3,6 +3,8 @@ import { isAiConfigured } from "@/lib/ai/llm";
 import { upgradeIntent } from "@/lib/ai/shopping/context-merger";
 import { emptyIntent, runShoppingTurn, type StockLine } from "@/lib/ai/shopping/pipeline";
 import { childAgeMonths } from "@/lib/experience/profile-mapper";
+import { brandsToAvoid, extractNotes } from "@/lib/ai/notes";
+import { loadNotes, recordNotes } from "@/lib/notes/store-server";
 import { loadPurchases } from "@/lib/shopping/purchase-store-server";
 import { defaultDailyRate, estimateStock } from "@/lib/shopping/purchases";
 import { answerMoney, detectMoneyQuestion } from "@/lib/money/answer";
@@ -20,7 +22,7 @@ const persistErrors: Record<PersistError, string> = { profile: "Không thể c�
 
 // Thin route: auth + rate limit → shopping pipeline (lib/ai/shopping) → persistence.
 export async function POST(request: Request) {
-  const body = await request.json().catch(() => null) as { message?: unknown; profile?: unknown; previousIntent?: unknown; conversationId?: unknown; stock?: unknown } | null;
+  const body = await request.json().catch(() => null) as { message?: unknown; profile?: unknown; previousIntent?: unknown; conversationId?: unknown; stock?: unknown; avoidBrands?: unknown } | null;
   if (!body || typeof body.message !== "string" || !body.message.trim() || body.message.length > 1000) {
     return NextResponse.json({ error: "Yêu cầu không hợp lệ" }, { status: 400 });
   }
@@ -73,11 +75,17 @@ export async function POST(request: Request) {
   } else if (Array.isArray(body.stock)) {
     stock = body.stock.filter((item): item is StockLine => typeof item === "object" && item !== null && typeof (item as StockLine).productName === "string" && typeof (item as StockLine).daysLeft === "number").slice(0, 20);
   }
-  const result = await runShoppingTurn({ message: body.message.trim(), profile, previousIntent, products, allowAi, stock });
+  // Family memory: existing notes steer the turn (health → avoid brand); new notes are recorded from this message.
+  const notes = account ? (await loadNotes(account.client, account.user.id)) ?? [] : [];
+  // Demo mode keeps notes in the browser and sends the brands to avoid with the message.
+  const localAvoid = !account && Array.isArray(body.avoidBrands) ? body.avoidBrands.filter((item): item is { brand: string; reason: string } => typeof item === "object" && item !== null && typeof (item as { brand?: unknown }).brand === "string" && (item as { brand: string }).brand.length <= 80 && typeof (item as { reason?: unknown }).reason === "string" && (item as { reason: string }).reason.length <= 200).slice(0, 20) : [];
+  const result = await runShoppingTurn({ message: body.message.trim(), profile, previousIntent, products, allowAi, stock, avoidBrands: account ? brandsToAvoid(notes) : localAvoid });
 
   if (account && conversationId) {
     const failed = await persistShoppingTurn(account.client, account.user.id, conversationId, result);
     if (failed) return NextResponse.json({ error: persistErrors[failed] }, { status: 500 });
+    const recorded = await recordNotes(account.client, account.user.id, extractNotes(body.message, profile, [...new Set(products.map((product) => product.brand))]), conversationId, notes);
+    if (recorded.length) return NextResponse.json({ ...result.response, notesRecorded: recorded });
   }
   return NextResponse.json(result.response);
 }
