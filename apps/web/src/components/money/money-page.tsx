@@ -61,7 +61,7 @@ export function MoneyPage() {
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };
 
   return <div className="app-page money-page">
-    <div className="app-page-head"><div><h1>Tiền</h1><p className="app-sub">Nhà mình có bao nhiêu · tiền đi đâu · có gì bất thường · nên làm gì</p></div>
+    <div className="app-page-head"><div><h1>Tài chính</h1><p className="app-sub">Nhà mình có bao nhiêu · tiền đi đâu · có gì bất thường · nên làm gì</p></div>
       <div className="month-nav" role="group" aria-label="Chọn tháng"><button type="button" className="app-btn ghost" aria-label="Tháng trước" onClick={() => setMonth(shiftMonth(month, -1))}>‹</button><b>{monthLabel(month)}</b><button type="button" className="app-btn ghost" aria-label="Tháng sau" disabled={month >= monthKey(new Date())} onClick={() => setMonth(shiftMonth(month, 1))}>›</button></div></div>
 
     {error && <p className="form-error" role="alert">{error}{!cloudEnabled ? "" : " "}<Link href="/sign-in">{error.includes("đăng nhập") ? "Đăng nhập" : ""}</Link></p>}

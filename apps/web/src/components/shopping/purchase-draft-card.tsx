@@ -91,7 +91,7 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
     <label className="purchase-check"><input type="checkbox" checked={forChild} onChange={(event) => setForChild(event.target.checked)} /> Tính vào chi cho con
       {forChild && familyChildren.length > 1 && <select value={childId} onChange={(event) => setChildId(event.target.value)} aria-label="Cho bé">{familyChildren.map((child) => <option key={child.id} value={child.id}>{child.name ? `bé ${child.name}` : "bé"}</option>)}</select>}
     </label>
-    <small>{total ? `${Number(packs) || 1} gói × ${packSize} ${unit} = ${total} ${unit}` : "Nhập số đơn vị mỗi gói để FamAgent ước tính ngày hết"}{linkTransactionId ? " · gắn với khoản đã có trong Tiền" : ` · ghi ${parseVnd(amount) ? vnd(parseVnd(amount)!) : ""} vào Tiền nhóm ${forChild ? "Con" : "Mua sắm"}`}</small>
+    <small>{total ? `${Number(packs) || 1} gói × ${packSize} ${unit} = ${total} ${unit}` : "Nhập số đơn vị mỗi gói để FamAgent ước tính ngày hết"}{linkTransactionId ? " · gắn với khoản đã có trong Tài chính" : ` · ghi ${parseVnd(amount) ? vnd(parseVnd(amount)!) : ""} vào Tài chính nhóm ${forChild ? "Con" : "Mua sắm"}`}</small>
     {error && <p className="form-error" role="alert">{error}</p>}
     <span className="purchase-actions"><button type="submit" className="app-btn" disabled={busy}>{busy ? "Đang ghi…" : "Ghi lại"}</button>{onCancel && <button type="button" className="ledger-link" onClick={onCancel}>Hủy</button>}</span>
   </form>;

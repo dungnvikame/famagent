@@ -104,7 +104,7 @@ export function buildBrief({ profile, conversations, savedCount, displayName, mo
     for (const item of money.upcoming.slice(0, 2)) attention.push({ id: `due-${item.id}`, tone: item.daysLeft <= 2 ? "warn" : "ok", badge: item.daysLeft === 0 ? "Nay" : `${item.daysLeft}d`, title: `${item.name} ${shortVnd(item.amount)} ${item.daysLeft === 0 ? "đến hạn hôm nay" : `đến hạn sau ${item.daysLeft} ngày`}`, detail: `Khoản định kỳ · ${item.kind === "income" ? "sẽ tự ghi là thu" : "sẽ tự ghi vào sổ khi tới ngày"}.`, cta: { label: "Xem sổ", href: "/money" } });
     for (const insight of money.insights.filter((item) => item.id !== "over-pace").slice(0, 1)) insights.unshift({ text: insight.text, source: insight.source, href: "/money" });
   } else {
-    attention.push({ id: "money-setup", tone: "ok", badge: "₫", title: "Bắt đầu sổ thu chi của gia đình", detail: "Ghi vài khoản đầu tiên để Trang chủ hiện tiền tháng này và khoản sắp đến hạn.", cta: { label: "Mở Tiền", href: "/money" } });
+    attention.push({ id: "money-setup", tone: "ok", badge: "₫", title: "Bắt đầu sổ thu chi của gia đình", detail: "Ghi vài khoản đầu tiên để Trang chủ hiện tiền tháng này và khoản sắp đến hạn.", cta: { label: "Mở Tài chính", href: "/money" } });
   }
 
   if (savedCount > 0) insights.push({ text: `Bạn đang lưu ${savedCount} sản phẩm để xem lại. Hỏi FamAgent “so sánh các sản phẩm đã lưu” để thấy khác biệt theo giá mỗi miếng.`, source: "Từ danh sách đã lưu", href: "/shopping?tab=saved" });

@@ -63,7 +63,7 @@ export function profileSummary(profile: FamilyProfile): string[] {
   if (h?.housing) lines.push(HOUSING[h.housing]);
   if (h?.monthlyIncome) lines.push(`Thu nhập khoảng ${Math.round(h.monthlyIncome / 1_000_000)} triệu/tháng`);
   if (h?.savingGoals?.length) lines.push(`Đang để dành: ${h.savingGoals.map((item) => GOALS[item]).join(", ")}`);
-  if (h?.monthlySpend) lines.push(`Chi tiêu tháng khoảng ${Math.round(h.monthlySpend / 1_000_000)} triệu — dùng làm kế hoạch trong mục Tiền`);
+  if (h?.monthlySpend) lines.push(`Chi tiêu tháng khoảng ${Math.round(h.monthlySpend / 1_000_000)} triệu — dùng làm kế hoạch trong mục Tài chính`);
   return lines;
 }
 

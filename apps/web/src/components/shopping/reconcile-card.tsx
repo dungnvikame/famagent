@@ -15,7 +15,7 @@ import { PurchaseDraftCard } from "./purchase-draft-card";
 const dayLabel = (iso: string) => `${Number(iso.slice(8))}/${Number(iso.slice(5, 7))}`;
 
 /**
- * "Khoản *Shopee 690k* ngày 12/9 là mua gì?" — an expense typed in Tiền becomes a purchase of an item in one tap
+ * "Khoản *Shopee 690k* ngày 12/9 là mua gì?" — an expense typed in Tài chính becomes a purchase of an item in one tap
  * (packs guessed from the last price per pack, same amount and day, linked to the existing ledger row — never a second expense).
  */
 export function ReconcileCard({ tx, items, purchases, familyChildren, onDone }: { tx: MoneyTransaction; items: ShoppingItem[]; purchases: Purchase[]; familyChildren: ChildProfile[]; onDone: () => void }) {

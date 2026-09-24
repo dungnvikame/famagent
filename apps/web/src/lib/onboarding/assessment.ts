@@ -106,7 +106,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
 
   // --- first steps -----------------------------------------------------------------------------------------------
   const steps: AssessmentStep[] = [];
-  if (plan.monthlyPlan) steps.push({ label: `Đặt kế hoạch chi ${money(plan.monthlyPlan)}/tháng`, detail: "Mình đã điền sẵn trong mục Tiền; FamAgent báo sớm khi nhịp chi vượt.", href: "/money" });
+  if (plan.monthlyPlan) steps.push({ label: `Đặt kế hoạch chi ${money(plan.monthlyPlan)}/tháng`, detail: "Mình đã điền sẵn trong mục Tài chính; FamAgent báo sớm khi nhịp chi vượt.", href: "/money" });
   steps.push({ label: "Ghi 3 khoản chi đầu tiên", detail: "Gõ như Excel: “Ăn sáng 30k”, “Tiền điện 974k”. Khoản cố định (tiền nhà, lương) đặt một lần.", href: "/money" });
   if (plan.emergencyTarget && h.emergency !== "gt6") steps.push({ label: `Mở mục tiêu Quỹ dự phòng ${money(plan.emergencyTarget)}`, detail: "FamAgent tính giúp mất bao lâu để đạt theo phương pháp bạn chọn.", href: "/money#plan" });
   else if (children.length) steps.push({ label: "Kiểm tra hồ sơ các con", detail: "Tên, tuổi, cân nặng, lưu ý sức khỏe — FamAgent dùng cho mọi gợi ý.", href: "/family" });

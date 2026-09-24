@@ -47,7 +47,7 @@ export function dailyTasks(profile: FamilyProfile, now = new Date(), context: { 
   if (framework) {
     const weekly: Partial<Record<typeof framework.id, { title: string; detail: string }>> = {
       kakeibo: { title: "Tự hỏi 4 câu Kakeibo cho tuần này", detail: "Thu bao nhiêu? Muốn để dành bao nhiêu? Đã tiêu bao nhiêu? Tuần sau cải thiện gì?" },
-      "zero-based": { title: "Giao việc cho khoản thu chưa có kế hoạch", detail: "Mở mục Tiền → Tháng: đưa phần “Chưa giao việc” về 0 bằng cách đặt ngân sách cho nhóm hoặc chuyển vào tiết kiệm." },
+      "zero-based": { title: "Giao việc cho khoản thu chưa có kế hoạch", detail: "Mở mục Tài chính → Tháng: đưa phần “Chưa giao việc” về 0 bằng cách đặt ngân sách cho nhóm hoặc chuyển vào tiết kiệm." },
       jars: { title: "Kiểm tra 6 chiếc lọ", detail: "Lọ nào đã vượt? Dừng tiêu nhóm đó đến tháng sau; phần dư của lọ Hưởng thụ có thể dồn sang tháng sau." },
       "50-30-20": { title: "Xem lại tỷ lệ 50/30/20 tuần này", detail: "Phần Mong muốn có vượt 30% chưa? Nếu có, cắt một khoản tuần tới." },
       "pay-first": { title: "Kiểm tra khoản “trả cho mình” đã chuyển chưa", detail: "Nếu tháng này chưa chuyển phần để dành, chuyển ngay — rồi mới tiêu tiếp." },

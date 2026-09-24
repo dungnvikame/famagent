@@ -28,6 +28,6 @@ export function QuickCapture({ items, familyChildren, onSaved, extra }: { items:
     </form>
     {extra}
     {saved && <p className="purchased-done" role="status">{saved}</p>}
-    {draft && <PurchaseDraftCard key={key} draft={draft} items={items} familyChildren={familyChildren} source="quick" title="Kiểm tra rồi ghi lại" onCancel={() => setDraft(null)} onSaved={(purchase, item) => { setDraft(null); setText(""); setSaved(`✓ Đã ghi ${item.name} — ${purchase.unitCount} ${item.unit}, vào Tiền`); onSaved(purchase, item); }} />}
+    {draft && <PurchaseDraftCard key={key} draft={draft} items={items} familyChildren={familyChildren} source="quick" title="Kiểm tra rồi ghi lại" onCancel={() => setDraft(null)} onSaved={(purchase, item) => { setDraft(null); setText(""); setSaved(`✓ Đã ghi ${item.name} — ${purchase.unitCount} ${item.unit}, vào Tài chính`); onSaved(purchase, item); }} />}
   </section>;
 }

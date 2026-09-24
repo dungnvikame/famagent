@@ -70,7 +70,7 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
 
     <div className="ob-assess-block">
       <h3><IconWallet size={18} /> Chọn cách quản lý tiền cho nhà mình</h3>
-      <p className="ob-assess-why">Đây là những phương pháp được nhiều gia đình trên thế giới áp dụng. Chọn một cách bạn thấy hợp — đổi lại lúc nào cũng được trong mục Tiền.</p>
+      <p className="ob-assess-why">Đây là những phương pháp được nhiều gia đình trên thế giới áp dụng. Chọn một cách bạn thấy hợp — đổi lại lúc nào cũng được trong mục Tài chính.</p>
       <FrameworkChooser profile={profile} value={profile.household?.moneyMethod} onChange={onMethod} />
     </div>
 
@@ -116,6 +116,6 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
       <button type="button" className="ob-btn ghost" disabled={busy} onClick={onEdit}>Sửa câu trả lời</button>
       <button type="button" className="ob-btn danger" disabled={busy} onClick={onReset}>Làm lại từ đầu</button>
     </div>
-    <p className="ob-where">Đây là gợi ý để bắt đầu, không phải tư vấn tài chính hay y tế chuyên nghiệp. {cloud ? "Kế hoạch được lưu vào tài khoản của bạn ở bước tiếp theo." : "Bản thử lưu trên trình duyệt này."} Bạn sửa được mọi con số trong mục Tiền.</p>
+    <p className="ob-where">Đây là gợi ý để bắt đầu, không phải tư vấn tài chính hay y tế chuyên nghiệp. {cloud ? "Kế hoạch được lưu vào tài khoản của bạn ở bước tiếp theo." : "Bản thử lưu trên trình duyệt này."} Bạn sửa được mọi con số trong mục Tài chính.</p>
   </section>;
 }

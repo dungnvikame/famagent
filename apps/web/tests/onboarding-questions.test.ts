@@ -29,7 +29,7 @@ test("bộ câu hỏi v5: insight gia đình để đưa ra nhận định, khô
   assert.equal(answer(three, "kids", ["1"]).children.length, 1);
   const text = JSON.stringify(buildQuestions(one, newId).map((q) => [q.title, q.help, q.choices]));
   assert.doesNotMatch(text, /bỉm|tã|size|hãng|gói|sản phẩm|Shopee/i, "onboarding không nói về sản phẩm");
-  assert.deepEqual([...new Set(buildQuestions(one, newId).map((q) => q.group))], ["Mục tiêu", "Gia đình", "Các con", "Nhà ở", "Tiền", "Phân tích"]);
+  assert.deepEqual([...new Set(buildQuestions(one, newId).map((q) => q.group))], ["Mục tiêu", "Gia đình", "Các con", "Nhà ở", "Tài chính", "Phân tích"]);
 });
 
 test("gia đình: kiểu nhà suy ra số người lớn; chưa có con / đang chờ em bé bỏ phần câu hỏi về con; con từ 6 tuổi không hỏi cân nặng", () => {

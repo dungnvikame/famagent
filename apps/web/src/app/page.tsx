@@ -17,7 +17,7 @@ const WHY = [
 /** What it does every day, with the exact thing the family types and gets back. */
 const DAILY = [
   {
-    icon: <IconWallet />, title: "Tiền: biết còn bao nhiêu trước khi tiêu",
+    icon: <IconWallet />, title: "Tài chính: biết còn bao nhiêu trước khi tiêu",
     text: "Ghi khoản chi như ghi vào Excel — “Ăn sáng 30k”, “Tiền điện 974k”. Khoản cố định (tiền nhà, Internet, lương) tự ghi khi tới ngày. Đặt kế hoạch chi cho tháng, FamAgent so nhịp chi và báo sớm.",
     example: { badge: "Bạn hỏi", ask: "Tháng này nhà mình tiêu thế nào?", answer: "Đã chi 10,7M / kế hoạch 12M. Với nhịp này cuối tháng sẽ chi ~13,4M, cao hơn kế hoạch 11%. Vượt ngân sách: Con (+225K). Internet 450K đến hạn sau 2 ngày." },
   },
@@ -83,7 +83,7 @@ export default function Home() {
         <div className="lp-demo-top"><span className="ob-orb" aria-hidden="true" /><b>Trang chủ nhà Gold · Thứ Tư 24/9</b><span className="lp-chip">3 việc cần chú ý</span></div>
         <div className="lp-mini-cards">
           <div className="lp-mini"><span className="lp-mini-badge">Sắp hết</span><b>Bỉm Merries L64 còn ~4 ngày</b><small>Mua 12/09, 64 miếng · bé dùng ~6 miếng/ngày</small><strong>Mua lại <em>giá hôm nay thấp hơn 18K</em></strong></div>
-          <div className="lp-mini"><span className="lp-mini-badge soft">Tiền</span><b>Chi tháng này cao hơn kế hoạch 7%</b><small>Ăn ngoài +700K · Em bé +620K (bỉm mua 2 lần)</small><strong>Xem vì sao <em>18,2M / 25M</em></strong></div>
+          <div className="lp-mini"><span className="lp-mini-badge soft">Tài chính</span><b>Chi tháng này cao hơn kế hoạch 7%</b><small>Ăn ngoài +700K · Em bé +620K (bỉm mua 2 lần)</small><strong>Xem vì sao <em>18,2M / 25M</em></strong></div>
         </div>
         <p className="lp-bubble me">Tháng này nhà mình tiêu thế nào?</p>
         <div className="lp-bubble ai"><span className="ob-orb" aria-hidden="true" /><p>Đã chi 18,2M, cao hơn nhịp tháng trước 9%. Hai nhóm tăng mạnh: Ăn uống và Em bé — Em bé tăng vì mua bỉm hai lần. Bạn muốn xem nguyên nhân hay tối ưu phần còn lại của tháng?</p></div>

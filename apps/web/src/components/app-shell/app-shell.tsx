@@ -8,7 +8,7 @@ import { useAccount } from "./use-account";
 /** Spec v2 §34: Home · Money · Shopping · Agent · Family. Same order on the desktop sidebar and the phone bottom bar. */
 export const SECTIONS = [
   { href: "/home", label: "Trang chủ", icon: IconHome, match: /^\/home/ },
-  { href: "/money", label: "Tiền", icon: IconMoney, match: /^\/money/ },
+  { href: "/money", label: "Tài chính", icon: IconMoney, match: /^\/money/ },
   { href: "/shopping", label: "Mua sắm", icon: IconBag, match: /^\/(shopping|products|compare)/ },
   { href: "/agent", label: "Trợ lý", icon: IconAgent, match: /^\/agent/ },
   { href: "/family", label: "Gia đình", icon: IconFamily, match: /^\/family/ },

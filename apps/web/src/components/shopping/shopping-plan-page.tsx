@@ -125,8 +125,8 @@ export function ShoppingPlanPage() {
     {state.purchases.length > 0 && <section className="app-section" aria-labelledby="sp-history"><details className="app-card history">
       <summary id="sp-history">Lịch sử mua · {state.purchases.length} lần</summary>
       <div className="app-rows">{state.purchases.slice(0, 60).map((purchase) => <div key={purchase.id}>
-        <span><b>{purchase.productName}{purchase.packs > 1 ? ` ×${purchase.packs}` : ""}</b><small>{dayLabel(purchase.purchasedOn)}{purchase.merchant ? ` · ${purchase.merchant}` : ""} · {purchase.unitCount} {state.items.find((item) => item.id === purchase.itemId)?.unit ?? "đơn vị"}{purchase.transactionId ? " · đã ghi vào Tiền" : ""}</small></span>
-        <span className="row-actions"><b>{vnd(purchase.amount)}</b><button type="button" className="ledger-link danger" onClick={() => { if (window.confirm("Xóa lần mua này và khoản chi đã ghi vào Tiền?")) void deletePurchase(purchase.id).then(reload).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Chưa xóa được.")); }}>Xóa</button></span>
+        <span><b>{purchase.productName}{purchase.packs > 1 ? ` ×${purchase.packs}` : ""}</b><small>{dayLabel(purchase.purchasedOn)}{purchase.merchant ? ` · ${purchase.merchant}` : ""} · {purchase.unitCount} {state.items.find((item) => item.id === purchase.itemId)?.unit ?? "đơn vị"}{purchase.transactionId ? " · đã ghi vào Tài chính" : ""}</small></span>
+        <span className="row-actions"><b>{vnd(purchase.amount)}</b><button type="button" className="ledger-link danger" onClick={() => { if (window.confirm("Xóa lần mua này và khoản chi đã ghi vào Tài chính?")) void deletePurchase(purchase.id).then(reload).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Chưa xóa được.")); }}>Xóa</button></span>
       </div>)}</div>
     </details></section>}
 

@@ -33,7 +33,7 @@ export function MarkPurchased({ target, compact = false, source = "catalog", lab
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải danh sách món."); }
   }
 
-  if (done) return <span className="purchased-done" role="status">✓ Đã ghi {vnd(done.amount)} vào Tiền · theo dõi {done.unitCount} {context?.items.find((item) => item.id === done.itemId)?.unit ?? "đơn vị"}</span>;
+  if (done) return <span className="purchased-done" role="status">✓ Đã ghi {vnd(done.amount)} vào Tài chính · theo dõi {done.unitCount} {context?.items.find((item) => item.id === done.itemId)?.unit ?? "đơn vị"}</span>;
   const match = context?.items.find((item) => item.id === target.itemId) ?? context?.items.find((item) => target.productId && item.productId === target.productId);
   const draft: PurchaseDraft = { itemId: match?.id, name: match?.name ?? target.productName, category: match?.category ?? "diapers", unit: match?.unit ?? "miếng", packs: 1, packSize: target.productId && target.piecesPerPack ? target.piecesPerPack : match?.packSize ?? target.piecesPerPack, brand: target.brand, amount: target.price, merchant: target.merchant ?? match?.merchant, purchasedOn: todayLocal(), missing: [] };
   return <span className="mark-purchased">

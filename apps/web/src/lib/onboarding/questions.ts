@@ -2,7 +2,7 @@
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
 import { CHECKUP_RECENCY, NUTRITION_LEVELS, PLAY_TIME, READING_FREQ, SAFETY_MEASURES, SCREEN_TIME, SLEEP_QUALITY, VACCINE_STATUS, BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
-export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền" | "Phân tích";
+export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tài chính" | "Phân tích";
 export interface Choice { value: string; label: string; hint?: string }
 export interface Question {
   /** Stable id, also recorded in profile.onboarding (≤ 80 chars). */
@@ -221,37 +221,37 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       apply: (p, [value]) => household(p, { housing: pick(HOUSING_TYPES, [value])[0] }),
     },
     {
-      id: "income", group: "Tiền", title: "Thu nhập cả nhà mỗi tháng khoảng bao nhiêu?", help: "Ước chừng là được, có thể bỏ qua. Chỉ dùng để tính kế hoạch cho bạn — không chia sẻ với ai.", mode: "single",
+      id: "income", group: "Tài chính", title: "Thu nhập cả nhà mỗi tháng khoảng bao nhiêu?", help: "Ước chừng là được, có thể bỏ qua. Chỉ dùng để tính kế hoạch cho bạn — không chia sẻ với ai.", mode: "single",
       choices: INCOME_CHOICES,
       current: (p) => nearest(INCOME_CHOICES, p.household?.monthlyIncome),
       apply: (p, [value]) => household(p, { monthlyIncome: INCOME_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "spend", group: "Tiền", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, chi cho các con — chưa tính trả nợ.", mode: "single",
+      id: "spend", group: "Tài chính", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, chi cho các con — chưa tính trả nợ.", mode: "single",
       choices: SPEND_CHOICES,
       current: (p) => nearest(SPEND_CHOICES, p.household?.monthlySpend),
       apply: (p, [value]) => household(p, { monthlySpend: SPEND_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "debt", group: "Tiền", title: "Mỗi tháng nhà mình trả nợ, trả góp khoảng bao nhiêu?", help: "Vay mua nhà, xe, trả góp điện thoại, thẻ tín dụng…", mode: "single",
+      id: "debt", group: "Tài chính", title: "Mỗi tháng nhà mình trả nợ, trả góp khoảng bao nhiêu?", help: "Vay mua nhà, xe, trả góp điện thoại, thẻ tín dụng…", mode: "single",
       choices: DEBT_CHOICES,
       current: (p) => nearest(DEBT_CHOICES, p.household?.monthlyDebt),
       apply: (p, [value]) => household(p, { monthlyDebt: DEBT_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "emergency", group: "Tiền", title: "Nếu tạm mất thu nhập, tiền để dành đủ cho nhà mình sống bao lâu?", mode: "single",
+      id: "emergency", group: "Tài chính", title: "Nếu tạm mất thu nhập, tiền để dành đủ cho nhà mình sống bao lâu?", mode: "single",
       choices: [{ value: "none", label: "Chưa có khoản để dành" }, { value: "lt3", label: "Dưới 3 tháng" }, { value: "3to6", label: "3–6 tháng" }, { value: "gt6", label: "Trên 6 tháng" }],
       current: (p) => p.household?.emergency ? [p.household.emergency] : [],
       apply: (p, [value]) => household(p, { emergency: pick(EMERGENCY_LEVELS, [value])[0] }),
     },
     {
-      id: "tracking", group: "Tiền", title: "Hiện nhà mình theo dõi chi tiêu thế nào?", mode: "single", other: { placeholder: "Ví dụ: vợ giữ sổ, chồng không theo dõi" },
+      id: "tracking", group: "Tài chính", title: "Hiện nhà mình theo dõi chi tiêu thế nào?", mode: "single", other: { placeholder: "Ví dụ: vợ giữ sổ, chồng không theo dõi" },
       choices: [{ value: "none", label: "Chưa ghi chép gì" }, { value: "memory", label: "Nhớ trong đầu, áng chừng" }, { value: "spreadsheet", label: "Ghi Excel hoặc sổ tay" }, { value: "app", label: "Dùng một app quản lý chi tiêu" }],
       current: (p) => p.household?.tracking ? [p.household.tracking] : [],
       apply: (p, [value]) => household(p, { tracking: pick(TRACKING_METHODS, [value])[0] }),
     },
     {
-      id: "money-pain", group: "Tiền", title: "Chuyện tiền nong, điều gì khiến bạn đau đầu nhất?", help: "Chọn tất cả điều đúng — đây là điều mình sẽ giúp trước.", mode: "multi", other: { placeholder: "Ví dụ: chi cho hai bên nội ngoại nhiều" },
+      id: "money-pain", group: "Tài chính", title: "Chuyện tiền nong, điều gì khiến bạn đau đầu nhất?", help: "Chọn tất cả điều đúng — đây là điều mình sẽ giúp trước.", mode: "multi", other: { placeholder: "Ví dụ: chi cho hai bên nội ngoại nhiều" },
       choices: [
         { value: "short_month_end", label: "Cuối tháng hay bị hụt tiền" }, { value: "unknown_spending", label: "Không biết tiền đi đâu hết" }, { value: "cant_save", label: "Mãi chưa để dành được" },
         { value: "debt", label: "Trả nợ, trả góp nặng quá" }, { value: "couple_disagree", label: "Vợ chồng chưa thống nhất chuyện chi tiêu" }, { value: "none", label: "Không có gì, chỉ muốn gọn gàng hơn" },
@@ -260,7 +260,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       apply: (p, values) => household(p, { moneyPains: pick(MONEY_PAINS, values) }),
     },
     {
-      id: "goals", group: "Tiền", title: "Nhà mình đang để dành cho điều gì?", help: "Chọn tất cả điều đúng — mình sẽ giúp theo dõi tiến độ.", mode: "multi", other: { placeholder: "Ví dụ: cưới hỏi, mở cửa hàng" },
+      id: "goals", group: "Tài chính", title: "Nhà mình đang để dành cho điều gì?", help: "Chọn tất cả điều đúng — mình sẽ giúp theo dõi tiến độ.", mode: "multi", other: { placeholder: "Ví dụ: cưới hỏi, mở cửa hàng" },
       choices: [
         { value: "emergency", label: "Quỹ dự phòng" }, { value: "education", label: "Học hành của các con" }, { value: "home", label: "Mua hoặc sửa nhà" },
         { value: "car", label: "Mua xe" }, { value: "travel", label: "Du lịch" }, { value: "retirement", label: "Về hưu, chăm sóc bố mẹ" },

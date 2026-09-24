@@ -57,7 +57,7 @@ export function financialHealth(profile: FamilyProfile): HealthReport {
   if (h.billTimeliness) {
     const status: HealthStatus = h.billTimeliness === "always" ? "healthy" : h.billTimeliness === "sometimes" ? "coping" : "vulnerable";
     add({ key: "bills", pillar: "Chi tiêu", label: "Trả hóa đơn đúng hạn", status, finding: { always: "Luôn trả đúng hạn.", sometimes: "Thỉnh thoảng trả trễ.", often_late: "Hay trả trễ, phải xoay xở." }[h.billTimeliness],
-      ...(status !== "healthy" && { problem: "Trả trễ làm phát sinh phí phạt, lãi quá hạn và có thể ghi nhận nợ xấu trên CIC.", fix: "Gom các khoản cố định (điện, nước, internet, trả góp) thành khoản định kỳ trong mục Tiền để được nhắc trước hạn; đặt ngày trả ngay sau ngày nhận lương." }) });
+      ...(status !== "healthy" && { problem: "Trả trễ làm phát sinh phí phạt, lãi quá hạn và có thể ghi nhận nợ xấu trên CIC.", fix: "Gom các khoản cố định (điện, nước, internet, trả góp) thành khoản định kỳ trong mục Tài chính để được nhắc trước hạn; đặt ngày trả ngay sau ngày nhận lương." }) });
   } else add({ key: "bills", pillar: "Chi tiêu", label: "Trả hóa đơn đúng hạn", status: "unknown", finding: "Chưa trả lời." });
 
   // 3 Sufficient liquid savings
@@ -105,7 +105,7 @@ export function financialHealth(profile: FamilyProfile): HealthReport {
   if (h.planning) {
     const status: HealthStatus = h.planning === "specific" ? "healthy" : h.planning === "rough" ? "coping" : "vulnerable";
     add({ key: "plan", pillar: "Kế hoạch", label: "Có kế hoạch tài chính", status, finding: { specific: "Có kế hoạch với con số và thời hạn.", rough: "Có ý tưởng, chưa cụ thể.", none: "Chưa có kế hoạch." }[h.planning],
-      ...(status !== "healthy" && { problem: "Mục tiêu chưa có con số và thời hạn thì rất khó đạt.", fix: `Biến ${h.savingGoals?.length ? "các mục tiêu bạn đã chọn" : "1–2 mục tiêu quan trọng nhất"} thành mục tiêu có số tiền và hạn cụ thể trong mục Tiền — FamAgent tính giúp mỗi tháng cần góp bao nhiêu.` }) });
+      ...(status !== "healthy" && { problem: "Mục tiêu chưa có con số và thời hạn thì rất khó đạt.", fix: `Biến ${h.savingGoals?.length ? "các mục tiêu bạn đã chọn" : "1–2 mục tiêu quan trọng nhất"} thành mục tiêu có số tiền và hạn cụ thể trong mục Tài chính — FamAgent tính giúp mỗi tháng cần góp bao nhiêu.` }) });
   } else add({ key: "plan", pillar: "Kế hoạch", label: "Có kế hoạch tài chính", status: "unknown", finding: "Chưa trả lời." });
 
   const known = items.filter((item) => item.status !== "unknown");

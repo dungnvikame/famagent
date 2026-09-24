@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "FamAgent — gia đình vận hành nhẹ nhàng hơn",
     short_name: "FamAgent",
-    description: "Tiền, mua sắm và chăm con của nhà mình ở một chỗ.",
+    description: "Tài chính, mua sắm và chăm con của nhà mình ở một chỗ.",
     start_url: "/home",
     display: "standalone",
     background_color: "#f7f6fb",

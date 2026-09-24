@@ -35,11 +35,13 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
       recurring = recurring.map((item) => due.some((posted) => posted.id === item.id) ? { ...item, lastPostedMonth: month } : item);
     }
   }
-  const monthEnd = `${month}-31`;
+  // First day of the next month: "YYYY-MM-31" is not a valid date for 30-day months and fails in Postgres.
+  const [year, monthIndex] = month.split("-").map(Number);
+  const nextMonth = `${monthIndex === 12 ? year + 1 : year}-${String(monthIndex === 12 ? 1 : monthIndex + 1).padStart(2, "0")}-01`;
   const [settings, transactions, totals, budgets, goals] = await Promise.all([
     client.from("money_settings").select("*").eq("user_id", userId).maybeSingle(),
-    client.from(TABLES.transactions).select("*").eq("user_id", userId).gte("occurred_on", `${month}-01`).lte("occurred_on", monthEnd).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(2000),
-    client.from(TABLES.transactions).select("kind,amount").eq("user_id", userId).lte("occurred_on", monthEnd).limit(20000),
+    client.from(TABLES.transactions).select("*").eq("user_id", userId).gte("occurred_on", `${month}-01`).lt("occurred_on", nextMonth).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(2000),
+    client.from(TABLES.transactions).select("kind,amount").eq("user_id", userId).lt("occurred_on", nextMonth).limit(20000),
     client.from(TABLES.budgets).select("*").eq("user_id", userId).eq("month", `${month}-01`),
     client.from(TABLES.goals).select("*").eq("user_id", userId).order("created_at"),
   ]);
