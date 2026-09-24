@@ -23,9 +23,9 @@ const MILESTONES: Array<{ key: string; from: number; to: number; title: string; 
 ];
 
 /** Suggestions for each child now (milestones about a month early), minus those the family marked "Đã có" or hid. */
-export function upcomingStages(profile: FamilyProfile | null, entries: PlanEntry[], now = new Date()): StageSuggestion[] {
+export function upcomingStages(profile: FamilyProfile | null, entries: PlanEntry[], now = new Date(), month = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`): StageSuggestion[] {
   const settled = new Set(entries.filter((entry) => entry.stageKey && entry.status !== "planned").map((entry) => entry.stageKey!));
-  const planned = new Set(entries.filter((entry) => entry.stageKey && entry.status === "planned").map((entry) => entry.stageKey!));
+  const planned = new Set(entries.filter((entry) => entry.stageKey && entry.status === "planned" && entry.month === month).map((entry) => entry.stageKey!));
   const out: StageSuggestion[] = [];
   for (const child of profile?.children ?? []) {
     const who = child.name ? `bé ${child.name}` : "bé";

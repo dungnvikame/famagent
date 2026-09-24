@@ -12,7 +12,7 @@ export function StockCheck({ estimate, compact = false, onDone }: { estimate: It
   async function answer(level: (typeof STOCK_LEVELS)[number]["id"]) {
     setBusy(true); setError("");
     try {
-      await saveCheck({ id: crypto.randomUUID(), itemId: estimate.item.id, checkedOn: localDate(new Date()), remaining: levelToRemaining(level, estimate) });
+      await saveCheck({ id: crypto.randomUUID(), itemId: estimate.item.id, checkedOn: localDate(new Date()), remaining: levelToRemaining(level, estimate), createdAt: new Date().toISOString() });
       trackEvent("stock_checked", { level, category: estimate.item.category });
       onDone();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được."); }

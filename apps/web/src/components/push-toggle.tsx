@@ -5,13 +5,13 @@ import { trackEvent } from "@/lib/experience/storage";
 import { currentSubscription, disablePush, enablePush, isIos, isStandalone, pushConfigured, pushSupported } from "@/lib/push/client";
 
 /** "Nhắc khi đồ sắp hết" on this device. Hidden when the server has no VAPID key; on iOS it first asks to install. */
-export function PushToggle({ cloud }: { cloud: boolean }) {
+export function PushToggle({ cloud, inviteOnly = false }: { cloud: boolean; /** Shopping page invite: hidden once reminders are on. */ inviteOnly?: boolean }) {
   const [on, setOn] = useState<boolean | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const available = cloud && pushConfigured();
   useEffect(() => { if (available && pushSupported()) currentSubscription().then((sub) => setOn(Boolean(sub))).catch(() => setOn(false)); else setOn(false); }, [available]);
-  if (!available) return null;
+  if (!available || (inviteOnly && on !== false)) return null;
   const needsInstall = isIos() && !isStandalone();
 
   async function toggle(value: boolean) {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { chatJson, isAiConfigured } from "@/lib/ai/llm";
+import { chatJson, isAiConfigured, visionProviders } from "@/lib/ai/llm";
 import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
 import { todayLocal } from "@/lib/money/parse";
 import { loadItems } from "@/lib/shopping/item-store-server";
@@ -11,6 +11,11 @@ import { authenticated, authConfigured } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
+/** GET → whether this server can read photos (the button stays hidden otherwise). */
+export function GET() {
+  return NextResponse.json({ available: isAiConfigured() && visionProviders().length > 0 });
+}
+
 /** Order photos read per hour per family (vision calls cost more than a chat turn). */
 const RECEIPTS_PER_HOUR = 20;
 
@@ -19,7 +24,7 @@ const RECEIPTS_PER_HOUR = 20;
  * provider; the image is sent to the model for this one request and is never stored or logged.
  */
 export async function POST(request: Request) {
-  if (!isAiConfigured()) return NextResponse.json({ error: "Đọc ảnh cần bật AI trên máy chủ." }, { status: 503 });
+  if (!isAiConfigured() || !visionProviders().length) return NextResponse.json({ error: "Đọc ảnh cần bật AI có hỗ trợ ảnh trên máy chủ." }, { status: 503 });
   const body = await request.json().catch(() => null) as { image?: unknown; aiConsent?: unknown; items?: unknown } | null;
   if (!isImageDataUrl(body?.image)) return NextResponse.json({ error: "Ảnh không hợp lệ hoặc quá lớn." }, { status: 400 });
   let items: ShoppingItem[] = [];
@@ -45,6 +50,7 @@ export async function POST(request: Request) {
     schema: RECEIPT_SCHEMA,
     validate: isReceipt,
     timeoutMs: 25_000,
+    vision: true,
   });
   if (!result) return NextResponse.json({ error: "Chưa đọc được ảnh này. Thử ảnh rõ hơn, hoặc gõ một câu vào ô ghi nhanh." }, { status: 422 });
   const drafts = receiptDrafts(result.data, items, todayLocal());

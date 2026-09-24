@@ -41,7 +41,9 @@ const CATEGORY_WORDS: Array<[RegExp, ItemCategory]> = [
 const word = (list: string) => new RegExp(String.raw`(?<![\p{L}\d])(?:${list})(?![\p{L}\d])`, "u");
 const PAST = word("vừa|mới|đã|hôm qua|hôm nay|hôm kia|sáng nay|chiều nay|tối qua|trưa nay|lúc nãy|hồi nãy|rồi|xong");
 const NEED = word("nên|cần|muốn|tìm|gợi ý|so sánh|loại nào|mua gì|ở đâu|bao nhiêu|đặt hàng giúp|rẻ nhất|tốt nhất|định|tính|sắp|dự định|hay là|được không|có rẻ không|có nên|không nhỉ|giúp mình|giúp tôi|cho mình xem");
-const PRICE_LIMIT = /(?<![\p{L}\d])(?:dưới|tối đa|không quá|tầm|khoảng|max|trên|từ)\s*\d/u;
+/** The same requests typed without diacritics ("can mua bim duoi 400k"); "can" alone is also the unit, so only "can mua". */
+const FOLDED_NEED = /\b(nen mua|can mua|muon mua|tim|goi y|so sanh|loai nao|mua gi|o dau|bao nhieu|dinh mua|tinh mua|sap mua|duoc khong|co nen|re nhat|tot nhat)\b|\b(duoi|toi da|khong qua|khoang)\s*\d/;
+const PRICE_LIMIT =/(?<![\p{L}\d])(?:dưới|tối đa|không quá|tầm|khoảng|max|trên|từ)\s*\d/u;
 const AMOUNT = /(?<![\p{L}\d.,])(\d+(?:[.,]\d+)?\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m)\d?|\d{1,3}(?:[.,]\d{3})+\s?(?:đ|vnđ|vnd|d)?|\d{5,}\s?(?:đ|vnđ|vnd|d)?)(?![\p{L}\d])/giu;
 
 /** Lower-cased, diacritics stripped, one output character per input character (so indexes map back). */
@@ -53,10 +55,11 @@ const cut = (text: string, spans: Span[]) => { let out = ""; let cursor = 0; for
 /** True when the sentence reports a purchase already made (not a request to find or compare something). */
 export function looksLikePurchaseLog(text: string): boolean {
   const lower = text.toLocaleLowerCase("vi");
-  if (!/(?<![\p{L}\d])mua(?![\p{L}\d])/u.test(lower) || lower.includes("?") || NEED.test(lower) || PRICE_LIMIT.test(lower)) return false;
+  if (!/(?<![\p{L}\d])mua(?![\p{L}\d])/u.test(lower) || lower.includes("?") || NEED.test(lower) || PRICE_LIMIT.test(lower) || FOLDED_NEED.test(fold(text))) return false;
   // "mua lại Merries" asks the agent to reorder; "vừa mua lại 2 bịch 600k" reports a purchase.
   if (!findAmount(text)) return false;
-  return PAST.test(lower);
+  // Typed without diacritics: only unambiguous phrases ("da" alone could be "da" = skin).
+  return PAST.test(lower) || /\b(vua mua|moi mua|da mua|hom qua|hom nay|hom kia|sang nay|toi qua)\b/.test(fold(text));
 }
 
 function findAmount(text: string): { value: number; span: Span } | null {

@@ -56,3 +56,23 @@ test("khớp tên món không dấu", () => {
   assert.equal(matchItem("merries l", [item()])?.id, "i1");
   assert.equal(matchItem("sữa meiji", [item()]), undefined);
 });
+
+test("review 260924-1452: mua cùng ngày với “Hết rồi” được cộng; mốc trước lần mua đầu vẫn tính", () => {
+  const out = [{ id: "c", itemId: "i1", checkedOn: "2026-09-24", remaining: 0, createdAt: "2026-09-24T08:00:00Z" }];
+  const [same] = estimateItems([item({ dailyRate: 6 })], [buy("2026-09-01", 64), buy("2026-09-24", 64)], () => 6, now, out);
+  assert.equal(same.remaining, 64); assert.equal(same.daysLeft, 10);
+  const before = [{ id: "c", itemId: "i1", checkedOn: "2026-09-18", remaining: 60 }];
+  const [early] = estimateItems([item()], [buy("2026-09-20", 64)], () => 6, now, before);
+  // 60 on 18/09 → 48 on 20/09, +64 → 112, −24 by 24/09 → 88.
+  assert.equal(early.remaining, 88);
+  // Two answers the same day: the later one wins.
+  const [corrected] = estimateItems([item()], [buy("2026-09-01", 64)], () => 6, now, [{ id: "a", itemId: "i1", checkedOn: "2026-09-24", remaining: 0, createdAt: "2026-09-24T08:00:00Z" }, { id: "b", itemId: "i1", checkedOn: "2026-09-24", remaining: 40, createdAt: "2026-09-24T09:00:00Z" }]);
+  assert.equal(corrected.remaining, 40);
+});
+
+test("“Còn ít” không về 0 với món dùng chậm; hai lần mua cùng ngày là một lần bổ sung", () => {
+  const slow = item({ category: "household", unit: "can", packSize: 1 });
+  const [estimate] = estimateItems([slow], [buy("2026-09-20", 1)], () => 1 / 30, now);
+  assert.ok(levelToRemaining("low", estimate) > 0);
+  assert.equal(learnedRate([buy("2026-09-01", 64), buy("2026-09-01", 64), buy("2026-09-25", 64)], [], 6), 5.333);
+});

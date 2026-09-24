@@ -18,6 +18,8 @@ export interface ChatJsonRequest<T> {
   validate?: (value: unknown) => value is T;
   /** Total budget across all providers. */
   timeoutMs?: number;
+  /** Message carries an image: only providers listed in LLM_VISION_PROVIDERS (default gemini, openai, openrouter) are tried. */
+  vision?: boolean;
 }
 
 export interface ChatJsonResult<T> { data: T; provider: string }
@@ -81,8 +83,15 @@ async function attempt(provider: LlmProvider, request: ChatJsonRequest<unknown>,
   }
 }
 
+/** Providers that accept image parts (LLM_VISION_PROVIDERS, default gemini, openai, openrouter). */
+export function visionProviders(providers: LlmProvider[] = getProviders()): LlmProvider[] {
+  const names = (process.env.LLM_VISION_PROVIDERS ?? "gemini,openai,openrouter").split(",").map((name) => name.trim()).filter(Boolean);
+  return providers.filter((provider) => names.includes(provider.name));
+}
+
 export async function chatJson<T>(request: ChatJsonRequest<T>, overrides: Partial<ChatJsonDeps> = {}): Promise<ChatJsonResult<T> | null> {
-  const deps = { ...defaultDeps(), ...overrides };
+  const base = { ...defaultDeps(), ...overrides };
+  const deps = request.vision ? { ...base, providers: visionProviders(base.providers) } : base;
   if (!deps.enabled || !deps.providers.length) return null;
   const deadline = deps.now() + (request.timeoutMs ?? 9000);
   for (const [index, provider] of deps.providers.entries()) {

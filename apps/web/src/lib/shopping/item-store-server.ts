@@ -13,7 +13,7 @@ const num = (value: unknown) => value === null || value === undefined ? undefine
 
 export const itemFromRow = (row: Row): ShoppingItem => ({ id: row.id as string, name: row.name as string, category: row.category as ShoppingItem["category"], unit: row.unit as string, packSize: num(row.pack_size), brand: str(row.brand), merchant: str(row.merchant), dailyRate: num(row.daily_rate), childId: str(row.child_id), productId: str(row.product_id), status: row.status as ShoppingItem["status"] });
 export const itemRow = (item: ShoppingItem, userId: string) => ({ id: item.id, user_id: userId, name: item.name, category: item.category, unit: item.unit, pack_size: item.packSize ?? null, brand: item.brand ?? null, merchant: item.merchant ?? null, daily_rate: item.dailyRate ?? null, child_id: item.childId ?? null, product_id: item.productId ?? null, status: item.status, updated_at: new Date().toISOString() });
-export const checkFromRow = (row: Row): StockCheck => ({ id: row.id as string, itemId: row.item_id as string, checkedOn: row.checked_on as string, remaining: Number(row.remaining) });
+export const checkFromRow = (row: Row): StockCheck => ({ id: row.id as string, itemId: row.item_id as string, checkedOn: row.checked_on as string, remaining: Number(row.remaining), createdAt: row.created_at ? new Date(row.created_at as string).toISOString() : undefined });
 const checkRow = (check: StockCheck, userId: string) => ({ id: check.id, user_id: userId, item_id: check.itemId, checked_on: check.checkedOn, remaining: check.remaining });
 const planFromRow = (row: Row): PlanEntry => ({ id: row.id as string, month: row.month as string, itemId: str(row.item_id), stageKey: str(row.stage_key), name: row.name as string, packs: Number(row.packs) || 1, estAmount: num(row.est_amount), reason: row.reason as PlanEntry["reason"], status: row.status as PlanEntry["status"] });
 const planRow = (entry: PlanEntry, userId: string) => ({ id: entry.id, user_id: userId, month: entry.month, item_id: entry.itemId ?? null, stage_key: entry.stageKey ?? null, name: entry.name, packs: entry.packs, est_amount: entry.estAmount ?? null, reason: entry.reason, status: entry.status });
@@ -43,8 +43,8 @@ export async function loadShoppingState(client: SupabaseClient, userId: string):
   const since = new Date(Date.now() - 400 * 86_400_000).toISOString().slice(0, 10);
   const [items, purchases, checks, plan, dismissed] = await Promise.all([
     loadItems(client, userId), loadPurchases(client, userId),
-    client.from("stock_checks").select("*").eq("user_id", userId).gte("checked_on", since).order("checked_on").limit(1000),
-    client.from("shopping_plan_entries").select("*").eq("user_id", userId).order("created_at").limit(500),
+    client.from("stock_checks").select("*").eq("user_id", userId).gte("checked_on", since).order("checked_on", { ascending: false }).order("created_at", { ascending: false }).limit(1000),
+    client.from("shopping_plan_entries").select("*").eq("user_id", userId).order("month", { ascending: false }).order("created_at", { ascending: false }).limit(500),
     client.from("shopping_tx_dismissed").select("transaction_id").eq("user_id", userId).limit(2000),
   ]);
   if (!items || !purchases || checks.error || plan.error || dismissed.error) return null;

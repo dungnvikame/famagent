@@ -21,10 +21,12 @@ const dayLabel = (iso: string) => `${Number(iso.slice(8))}/${Number(iso.slice(5,
 export function ReconcileCard({ tx, items, purchases, familyChildren, onDone }: { tx: MoneyTransaction; items: ShoppingItem[]; purchases: Purchase[]; familyChildren: ChildProfile[]; onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [other, setOther] = useState(false);
+  const [preset, setPreset] = useState<ShoppingItem | null>(null);
   const [error, setError] = useState("");
   const options = suggestItems(tx, items, purchases);
 
   async function link(item: ShoppingItem) {
+    if (!item.packSize) { setPreset(item); setOther(true); return; }
     setBusy(true); setError("");
     try {
       const size = item.packSize ?? 1;
@@ -42,7 +44,7 @@ export function ReconcileCard({ tx, items, purchases, familyChildren, onDone }: 
 
   return <div className="app-card reconcile-card">
     <p><span className="ic info" aria-hidden="true">?</span> Khoản <b>{tx.content}</b> {vnd(tx.amount)} ngày {dayLabel(tx.occurredOn)} là mua gì?</p>
-    {other ? <PurchaseDraftCard draft={{ name: tx.content, category: tx.forChild ? "diapers" : "other", unit: "gói", packs: 1, amount: tx.amount, purchasedOn: tx.occurredOn, missing: [] }} items={items} familyChildren={familyChildren} source="ledger" linkTransactionId={tx.id} title="Gắn với một món" onCancel={() => setOther(false)} onSaved={() => onDone()} />
+    {other ? <PurchaseDraftCard draft={{ itemId: preset?.id, name: preset?.name ?? tx.content, category: preset?.category ?? (tx.forChild ? "diapers" : "other"), unit: preset?.unit ?? "gói", packs: 1, amount: tx.amount, purchasedOn: tx.occurredOn, missing: ["packSize"] }} items={items} familyChildren={familyChildren} source="ledger" linkTransactionId={tx.id} title="Gắn với một món" onCancel={() => { setOther(false); setPreset(null); }} onSaved={() => onDone()} />
       : <span className="chip-row">
         {options.map((item) => <button key={item.id} type="button" className="chip" disabled={busy} onClick={() => void link(item)}>{item.name}</button>)}
         <button type="button" className="chip" disabled={busy} onClick={() => setOther(true)}>Món khác…</button>

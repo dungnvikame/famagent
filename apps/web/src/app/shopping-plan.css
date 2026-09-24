@@ -86,3 +86,4 @@
 .stages>div{flex-wrap:wrap}
 .photo-capture{display:grid;gap:10px;justify-items:start}
 .photo-drafts{display:grid;gap:10px;width:100%}
+.push-invite:not(:has(input)){display:none}

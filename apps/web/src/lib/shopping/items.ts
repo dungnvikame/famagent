@@ -32,7 +32,8 @@ export interface ShoppingItem {
 }
 
 /** "Còn không?" answer: on that day the family had about `remaining` units (phase 2). */
-export interface StockCheck { id: string; itemId: string; checkedOn: string; remaining: number }
+export interface StockCheck { id: string; itemId: string; checkedOn: string; remaining: number; /** ISO time the answer was given (orders same-day corrections). */ createdAt?: string }
+const byCheckOrder = (a: StockCheck, b: StockCheck) => a.checkedOn.localeCompare(b.checkedOn) || (a.createdAt ?? "").localeCompare(b.createdAt ?? "");
 
 export type RateSource = "default" | "learned" | "set";
 
@@ -84,16 +85,18 @@ export const purchasesOf = (item: ShoppingItem, purchases: Purchase[]) =>
  * earlier than 40% of the expected gap is stocking up, not consumption, and is skipped.
  */
 export function learnedRate(purchases: Purchase[], checks: StockCheck[] = [], fallback?: number): number | null {
-  const sortedChecks = [...checks].sort((a, b) => a.checkedOn.localeCompare(b.checkedOn));
+  const sortedChecks = [...checks].sort(byCheckOrder);
   for (let index = sortedChecks.length - 1; index > 0; index--) {
     const to = sortedChecks[index];
     const from = sortedChecks.slice(0, index).reverse().find((check) => daysBetween(check.checkedOn, to.checkedOn) >= 3);
     if (!from) continue;
-    const bought = purchases.filter((purchase) => purchase.purchasedOn > from.checkedOn && purchase.purchasedOn <= to.checkedOn).reduce((sum, purchase) => sum + purchase.unitCount, 0);
+    const bought = purchases.filter((purchase) => purchase.purchasedOn >= from.checkedOn && purchase.purchasedOn < to.checkedOn).reduce((sum, purchase) => sum + purchase.unitCount, 0);
     const used = from.remaining + bought - to.remaining;
     if (used > 0) return round(used / daysBetween(from.checkedOn, to.checkedOn));
   }
-  const sorted = [...purchases].sort((a, b) => a.purchasedOn.localeCompare(b.purchasedOn));
+  const byDay = new Map<string, number>();
+  for (const purchase of purchases) byDay.set(purchase.purchasedOn, (byDay.get(purchase.purchasedOn) ?? 0) + purchase.unitCount);
+  const sorted = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([purchasedOn, unitCount]) => ({ purchasedOn, unitCount }));
   let units = 0; let days = 0;
   for (let index = 1; index < sorted.length; index++) {
     const gap = daysBetween(sorted[index - 1].purchasedOn, sorted[index].purchasedOn);
@@ -120,8 +123,9 @@ export function estimateItems(items: ShoppingItem[], purchases: Purchase[], rate
     const rateSource: RateSource = item.dailyRate ? "set" : learned ? "learned" : "default";
     const last = own.at(-1);
     const lastPackPrice = last ? Math.round(last.amount / Math.max(1, last.packs)) : undefined;
-    const anchor = ownChecks.sort((a, b) => a.checkedOn.localeCompare(b.checkedOn)).at(-1);
-    const start = anchor && (!own.length || anchor.checkedOn >= own[0].purchasedOn) ? { on: anchor.checkedOn, units: anchor.remaining, after: (purchase: Purchase) => purchase.purchasedOn > anchor.checkedOn }
+    const anchor = ownChecks.sort(byCheckOrder).at(-1);
+    // Purchases on the answer's day count after it: the usual order is "hết rồi", then buying.
+    const start = anchor ? { on: anchor.checkedOn, units: anchor.remaining, after: (purchase: Purchase) => purchase.purchasedOn >= anchor.checkedOn }
       : own.length ? { on: own[0].purchasedOn, units: 0, after: () => true } : null;
     if (!start) return { item, known: false, remaining: 0, dailyRate, rateSource, daysLeft: null, runsOutOn: null, purchaseCount: 0 };
     // Walk forward day by day in segments so stock never goes below zero between purchases (running out, then rebuying).
@@ -148,7 +152,7 @@ export type StockLevel = (typeof STOCK_LEVELS)[number]["id"];
 export function levelToRemaining(level: StockLevel, estimate: Pick<ItemEstimate, "remaining" | "dailyRate" | "item">): number {
   const pack = estimate.item.packSize ?? Math.max(1, Math.round(estimate.dailyRate * 14));
   if (level === "out") return 0;
-  if (level === "low") return Math.min(estimate.remaining || Infinity, Math.round(estimate.dailyRate * 2));
+  if (level === "low") return Math.min(estimate.remaining || Infinity, Math.round(Math.max(estimate.dailyRate * 3, pack * 0.1) * 100) / 100);
   if (level === "half") return Math.round(pack / 2);
   return Math.max(estimate.remaining, pack);
 }

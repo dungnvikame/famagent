@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cloudEnabled } from "@/lib/experience/cloud";
 import { trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile } from "@/lib/experience/types";
@@ -28,6 +28,9 @@ export function PhotoCapture({ items, familyChildren, aiConsent, onSaved }: { it
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [drafts, setDrafts] = useState<Array<PurchaseDraft & { key: string }>>([]);
+  // The button only shows when this server can read photos (AI on, a vision-capable provider).
+  const [available, setAvailable] = useState(false);
+  useEffect(() => { if (aiConsent) fetch("/api/shopping/receipt").then((response) => response.json()).then((data: { available?: boolean }) => setAvailable(Boolean(data.available))).catch(() => setAvailable(false)); }, [aiConsent]);
 
   async function read(file: File) {
     setBusy(true); setError("");
@@ -42,13 +45,13 @@ export function PhotoCapture({ items, familyChildren, aiConsent, onSaved }: { it
     finally { setBusy(false); if (input.current) input.current.value = ""; }
   }
 
-  if (!aiConsent) return null;
+  if (!aiConsent || !available) return null;
   return <div className="photo-capture">
     <input ref={input} type="file" accept="image/*" capture="environment" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void read(file); }} />
-    <button type="button" className="app-btn ghost" disabled={busy} onClick={() => input.current?.click()} aria-label="Chụp hoặc chọn ảnh đơn hàng">{busy ? "Đang đọc ảnh…" : "Ghi từ ảnh đơn hàng"}</button>
+    <button type="button" className="app-btn ghost" disabled={busy} onClick={() => input.current?.click()}>{busy ? "Đang đọc ảnh…" : "Ghi từ ảnh đơn hàng"}</button>
     {(error || drafts.length > 0) && <div className="photo-drafts">
       {error && <p className="form-error" role="alert">{error}</p>}
-      {drafts.length > 0 && <p className="app-sub">Đọc được {drafts.length} dòng — kiểm tra từng dòng rồi ghi lại. Ảnh không được lưu.</p>}
+      {drafts.length > 0 && <p className="app-sub">Đọc được {drafts.length} dòng — kiểm tra từng dòng rồi ghi lại. Ảnh chỉ được gửi tới nhà cung cấp AI để đọc, không lưu lại.</p>}
       {drafts.map((draft) => <PurchaseDraftCard key={draft.key} draft={draft} items={items} familyChildren={familyChildren} source="photo" title={draft.name} onCancel={() => setDrafts((current) => current.filter((entry) => entry.key !== draft.key))} onSaved={(purchase, item) => { setDrafts((current) => current.filter((entry) => entry.key !== draft.key)); onSaved(purchase, item); }} />)}
     </div>}
   </div>;

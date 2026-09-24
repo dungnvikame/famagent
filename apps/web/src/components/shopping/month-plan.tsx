@@ -53,10 +53,10 @@ export function MonthPlan({ lines, month, items, familyChildren, budget, remaini
           <span className="row-actions">
             {line.estAmount ? <b>{shortVnd(line.estAmount)}</b> : null}
             {line.status === "planned" ? <>
-              <button type="button" className="ledger-link" onClick={() => setBuying(buying === line.key ? null : line.key)}>Đã mua</button>
-              <button type="button" className="ledger-link" onClick={() => void moveNext(line)}>Tháng sau</button>
-              <button type="button" className="ledger-link" onClick={() => void update(line, { status: "skipped" })}>Bỏ qua</button>
-            </> : <button type="button" className="ledger-link" onClick={() => void update(line, { status: "planned" })}>Hoàn tác</button>}
+              <button type="button" className="ledger-link" aria-label={`Đã mua ${line.name}`} onClick={() => setBuying(buying === line.key ? null : line.key)}>Đã mua</button>
+              <button type="button" className="ledger-link" aria-label={`Dời ${line.name} sang tháng sau`} onClick={() => void moveNext(line)}>Tháng sau</button>
+              <button type="button" className="ledger-link" aria-label={`Bỏ qua ${line.name}`} onClick={() => void update(line, { status: "skipped" })}>Bỏ qua</button>
+            </> : <button type="button" className="ledger-link" aria-label={`Hoàn tác ${line.name}`} onClick={() => void update(line, { status: "planned" })}>Hoàn tác</button>}
           </span>
           {buying === line.key && <PurchaseDraftCard draft={{ itemId: item?.id, name: item?.name ?? line.name, category: item?.category ?? "other", unit: item?.unit ?? "gói", packs: line.packs, packSize: item?.packSize, amount: line.estAmount, merchant: item?.merchant, purchasedOn: todayLocal(), missing: [] }} items={items} familyChildren={familyChildren} source="plan" title={`Ghi lần mua ${line.name}`} onCancel={() => setBuying(null)} onSaved={() => { setBuying(null); void update(line, { status: "bought" }); }} />}
         </div>;

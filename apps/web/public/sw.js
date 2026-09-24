@@ -12,7 +12,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = new URL(event.notification.data?.url || "/shopping", self.location.origin).href;
+  const target = new URL(event.notification.data?.url || "/shopping", self.location.origin);
+  const url = target.origin === self.location.origin ? target.href : new URL("/shopping", self.location.origin).href;
   event.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
     const open = windows.find((client) => client.url.startsWith(self.location.origin));
     if (open) { open.navigate(url); return open.focus(); }

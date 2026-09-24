@@ -25,7 +25,7 @@ const isDay = (value: unknown): value is string => typeof value === "string" && 
 export function validCheck(input: unknown): StockCheck | null {
   if (!isRecord(input) || !isUuid(input.id) || !isUuid(input.itemId) || !isDay(input.checkedOn)) return null;
   const remaining = Number(input.remaining);
-  return Number.isFinite(remaining) && remaining >= 0 && remaining <= 1_000_000 ? { id: input.id, itemId: input.itemId, checkedOn: input.checkedOn, remaining: Math.round(remaining * 100) / 100 } : null;
+  return Number.isFinite(remaining) && remaining >= 0 && remaining <= 1_000_000 ? { id: input.id, itemId: input.itemId, checkedOn: input.checkedOn, remaining: Math.round(remaining * 100) / 100, createdAt: typeof input.createdAt === "string" && !Number.isNaN(Date.parse(input.createdAt)) ? new Date(input.createdAt).toISOString() : undefined } : null;
 }
 
 /** PUT /api/shopping/plan → one monthly plan entry. */

@@ -56,7 +56,7 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
     if (!existing && !name.trim()) { setError("Nhập tên món."); return; }
     const kid = forChild && childId ? childId : undefined;
     const item: ShoppingItem = existing
-      ? { ...existing, packSize: existing.packSize ?? size, merchant: merchant.trim() || existing.merchant, productId: existing.productId ?? catalog?.productId, brand: existing.brand ?? catalog?.brand }
+      ? { ...existing, packSize: size, merchant: merchant.trim() || existing.merchant, productId: existing.productId ?? catalog?.productId, brand: existing.brand ?? catalog?.brand }
       : { id: crypto.randomUUID(), name: name.trim(), category, unit: unit.trim() || DEFAULT_UNIT[category], packSize: size, merchant: merchant.trim() || undefined, childId: kid, productId: catalog?.productId, brand: catalog?.brand ?? draft.brand, status: "active" };
     const purchase: Purchase = { id: crypto.randomUUID(), itemId: item.id, productId: catalog?.productId ?? item.productId, variantId: catalog?.variantId, offerId: catalog?.offerId, productName: item.name, brand: item.brand, merchant: merchant.trim() || undefined, amount: paid, packs: count, unitCount: count * size, purchasedOn: date, childId: kid, source };
     setBusy(true); setError("");

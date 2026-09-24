@@ -34,7 +34,7 @@ export async function recordPurchase(client: SupabaseClient, userId: string, pur
   }
   const stored = { ...purchase, transactionId };
   const { error } = await client.from("purchases").insert(purchaseRow(stored, userId));
-  if (error) { if (!linkTransactionId) await client.from("money_transactions").delete().eq("id", transactionId); return "purchase"; }
+  if (error) { if (!linkTransactionId) await client.from("money_transactions").delete().eq("id", transactionId); return error.code === "23505" && linkTransactionId ? "linked" : "purchase"; }
   // Event log is observability + replay; a failed insert never fails the user's action.
   const { error: eventError } = await client.from("family_events").insert({ user_id: userId, type: "PURCHASE_COMPLETED", payload: { purchaseId: stored.id, itemId: stored.itemId, productId: stored.productId ?? null, amount: stored.amount, unitCount: stored.unitCount, transactionId, source: stored.source ?? "catalog" } });
   if (eventError) console.warn("[family_events]", JSON.stringify({ code: eventError.code ?? "unknown" }));

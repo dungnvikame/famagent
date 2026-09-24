@@ -27,11 +27,13 @@ export async function POST(request: Request) {
   const purchase = validPurchase(body?.purchase);
   const item = body?.item === undefined ? null : validItem(body.item);
   if (!purchase || (body?.item !== undefined && !item) || (body?.linkTransactionId !== undefined && !isUuid(body.linkTransactionId))) return NextResponse.json({ error: "Thông tin mua không hợp lệ" }, { status: 400 });
+  let saved = item;
   if (item) {
     // A card may hold a stale copy of an existing item: keep the stored name/status/rate, only fill what it lacks.
     const { data: row } = await auth.client.from("shopping_items").select("*").eq("id", item.id).eq("user_id", auth.user.id).maybeSingle();
     const stored = row ? itemFromRow(row) : null;
-    const merged = stored ? { ...stored, packSize: stored.packSize ?? item.packSize, merchant: item.merchant ?? stored.merchant, productId: stored.productId ?? item.productId, brand: stored.brand ?? item.brand } : item;
+    const merged = stored ? { ...stored, packSize: item.packSize ?? stored.packSize, merchant: item.merchant ?? stored.merchant, productId: stored.productId ?? item.productId, brand: stored.brand ?? item.brand } : item;
+    saved = merged;
     if (!await saveItem(auth.client, auth.user.id, merged)) return NextResponse.json({ error: "Không thể lưu món đồ" }, { status: 500 });
     purchase.itemId = item.id;
   } else if (purchase.itemId) {
@@ -44,7 +46,7 @@ export async function POST(request: Request) {
   const result = await recordPurchase(auth.client, auth.user.id, purchase, body?.forChild !== false, link);
   if (result === "linked") return NextResponse.json({ error: "Khoản chi này không gắn được (đã gắn hoặc không phải khoản chi)" }, { status: 409 });
   if (typeof result === "string") return NextResponse.json({ error: result === "transaction" ? "Không thể ghi vào sổ thu chi" : "Không thể lưu lần mua" }, { status: 500 });
-  return NextResponse.json({ purchase: result, item });
+  return NextResponse.json({ purchase: result, item: saved });
 }
 
 export async function DELETE(request: Request) {

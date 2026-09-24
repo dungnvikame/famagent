@@ -17,8 +17,8 @@ test("nhận ra câu ghi lần mua, bỏ qua câu hỏi mua", () => {
   assert.equal(looksLikePurchaseLog("mua lại Merries L 345k"), false);
   assert.equal(looksLikePurchaseLog("vừa mua bỉm"), false);
   // Review 260924-1452: questions and plans that mention a price and a shop are not purchase logs.
-  for (const question of ["mua bỉm 300k cho em bé 8kg", "mua bỉm Merries ở Shopee 300k được không", "mình định mua bỉm Merries 690k ở Shopee", "mua Huggies 350k ở Tiki có rẻ không", "mua kem dưỡng da 200k", "mua bỉm Merries 690k ở Shopee"]) assert.equal(looksLikePurchaseLog(question), false, question);
-  for (const log of ["đã mua 2 can nước giặt 380k", "vừa mua lại 2 bịch bỉm 600k", "mua 2 bịch bỉm 690k ở Shopee rồi", "sáng nay mua rau ở chợ 120k"]) assert.equal(looksLikePurchaseLog(log), true, log);
+  for (const question of ["mua bỉm 300k cho em bé 8kg", "mua bỉm Merries ở Shopee 300k được không", "mình định mua bỉm Merries 690k ở Shopee", "mua Huggies 350k ở Tiki có rẻ không", "mua kem dưỡng da 200k", "mua bỉm Merries 690k ở Shopee", "hom nay can mua bim duoi 400k"]) assert.equal(looksLikePurchaseLog(question), false, question);
+  for (const log of ["da mua 2 bich bim 600k", "đã mua 2 can nước giặt 380k", "vừa mua lại 2 bịch bỉm 600k", "mua 2 bịch bỉm 690k ở Shopee rồi", "sáng nay mua rau ở chợ 120k"]) assert.equal(looksLikePurchaseLog(log), true, log);
 });
 
 test("“cho” không bị hiểu là chợ; “ở chợ” thì đúng", () => {

@@ -15,11 +15,10 @@ export function saleDays(from: string, to: string): CalendarMarker[] {
   const out: CalendarMarker[] = [];
   for (let year = Number(from.slice(0, 4)); year <= Number(to.slice(0, 4)); year++) {
     for (let month = 1; month <= 12; month++) out.push({ on: iso(year, month, month), label: `sale ${month}.${month}`, kind: "sale" });
-    const lastNov = new Date(year, 10, 30);
-    lastNov.setDate(30 - ((lastNov.getDay() + 2) % 7));
-    out.push({ on: iso(year, 11, lastNov.getDate()), label: "Black Friday", kind: "sale" });
-    if (TET[year + 1]) out.push({ on: addDays(TET[year + 1], -10), label: "sale Tết", kind: "sale" });
+    const firstThursday = 1 + (4 - new Date(year, 10, 1).getDay() + 7) % 7;
+    out.push({ on: iso(year, 11, firstThursday + 22), label: "Black Friday", kind: "sale" });
   }
+  for (const tet of Object.values(TET)) out.push({ on: addDays(tet, -10), label: "sale Tết", kind: "sale" });
   return out.filter((marker) => marker.on >= from && marker.on <= to).sort((a, b) => a.on.localeCompare(b.on));
 }
 

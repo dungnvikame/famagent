@@ -57,3 +57,23 @@ alter table public.push_log enable row level security;
 create policy "Own push subscriptions" on public.push_subscriptions for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid());
 create policy "Read own push log" on public.push_log for select to authenticated using (user_id = auth.uid());
 revoke all on public.push_subscriptions, public.push_log from anon;
+
+-- The reminder job connects with DATABASE_URL (server-only role, e.g. famagent_app on staging), not as a signed-in user:
+-- give that role read access to exactly what the stock estimate needs, plus writing its own log and dropping dead
+-- subscriptions. Skipped where the role does not exist (then DATABASE_URL uses a role that already has access).
+do $$
+declare
+  t text;
+begin
+  if exists (select 1 from pg_roles where rolname = 'famagent_app') then
+    foreach t in array array['push_subscriptions', 'push_log', 'family_profiles', 'children', 'shopping_items', 'purchases', 'stock_checks'] loop
+      execute format('grant select on public.%I to famagent_app', t);
+      execute format('create policy "Reminder job reads %s" on public.%I for select to famagent_app using (true)', t, t);
+    end loop;
+    grant insert, delete on public.push_log to famagent_app;
+    create policy "Reminder job writes push log" on public.push_log for insert to famagent_app with check (true);
+    create policy "Reminder job releases push log" on public.push_log for delete to famagent_app using (true);
+    grant delete on public.push_subscriptions to famagent_app;
+    create policy "Reminder job drops gone subscriptions" on public.push_subscriptions for delete to famagent_app using (true);
+  end if;
+end $$;

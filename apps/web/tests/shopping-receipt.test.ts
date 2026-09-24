@@ -39,3 +39,11 @@ test("nhắc: món ≤ 3 ngày, chưa nhắc hôm nay, tối đa 2", () => {
   assert.match(reminders[0].title, /Món a còn khoảng 0 ngày|Món a có thể đã hết/);
   assert.equal(remindersFor(estimates, new Set(["a", "b", "c"])).length, 0);
 });
+
+test("món đã hết chỉ được nhắc tối đa 3 lần trong 2 tuần", () => {
+  const now = new Date(2026, 8, 24, 9);
+  const out = estimateItems([merries], [{ id: "p", itemId: "i1", productName: "x", amount: 1, packs: 1, unitCount: 6, purchasedOn: "2026-09-20" }], () => 6, now);
+  assert.equal(out[0].daysLeft, 0);
+  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 2]])).length, 1);
+  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 3]])).length, 0);
+});

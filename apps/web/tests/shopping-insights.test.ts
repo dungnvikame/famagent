@@ -55,3 +55,11 @@ test("mốc lương, ngày sale; chỉ gợi chờ sale khi còn đủ hàng và
   assert.equal(waitForSale(estimate, sales, "2026-09-24", false)?.label, "sale 10.10");
   assert.equal(waitForSale(estimate, sales, "2026-09-24", true), null);
 });
+
+test("review 260924-1452: Black Friday sau Lễ Tạ ơn; sale Tết trong tháng 1 năm Tết; giai đoạn tháng trước vẫn thao tác được", () => {
+  assert.ok(saleDays("2029-11-01", "2029-11-30").some((sale) => sale.label === "Black Friday" && sale.on === "2029-11-23"));
+  assert.ok(saleDays("2027-01-10", "2027-02-05").some((sale) => sale.label === "sale Tết" && sale.on === "2027-01-27"));
+  const profile = { children: [{ id: "c1", name: "Gold", weightKg: 7, ageMonths: 5, diaperSize: "M" }] } as FamilyProfile;
+  const last = upcomingStages(profile, [{ id: "e", month: "2026-08", stageKey: "stage:solids:c1", name: "Ăn dặm", packs: 1, reason: "stage", status: "planned" }], now);
+  assert.equal(last.find((stage) => stage.key === "stage:solids:c1")!.when.includes("đã có trong kế hoạch"), false);
+});

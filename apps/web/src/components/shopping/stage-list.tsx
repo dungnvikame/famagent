@@ -18,9 +18,9 @@ export function StageList({ stages, month, onChanged }: { stages: StageSuggestio
     <div className="app-card app-rows stages">{stages.map((stage) => <div key={stage.key}>
       <span><b>{stage.title}</b><small>{stage.detail} · {stage.when}</small></span>
       {!stage.when.includes("đã có trong kế hoạch") && <span className="row-actions">
-        <button type="button" className="ledger-link" onClick={() => void save(stage, "planned")}>Thêm vào kế hoạch</button>
-        <button type="button" className="ledger-link" onClick={() => void save(stage, "bought")}>Đã có</button>
-        <button type="button" className="ledger-link" onClick={() => void save(stage, "skipped")}>Ẩn</button>
+        <button type="button" className="ledger-link" aria-label={`Thêm ${stage.title} vào kế hoạch`} onClick={() => void save(stage, "planned")}>Thêm vào kế hoạch</button>
+        <button type="button" className="ledger-link" aria-label={`Đã có: ${stage.title}`} onClick={() => void save(stage, "bought")}>Đã có</button>
+        <button type="button" className="ledger-link" aria-label={`Ẩn ${stage.title}`} onClick={() => void save(stage, "skipped")}>Ẩn</button>
       </span>}
     </div>)}</div>
     {error && <p className="form-error" role="alert">{error}</p>}
