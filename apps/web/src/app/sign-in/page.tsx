@@ -48,7 +48,7 @@ export default function SignInPage() {
     if (params.get("error")) setError("Liên kết đã hết hạn hoặc không hợp lệ. Nhập email để nhận liên kết mới.");
     const client = createAuthBrowserClient();
     if (!client) { setConfigured(false); return; }
-    const { data: sub } = client.auth.onAuthStateChange((_event, session) => { if (session?.user && !session.user.is_anonymous) window.location.assign("/shop"); });
+    const { data: sub } = client.auth.onAuthStateChange((_event, session) => { if (session?.user && !session.user.is_anonymous) window.location.assign("/home"); });
     void client.auth.getUser().then(({ data }) => {
       const guest = Boolean(data.user?.is_anonymous);
       setAnonymous(guest); setSignedIn(Boolean(data.user) && !guest);
@@ -92,9 +92,9 @@ export default function SignInPage() {
       <h1>{title}</h1>
       <p className="auth-lead">{lead}</p>
 
-      {!configured && <div className="auth-note"><p>Bản thử này chạy trên trình duyệt, chưa cần tài khoản.</p><Link className="lp-cta" href="/shop">Vào tư vấn <span aria-hidden="true">→</span></Link></div>}
+      {!configured && <div className="auth-note"><p>Bản thử này chạy trên trình duyệt, chưa cần tài khoản.</p><Link className="lp-cta" href="/home">Vào ứng dụng <span aria-hidden="true">→</span></Link></div>}
 
-      {configured && signedIn && <div className="auth-note"><p><IconCheck size={16} /> Tài khoản của bạn đang hoạt động trên thiết bị này.</p><Link className="lp-cta" href="/shop">Vào tư vấn <span aria-hidden="true">→</span></Link><Link className="auth-secondary" href="/family">Xem hồ sơ gia đình</Link></div>}
+      {configured && signedIn && <div className="auth-note"><p><IconCheck size={16} /> Tài khoản của bạn đang hoạt động trên thiết bị này.</p><Link className="lp-cta" href="/home">Vào ứng dụng <span aria-hidden="true">→</span></Link><Link className="auth-secondary" href="/family">Xem hồ sơ gia đình</Link></div>}
 
       {configured && !signedIn && state === "sent" && <div className="auth-note" role="status">
         <p><IconCheck size={16} /> {sentMode === "link" ? <>Đã gửi email xác nhận đến <b>{email}</b>. Mở email và bấm <b>Xác nhận</b> — hồ sơ hiện tại được giữ nguyên trong tài khoản.</> : <>Đã gửi liên kết đến <b>{email}</b>. Mở email để tiếp tục.</>}</p>

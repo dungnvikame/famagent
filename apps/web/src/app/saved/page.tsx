@@ -1,3 +1,3 @@
-import { SavedProducts } from "@/components/saved-products";
-export default function SavedPage() { return <SavedProducts />; }
+import { redirect } from "next/navigation";
 
+export default function SavedPage() { redirect("/shopping?tab=saved"); }

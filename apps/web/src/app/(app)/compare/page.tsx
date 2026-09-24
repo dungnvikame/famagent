@@ -27,8 +27,8 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
     ["Nơi bán", (item) => item.offer?.merchantName ?? MISSING],
     ["Giá cập nhật", (item) => !item.offer ? MISSING : item.product.isDemo ? "Giá minh họa" : priceTimeLabel(item.offer.updatedAt)],
   ];
-  return <div className="container compare-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>So sánh</div><p className="eyebrow accent">SO SÁNH SẢN PHẨM</p><h1>Điểm khác nhau nằm ở đâu?</h1><p>So sánh đúng phiên bản và nơi bán đã được gợi ý. Chỗ thiếu dữ liệu ghi “{MISSING}”.</p>
-    {items.length < 2 ? <div className="empty-state"><h2>Hãy chọn 2–3 sản phẩm để so sánh</h2><Link href="/shop">Quay lại tư vấn</Link></div> : <>
+  return <div className="container compare-page"><div className="breadcrumb"><Link href="/shopping">Mua sắm</Link><span>/</span>So sánh</div><p className="eyebrow accent">SO SÁNH SẢN PHẨM</p><h1>Điểm khác nhau nằm ở đâu?</h1><p>So sánh đúng phiên bản và nơi bán đã được gợi ý. Chỗ thiếu dữ liệu ghi “{MISSING}”.</p>
+    {items.length < 2 ? <div className="empty-state"><h2>Hãy chọn 2–3 sản phẩm để so sánh</h2><Link href="/agent">Hỏi FamAgent</Link></div> : <>
       <CompareSummary template={compareTemplate(items)} items={tokens} count={items.length}/>
       <div className="table-scroll"><table className="compare-table"><thead><tr><th>Tiêu chí</th>{items.map((item) => <th key={item.product.id}><span className="compare-icon">✳</span><strong>{item.product.canonicalName}</strong><small>{item.product.brand}</small></th>)}</tr></thead><tbody>
         {rows.map(([label, cell]) => <tr key={label}><th>{label}</th>{items.map((item) => <td key={item.product.id}>{cell(item)}</td>)}</tr>)}

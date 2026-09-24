@@ -10,14 +10,14 @@ export async function GET(request: Request) {
   const type = url.searchParams.get("type");
   if (tokenHash && client && (type === "email" || type === "email_change")) {
     const { error } = await client.auth.verifyOtp({ token_hash: tokenHash, type });
-    if (!error) return NextResponse.redirect(new URL("/shop", url.origin));
+    if (!error) return NextResponse.redirect(new URL("/home", url.origin));
   }
   // Default Supabase templates (free tier without custom SMTP cannot edit them) link to Supabase's verify
   // endpoint, which redirects here with a PKCE ?code= — same browser holds the code verifier cookie.
   const code = url.searchParams.get("code");
   if (code && client) {
     const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/shop", url.origin));
+    if (!error) return NextResponse.redirect(new URL("/home", url.origin));
   }
   return NextResponse.redirect(new URL("/sign-in?error=confirm", url.origin));
 }

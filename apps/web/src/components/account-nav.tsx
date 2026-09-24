@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { createAuthBrowserClient } from "@/lib/supabase/browser";
 
-/** Header account entry: "Đăng nhập" for visitors and guests, "Tài khoản" for signed-in users; nothing in local mode. */
+/** Public-header account entry: "Đăng nhập" for visitors and guests, "Vào ứng dụng" for members; nothing in local mode. */
 export function AccountNav() {
   const [state, setState] = useState<"unknown" | "guest" | "member" | "local">("unknown");
   useEffect(() => {
@@ -15,5 +15,5 @@ export function AccountNav() {
     return () => subscription.subscription.unsubscribe();
   }, []);
   if (state === "unknown" || state === "local") return null;
-  return state === "member" ? <Link href="/family">Tài khoản</Link> : <Link href="/sign-in">Đăng nhập</Link>;
+  return state === "member" ? <Link href="/home">Vào ứng dụng</Link> : <Link href="/sign-in">Đăng nhập</Link>;
 }

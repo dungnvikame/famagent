@@ -53,12 +53,12 @@ export function OnboardingWizard() {
         } catch { if (current) setRemoteFailed(true); }
         if (cancelled) return;
         setSession(current);
-        if (remote?.onboardedAt && !updateMode) { router.replace("/shop"); return; }
+        if (remote?.onboardedAt && !updateMode) { router.replace("/home"); return; }
         initial = remote ?? (local?.onboardedAt ? null : local);
       } else if (local?.onboardedAt && !updateMode) {
         // The middleware gate cookie can expire while localStorage keeps the profile; refresh it or /shop bounces back here forever.
         document.cookie = "family-ai-onboarded=1; Path=/; SameSite=Lax; Max-Age=2592000";
-        router.replace("/shop"); return;
+        router.replace("/home"); return;
       }
       if (cancelled) return;
       setProfile(initial && validProfile(initial) ? initial : freshProfile());
@@ -133,7 +133,7 @@ export function OnboardingWizard() {
       }
       document.cookie = "family-ai-onboarded=1; Path=/; SameSite=Lax; Max-Age=2592000";
       // First-time guests go to the account step (keeps the profile across devices); members and updates go straight to advice.
-      router.push(cloudEnabled && session?.anonymous && !updating ? "/sign-in?after=onboarding" : "/shop");
+      router.push(cloudEnabled && session?.anonymous && !updating ? "/sign-in?after=onboarding" : "/home");
     } catch { setError("Chưa lưu được hồ sơ. Vui lòng thử lại."); setBusy(false); }
   }
 

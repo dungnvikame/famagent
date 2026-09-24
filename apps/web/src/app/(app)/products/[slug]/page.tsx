@@ -13,7 +13,7 @@ export default async function ProductDetail({ params, searchParams }: { params: 
   const now = Date.now();
   const product = await getProductBySlug(slug);
   if (!product) notFound();
-  return <div className="container detail-page"><div className="breadcrumb"><Link href="/">Trang chủ</Link><span>/</span><Link href="/products">Bỉm cho bé</Link><span>/</span>{product.canonicalName}</div>
+  return <div className="container detail-page"><div className="breadcrumb"><Link href="/home">Trang chủ</Link><span>/</span><Link href="/shopping">Mua sắm</Link><span>/</span>{product.canonicalName}</div>
     {price === "stale" && <div className="notice"><strong>Giá của nơi bán này đã quá 48 giờ chưa được xác minh lại.</strong> Chúng tôi tạm ẩn nút mua cho tới khi cập nhật giá.</div>}
     {product.isDemo && <div className="notice"><strong>Dữ liệu minh họa.</strong> Sản phẩm, giá và nơi bán dưới đây không phải thông tin thương mại thực tế.</div>}
     <div className="detail-grid"><div className="detail-visual">{product.imageUrl ? <Image unoptimized src={product.imageUrl} alt={product.canonicalName} width={700} height={600} /> : <DiaperIllustration />}</div><div className="detail-info"><p className="eyebrow accent">{product.brand}</p><h1>{product.canonicalName}</h1><p>{product.description}</p><div className="spec-list"><div><span>Cân nặng phù hợp</span><strong>{product.diaper.minWeightKg}–{product.diaper.maxWeightKg} kg</strong></div><div><span>Kiểu bỉm</span><strong>{product.diaper.type === "pants" ? "Bỉm quần" : "Bỉm dán"}</strong></div>{product.diaper.nightUseScore && <div><span>Điểm dùng ban đêm</span><strong>{product.diaper.nightUseScore}/5</strong></div>}</div></div></div>

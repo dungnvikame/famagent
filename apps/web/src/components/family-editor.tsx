@@ -10,6 +10,7 @@ import { stampChanges } from "@/lib/experience/profile-meta";
 import { childAgeMonths } from "@/lib/experience/profile-mapper";
 import { INPUT_BIRTH_YEARS, validProfile } from "@/lib/experience/validate";
 import { createAuthBrowserClient } from "@/lib/supabase/browser";
+import { AccountSection } from "@/components/account-section";
 
 const sensitivityLabels: Record<Sensitivity, string> = { sensitive_skin: "Da nhạy cảm", rash_prone: "Dễ hăm", fragrance_free: "Cần không hương liệu" };
 const toList = (value: string) => [...new Set(value.split(",").map((item) => item.trim().slice(0, 40)).filter(Boolean))].slice(0, 10);
@@ -53,13 +54,20 @@ export function FamilyEditor() {
     setError("");
     try { if (cloudEnabled) await saveCloudProfile(updated); saveProfile(updated); setOriginal(updated); setProfile(updated); setSaved(true); trackEvent("family_profile_updated"); } catch { setError("Chưa lưu được hồ sơ. Vui lòng thử lại."); }
   }
+  /** The AI switch saves immediately: it is a permission, not a form field the user must remember to submit. */
+  async function saveConsent(aiConsent: boolean) {
+    if (!profile) return;
+    const updated = { ...profile, aiConsent, updatedAt: new Date().toISOString() };
+    setProfile(updated); setError("");
+    try { if (cloudEnabled) await saveCloudProfile(updated); saveProfile(updated); setOriginal(updated); trackEvent("family_profile_updated", { source: "consent" }); } catch { setError("Chưa lưu được lựa chọn AI. Vui lòng thử lại."); }
+  }
   async function erase() { if (!window.confirm("Xóa hồ sơ, lịch sử trò chuyện và sản phẩm đã lưu?")) return; setError(""); try { if (cloudEnabled) await clearCloudData(); clearAllData(); router.push("/"); } catch { setError("Chưa xóa được toàn bộ dữ liệu. Vui lòng thử lại."); } }
   async function signOut() { const client = createAuthBrowserClient(); if (!client) return; const { error: authError } = await client.auth.signOut(); if (authError) { setError("Chưa đăng xuất được. Vui lòng thử lại."); return; } clearAllData(); router.push("/sign-in"); }
 
   const now = new Date();
   const today = localDate(now);
   const oldestBirthDate = localDate(new Date(now.getFullYear() - INPUT_BIRTH_YEARS, now.getMonth(), now.getDate()));
-  return <div className="container account-page"><div className="breadcrumb"><Link href="/shop">Tư vấn</Link><span>/</span>Gia đình</div><div className="account-heading"><p className="eyebrow accent">BỐI CẢNH GIA ĐÌNH</p><h1>FamAgent hiểu gia đình bạn hơn</h1><p>Chỉ giữ thông tin cần để chọn sản phẩm. Bạn có thể chỉnh sửa hoặc xóa bất cứ lúc nào.</p></div>
+  return <div className="container account-page"><div className="account-heading"><h1>Gia đình</h1><p>Những gì FamAgent biết về nhà bạn — xem, sửa hoặc xóa bất cứ lúc nào.</p></div>
     <form className="family-form" onSubmit={submit}>
       <section className="form-card"><div><span className="section-number">01</span><h2>Hộ gia đình</h2><p>Giúp ước lượng nhu cầu đồ dùng chung.</p></div><div className="form-grid">
         <label>Tên gọi gia đình<input value={profile.familyName ?? ""} maxLength={80} onChange={(event) => update({ familyName: event.target.value || undefined })} placeholder="Ví dụ: Nhà Gold" /></label>
@@ -94,6 +102,7 @@ export function FamilyEditor() {
         <label>Máy giặt<select value={profile.appliances?.washingMachine ?? ""} onChange={(event) => update({ appliances: event.target.value ? { washingMachine: event.target.value as NonNullable<FamilyProfile["appliances"]>["washingMachine"] } : undefined })}><option value="">Chưa chọn</option><option value="front">Cửa trước</option><option value="top">Cửa trên</option><option value="none">Không dùng máy giặt</option></select></label>
       </div></section>
 
-      <section className="form-card"><div><span className="section-number">05</span><h2>Quyền riêng tư</h2><p>{cloudEnabled ? "Thông tin được lưu trong tài khoản của bạn." : "Thông tin được lưu trên trình duyệt này trong bản trải nghiệm."}</p></div><label className="consent-line"><input type="checkbox" checked={profile.aiConsent} onChange={(event) => update({ aiConsent: event.target.checked })} /> Cho phép gửi nội dung tôi nhập tới nhà cung cấp AI khi hệ thống được cấu hình.</label></section>
-      <div className="form-actions"><button className="button primary" type="submit">Lưu hồ sơ</button>{saved && <span>Đã lưu thay đổi.</span>}{error && <span className="form-error">{error}</span>}<Link href="/shop">Quay lại tư vấn →</Link></div></form><button className="danger-link" onClick={() => void erase()}>Xóa hồ sơ và dữ liệu mua sắm</button>{cloudEnabled && <button className="danger-link" onClick={() => void signOut()}>Đăng xuất</button>}</div>;
+      <section className="form-card"><div><span className="section-number">05</span><h2>Điều FamAgent đã ghi nhớ</h2><p>Ghi chú rút ra từ các cuộc trò chuyện, gắn nhãn “Ghi nhận” cho tới khi bạn xác nhận.</p></div><p className="memory-empty">Chưa có ghi chú nào. Khi bạn kể “bé bị hăm với hãng X” hay “nhà thường mua trên Shopee”, FamAgent sẽ ghi lại ở đây và dùng cho lần sau.</p></section>
+      <div className="form-actions"><button className="button primary" type="submit">Lưu hồ sơ</button>{saved && <span>Đã lưu thay đổi.</span>}{error && <span className="form-error">{error}</span>}<Link href="/agent">Hỏi FamAgent →</Link></div></form>
+    <AccountSection cloud={cloudEnabled} aiConsent={profile.aiConsent} onAiConsent={(value) => void saveConsent(value)} onErase={() => void erase()} onSignOut={() => void signOut()} /></div>;
 }

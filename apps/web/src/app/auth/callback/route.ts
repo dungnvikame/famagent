@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const client = await createAuthClient();
   if (code && client) {
     const { error } = await client.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(new URL("/shop", url.origin));
+    if (!error) return NextResponse.redirect(new URL("/home", url.origin));
   }
   return NextResponse.redirect(new URL("/sign-in?error=callback", url.origin));
 }

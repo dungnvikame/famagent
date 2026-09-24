@@ -1,3 +1,4 @@
-import { AgentShopping } from "@/components/agent-shopping";
+import { redirect } from "next/navigation";
 
-export default function ShopPage() { return <AgentShopping />; }
+/** Legacy URL from the first MVP; the assistant now lives under /agent. */
+export default function ShopPage() { redirect("/agent"); }

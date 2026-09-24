@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPath = /^\/(shop|products|compare|saved|family|go)(\/|$)/;
+const protectedPath = /^\/(home|money|shopping|agent|family|shop|products|compare|saved|go)(\/|$)/;
 
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
