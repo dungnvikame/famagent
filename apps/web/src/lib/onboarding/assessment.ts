@@ -12,18 +12,19 @@ export interface Assessment {
   headline: string;
   /** 2–3 sentence opening note (replaced by the AI version when available). */
   note: string;
-  finance: { method: string; methodWhy: string; points: string[] };
+  finance: { points: string[] };
   care: { points: string[] };
   steps: AssessmentStep[];
   /** Every number the assessment uses, as text — the only numbers an AI rewrite may mention. */
   facts: string[];
   /** Suggested plan values the app can apply (Money plan, emergency goal). */
-  plan: { monthlyPlan?: number; emergencyTarget?: number; monthlySaving?: number };
+  plan: { monthlyPlan?: number; emergencyTarget?: number };
 }
 
 const M = 1_000_000;
 /** "12,5 triệu" / "800 nghìn" — whole or one decimal, Vietnamese separators. */
 export function money(amount: number): string {
+  if (Math.abs(amount) < 500) return "0đ";
   if (Math.abs(amount) >= M) return `${(Math.round(amount / 100_000) / 10).toLocaleString("vi-VN")} triệu`;
   return `${Math.round(amount / 1000).toLocaleString("vi-VN")} nghìn`;
 }
@@ -63,27 +64,6 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
     else if (h.emergency === "gt6") finance.push("Quỹ dự phòng đã trên 6 tháng chi tiêu — có thể dồn phần dư cho học hành của các con hoặc mục tiêu lớn.");
   }
 
-  // --- suggested method ------------------------------------------------------------------------------------------
-  let method = "Ghi chép 2 tuần, rồi đặt kế hoạch theo nhóm";
-  let methodWhy = "Trước khi đặt con số, cần thấy tiền thật sự đi đâu. Hai tuần ghi đủ là thấy 2–3 nhóm chi lớn nhất.";
-  if (pains.has("debt") || (debtRate !== undefined && debtRate > 0.3)) {
-    method = "Ưu tiên trả nợ: cố định khoản trả nợ, cắt nhóm không thiết yếu";
-    methodWhy = "Khi trả nợ chiếm phần lớn thu nhập, mọi kế hoạch khác đều dễ vỡ. Đặt khoản trả nợ thành khoản cố định hằng tháng và theo dõi nhóm chi tiêu tùy ý thật chặt.";
-  } else if (pains.has("cant_save") || (saveRate !== undefined && saveRate > 0 && saveRate < 0.1)) {
-    method = "Để dành trước, tiêu sau";
-    methodWhy = "Ngay khi nhận lương, chuyển một khoản cố định vào tiết kiệm; phần còn lại mới là tiền tiêu. Không phải chờ cuối tháng xem còn dư bao nhiêu.";
-  } else if (income && (pains.has("short_month_end") || pains.has("unknown_spending") || h.tracking === "none" || h.tracking === "memory")) {
-    method = "Chia thu nhập 50 / 30 / 20";
-    methodWhy = "Chia thu nhập thành ba phần: thiết yếu (ăn uống, nhà, hóa đơn, con cái), mong muốn (ăn ngoài, mua sắm, giải trí) và để dành. Dễ nhớ, không cần ghi quá chi tiết.";
-  }
-  if (method === "Chia thu nhập 50 / 30 / 20" && income) {
-    finance.push(fact(`Với thu nhập khoảng ${money(income)}: thiết yếu tối đa ${money(income * 0.5)}, mong muốn tối đa ${money(income * 0.3)}, để dành ít nhất ${money(income * 0.2)} mỗi tháng.`));
-  }
-  if (method === "Để dành trước, tiêu sau" && income) {
-    const saving = round(Math.max(income * 0.1, Math.min(leftover ?? income * 0.1, income * 0.2)));
-    plan.monthlySaving = saving;
-    finance.push(fact(`Gợi ý bắt đầu: chuyển ${money(saving)} vào tiết kiệm ngay khi nhận lương.`));
-  }
   if (pains.has("couple_disagree")) finance.push("Vợ chồng nên cùng xem một bảng chung mỗi cuối tuần 10 phút — thống nhất trước 3 nhóm chi lớn nhất, thay vì tranh luận từng khoản.");
   if (h.housing === "rent") finance.push("Tiền thuê nhà nên đặt thành khoản cố định hằng tháng để tự ghi vào sổ, không bị quên trong kế hoạch.");
 
@@ -120,7 +100,7 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
   const steps: AssessmentStep[] = [];
   if (plan.monthlyPlan) steps.push({ label: `Đặt kế hoạch chi ${money(plan.monthlyPlan)}/tháng`, detail: "Mình đã điền sẵn trong mục Tiền; FamAgent báo sớm khi nhịp chi vượt.", href: "/money" });
   steps.push({ label: "Ghi 3 khoản chi đầu tiên", detail: "Gõ như Excel: “Ăn sáng 30k”, “Tiền điện 974k”. Khoản cố định (tiền nhà, lương) đặt một lần.", href: "/money" });
-  if (plan.emergencyTarget && h.emergency !== "gt6") steps.push({ label: `Mở mục tiêu Quỹ dự phòng ${money(plan.emergencyTarget)}`, detail: plan.monthlySaving ? `Bắt đầu với ${money(plan.monthlySaving)} mỗi tháng.` : "FamAgent tính giúp mất bao lâu để đạt.", href: "/money#plan" });
+  if (plan.emergencyTarget && h.emergency !== "gt6") steps.push({ label: `Mở mục tiêu Quỹ dự phòng ${money(plan.emergencyTarget)}`, detail: "FamAgent tính giúp mất bao lâu để đạt theo phương pháp bạn chọn.", href: "/money#plan" });
   else if (children.length) steps.push({ label: "Kiểm tra hồ sơ các con", detail: "Tên, tuổi, cân nặng, lưu ý sức khỏe — FamAgent dùng cho mọi gợi ý.", href: "/family" });
 
   const headline = leftover !== undefined && leftover <= 0 ? "Nhà mình đang chi nhiều hơn khả năng — cần cân lại trước tiên"
@@ -132,12 +112,12 @@ export function buildAssessment(profile: FamilyProfile, now = new Date()): Asses
     leftover !== undefined ? fact(leftover > 0 ? `Mỗi tháng nhà mình còn dư khoảng ${money(leftover)} sau chi tiêu và trả nợ.` : "Hiện chi tiêu và trả nợ đang bằng hoặc vượt thu nhập.")
       : spend !== undefined ? `Nhà mình tiêu khoảng ${money(spend)} mỗi tháng; mình sẽ giúp thấy rõ khoản này đi đâu.`
       : "Bạn chưa chia sẻ số liệu thu chi, nên mình bắt đầu từ việc ghi chép để thấy rõ bức tranh.",
-    `Cách mình đề xuất: ${method.toLowerCase()}.`,
+    "Bên dưới là các phương pháp quản lý tiền được nhiều gia đình trên thế giới dùng — bạn chọn cách hợp với nhà mình.",
     care.length ? "Về các con, mình đã lập vài việc cần theo dõi theo độ tuổi bên dưới." : "",
   ].filter(Boolean).join(" ");
   // Every generated line is a fact the AI may restate; child names are replaced so they never reach the provider.
   const names = children.map((child) => child.name).filter((name): name is string => Boolean(name));
   const anonymous = (line: string) => names.reduce((text, name) => text.split(name).join("con"), line);
   const allFacts = [...new Set([...facts, ...finance, ...care, ...steps.map((step) => `${step.label}. ${step.detail}`)].map(anonymous))];
-  return { headline, note, finance: { method, methodWhy, points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan };
+  return { headline, note, finance: { points: finance }, care: { points: care }, steps: steps.slice(0, 3), facts: allFacts, plan };
 }

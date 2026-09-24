@@ -14,6 +14,7 @@ import "./onboarding-wizard.css";
 // Signed-in shell (5 sections) — last so it can override the legacy agent layout.
 import "./app-shell.css";
 import "./money.css";
+import "./money-frameworks.css";
 import "./family-notes.css";
 
 // Self-hosted at build time by next/font (no runtime request to Google); Vietnamese subset included.

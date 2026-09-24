@@ -58,6 +58,8 @@ export const CARE_WORRIES = ["nutrition", "sleep", "health", "development", "cos
 export const MONEY_PAINS = ["short_month_end", "unknown_spending", "cant_save", "debt", "couple_disagree"] as const;
 export const TRACKING_METHODS = ["none", "spreadsheet", "app", "memory"] as const;
 export const EMERGENCY_LEVELS = ["none", "lt3", "3to6", "gt6"] as const;
+/** Money frameworks the family can pick (definitions in lib/money/frameworks). */
+export const MONEY_METHODS = ["jars", "50-30-20", "pay-first", "zero-based", "kakeibo", "baby-steps"] as const;
 export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
@@ -83,6 +85,8 @@ export interface HouseholdContext {
   /** Monthly loan / instalment payments (VND); 0 = none. */
   monthlyDebt?: number;
   emergency?: (typeof EMERGENCY_LEVELS)[number];
+  /** Money framework the family chose (after the onboarding assessment or in Tiền). */
+  moneyMethod?: (typeof MONEY_METHODS)[number];
   /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */
   notes?: Record<string, string>;
 }

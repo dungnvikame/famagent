@@ -37,7 +37,7 @@ export async function POST(request: Request) {
 
   // Facts only: assessment.facts already has child names replaced (spec v1 §6.2).
   const facts = [
-    `Kết luận: ${assessment.headline}.`, `Phương pháp đề xuất: ${assessment.finance.method} — ${assessment.finance.methodWhy}`,
+    `Kết luận: ${assessment.headline}.`, "Gia đình sẽ tự chọn một phương pháp quản lý tiền (6 chiếc lọ, 50/30/20, trả cho mình trước, ngân sách bằng 0, Kakeibo, 7 bước nhỏ).",
     ...assessment.facts, `Số con: ${profile.children.length}.`, profile.household?.setup === "expecting" ? "Gia đình đang chờ em bé." : "",
   ].filter(Boolean).join("\n");
   const result = await chatJson({ name: "onboarding_assessment", system: SYSTEM, messages: [{ role: "user", content: `DỮ KIỆN:\n${facts}` }], schema, timeoutMs: 8000,

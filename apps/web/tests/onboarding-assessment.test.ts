@@ -12,30 +12,45 @@ test("money(): triệu có một chữ số thập phân, nghìn làm tròn", ()
   assert.equal(money(12_500_000), "12,5 triệu"); assert.equal(money(40_000_000), "40 triệu"); assert.equal(money(800_000), "800 nghìn");
 });
 
-test("dư mỏng + chưa để dành được → 'Để dành trước, tiêu sau', quỹ dự phòng 6 tháng chi tiêu", () => {
+test("tình hình: còn dư bao nhiêu, quỹ dự phòng 6 tháng chi tiêu; không tự chọn phương pháp thay người dùng", () => {
   const a = buildAssessment(base({ monthlyIncome: 22_000_000, monthlySpend: 15_000_000, monthlyDebt: 5_000_000, emergency: "none", moneyPains: ["cant_save"] }), now);
-  assert.equal(a.finance.method, "Để dành trước, tiêu sau");
+  assert.equal("method" in a.finance, false);
   assert.match(a.finance.points[0], /còn dư khoảng 2 triệu \(9% thu nhập\)/);
   assert.equal(a.plan.emergencyTarget, 90_000_000);
   assert.ok(a.finance.points.some((point) => /khoảng 90 triệu/.test(point)));
   assert.equal(a.headline, "Nền tài chính ổn, nhưng cần một quỹ dự phòng vững hơn");
-  assert.ok(a.plan.monthlySaving && a.plan.monthlySaving >= 2_000_000);
   assert.ok(a.steps.some((step) => /Quỹ dự phòng 90 triệu/.test(step.label)));
 });
 
 test("nợ trên 30% thu nhập → ưu tiên trả nợ; chi vượt thu → cảnh báo và kế hoạch chi thấp hơn", () => {
   const debt = buildAssessment(base({ monthlyIncome: 22_000_000, monthlySpend: 8_000_000, monthlyDebt: 10_000_000 }), now);
-  assert.match(debt.finance.method, /Ưu tiên trả nợ/);
   assert.ok(debt.finance.points.some((point) => /45% thu nhập/.test(point)));
   const over = buildAssessment(base({ monthlyIncome: 12_000_000, monthlySpend: 15_000_000 }), now);
   assert.match(over.headline, /chi nhiều hơn khả năng/);
   assert.ok(over.plan.monthlyPlan! < 15_000_000);
 });
 
-test("không ghi chép + cuối tháng hụt → 50/30/20 với con số cụ thể", () => {
-  const a = buildAssessment(base({ monthlyIncome: 40_000_000, monthlySpend: 25_000_000, tracking: "none", moneyPains: ["short_month_end"] }), now);
-  assert.equal(a.finance.method, "Chia thu nhập 50 / 30 / 20");
-  assert.ok(a.finance.points.some((point) => /thiết yếu tối đa 20 triệu, mong muốn tối đa 12 triệu, để dành ít nhất 8 triệu/.test(point)));
+test("framework: 6 phương pháp có nguồn gốc; gợi ý theo câu trả lời (chỉ là nhãn, tối đa 2)", async () => {
+  const { FRAMEWORKS, suggestFrameworks, frameworkProgress, frameworkById, babyStep, bucketOf } = await import("../src/lib/money/frameworks.ts");
+  assert.deepEqual(FRAMEWORKS.map((fw) => fw.id), ["jars", "50-30-20", "pay-first", "zero-based", "kakeibo", "baby-steps"]);
+  for (const fw of FRAMEWORKS) {
+    assert.ok(fw.origin.length > 10, fw.id);
+    const shares = fw.buckets.filter((bucket) => bucket.share !== undefined).reduce((sum, bucket) => sum + bucket.share!, 0);
+    if (shares) assert.ok(Math.abs(shares - 1) < 1e-9, `${fw.id} tỷ lệ cộng lại 100%`);
+  }
+  assert.deepEqual(suggestFrameworks(base({ monthlyIncome: 20_000_000, monthlyDebt: 8_000_000, moneyPains: ["cant_save"] })).map((item) => item.id), ["baby-steps", "pay-first"]);
+  assert.deepEqual(suggestFrameworks(base({ tracking: "spreadsheet" })).map((item) => item.id), ["zero-based"]);
+  assert.deepEqual(suggestFrameworks(base({})).map((item) => item.id), ["50-30-20"]);
+  assert.equal(babyStep(base({ emergency: "lt3", monthlyDebt: 3_000_000 })).step, 2);
+  assert.equal(bucketOf("jars", { kind: "expense", category: "Học tập", amount: 1 }), "edu");
+  assert.equal(bucketOf("jars", { kind: "saving", category: "Tiết kiệm", amount: 1 }), "ltss");
+  assert.equal(bucketOf("50-30-20", { kind: "expense", category: "Du lịch", amount: 1 }), "wants");
+  assert.equal(bucketOf("kakeibo", { kind: "expense", category: "Khám, thuốc", amount: 1 }), "unexpected");
+  const tx = (kind: "expense" | "saving", category: string, amount: number) => ({ id: category, occurredOn: "2026-09-10", content: category, category, kind, amount, forChild: false, source: "manual" as const });
+  const rows = frameworkProgress(frameworkById("50-30-20")!, 20_000_000, [tx("expense", "Ăn uống", 6_000_000), tx("expense", "Mua sắm", 7_000_000), tx("saving", "Tiết kiệm", 2_000_000), tx("saving", "Rút tiết kiệm", -500_000)]);
+  assert.deepEqual(rows.map((row) => [row.key, row.target, row.actual]), [["needs", 10_000_000, 6_000_000], ["wants", 6_000_000, 7_000_000], ["save", 4_000_000, 2_000_000]]);
+  const zero = frameworkProgress(frameworkById("zero-based")!, 20_000_000, [tx("saving", "Tiết kiệm", 2_000_000)], [{ id: "b", category: "Ăn uống", month: "2026-09", limitAmount: 15_000_000 }]);
+  assert.deepEqual(zero.map((row) => row.actual), [17_000_000, 3_000_000]);
 });
 
 test("kế hoạch chăm sóc theo độ tuổi và nỗi lo; đang chờ em bé có quỹ sinh", () => {

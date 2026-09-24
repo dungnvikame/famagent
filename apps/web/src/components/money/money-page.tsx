@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
-import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
-import { getProfile, trackEvent } from "@/lib/experience/storage";
-import type { ChildProfile } from "@/lib/experience/types";
+import { cloudEnabled, loadCloudProfile, saveCloudProfile } from "@/lib/experience/cloud";
+import { getProfile, saveProfile, trackEvent } from "@/lib/experience/storage";
+import type { ChildProfile, FamilyProfile } from "@/lib/experience/types";
+import type { FrameworkId } from "@/lib/money/frameworks";
+import { FrameworkPanel } from "./framework-panel";
 import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyBundle } from "@/lib/money/types";
@@ -33,7 +35,15 @@ export function MoneyPage() {
   }, [month]);
   useEffect(() => { void reload(month); }, [month, reload]);
   const [suggested, setSuggested] = useState<Assessment["plan"] | null>(null);
-  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((profile) => { setChildren(profile?.children ?? []); if (profile?.household) setSuggested(buildAssessment(profile).plan); }).catch(() => {}); }, []);
+  const [profile, setProfile] = useState<FamilyProfile | null>(null);
+  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((loaded) => { setProfile(loaded); setChildren(loaded?.children ?? []); if (loaded?.household) setSuggested(buildAssessment(loaded).plan); }).catch(() => {}); }, []);
+  /** Saves the chosen money framework on the family profile (cloud when signed in, else this browser). */
+  async function chooseMethod(moneyMethod: FrameworkId) {
+    if (!profile) return;
+    const next = { ...profile, household: { ...profile.household, moneyMethod }, updatedAt: new Date().toISOString() };
+    setProfile(next); saveProfile(next); trackEvent("money_method_chosen", { method: moneyMethod, source: "money" });
+    if (cloudEnabled) await saveCloudProfile(next).catch(() => setError("Chưa lưu được phương pháp lên máy chủ."));
+  }
   // The onboarding assessment suggested a monthly plan and an emergency fund: apply each once, until the family sets its own.
   const seeded = useRef(false);
   useEffect(() => {
@@ -41,7 +51,7 @@ export function MoneyPage() {
     seeded.current = true;
     const tasks: Array<Promise<unknown>> = [];
     if (!bundle.settings.monthlyPlan && suggested.monthlyPlan) tasks.push(saveMoneySettings({ ...bundle.settings, monthlyPlan: suggested.monthlyPlan }));
-    if (!bundle.goals.length && suggested.emergencyTarget) tasks.push(saveMoneyItem("goals", { id: crypto.randomUUID(), name: "Quỹ dự phòng", targetAmount: suggested.emergencyTarget, savedAmount: 0, monthlyPlan: suggested.monthlySaving }));
+    if (!bundle.goals.length && suggested.emergencyTarget) tasks.push(saveMoneyItem("goals", { id: crypto.randomUUID(), name: "Quỹ dự phòng", targetAmount: suggested.emergencyTarget, savedAmount: 0 }));
     if (tasks.length) void Promise.all(tasks).then(() => reload()).catch(() => {});
   }, [bundle, suggested, reload]);
 
@@ -62,6 +72,7 @@ export function MoneyPage() {
         {summary.plan ? <div className="money-plan"><span className="bar"><span style={{ width: `${Math.min(100, Math.round(summary.expense / summary.plan * 100))}%` }} className={summary.expense > summary.plan ? "over" : undefined} /></span><small>{shortVnd(summary.expense)} / kế hoạch {shortVnd(summary.plan)}{summary.expectedExpense ? ` · dự kiến cuối tháng ${shortVnd(summary.expectedExpense)}` : ""}{summary.paceRatio && summary.paceRatio > 1.05 ? <span className="app-pill warn">Cao hơn kế hoạch</span> : summary.paceRatio ? <span className="app-pill ok">Đúng nhịp</span> : null}</small></div>
           : <div className="money-plan"><small>Chưa đặt kế hoạch chi tháng. <button type="button" className="ledger-link" onClick={() => setTab("plan")}>Đặt kế hoạch</button> để FamAgent so nhịp chi cho bạn.</small></div>}
       </div>
+      {profile && <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
       {tab === "ledger" && <LedgerTable transactions={bundle.transactions} categories={bundle.settings.categories} familyChildren={children} month={month} onSave={(item) => act("money_transaction_saved")(() => saveMoneyItem("transactions", item))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />}
       {tab === "month" && <MonthView summary={summary} categories={bundle.settings.categories} budgets={bundle.budgets} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} />}
