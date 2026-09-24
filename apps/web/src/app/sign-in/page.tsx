@@ -10,7 +10,7 @@ type Mode = "link" | "signin";
 
 /**
  * One page, two moments: right after onboarding ("?after=onboarding") it is the account step that keeps the
- * profile; otherwise it is plain sign-in for returning users. Guests always keep a way forward ("Để sau").
+ * profile (registration is mandatory before advice); otherwise it is plain sign-in for returning users.
  */
 export default function SignInPage() {
   const [email, setEmail] = useState("");
@@ -31,11 +31,13 @@ export default function SignInPage() {
     if (params.get("error")) setError("Liên kết đã hết hạn hoặc không hợp lệ. Nhập email để nhận liên kết mới.");
     const client = createAuthBrowserClient();
     if (!client) { setConfigured(false); return; }
+    const { data: sub } = client.auth.onAuthStateChange((_event, session) => { if (session?.user && !session.user.is_anonymous) window.location.assign("/shop"); });
     void client.auth.getUser().then(({ data }) => {
       const guest = Boolean(data.user?.is_anonymous);
       setAnonymous(guest); setSignedIn(Boolean(data.user) && !guest);
       if (guest && (after || params.get("link") === "1")) setMode("link");
     });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   async function submit(event: React.FormEvent) {
@@ -63,7 +65,7 @@ export default function SignInPage() {
 
   const title = afterOnboarding ? "Tạo tài khoản để giữ hồ sơ" : signedIn ? "Bạn đã đăng nhập" : "Đăng nhập FamAgent";
   const lead = afterOnboarding
-    ? "Hồ sơ vừa tạo sẽ được lưu vào tài khoản của bạn để dùng trên mọi thiết bị. Không cần mật khẩu — chỉ một liên kết qua email."
+    ? "Để bắt đầu tư vấn, hãy xác nhận email của bạn. Hồ sơ vừa tạo sẽ được giữ trong tài khoản này trên mọi thiết bị. Không cần mật khẩu — chỉ một liên kết qua email."
     : "Nhận liên kết đăng nhập qua email. Hồ sơ gia đình, lịch sử tư vấn và sản phẩm đã lưu đi theo tài khoản.";
 
   return <main className="container account-page auth-page">
@@ -80,18 +82,17 @@ export default function SignInPage() {
       {configured && !signedIn && state === "sent" && <div className="auth-note" role="status">
         <p><IconCheck size={16} /> {sentMode === "link" ? <>Đã gửi email xác nhận đến <b>{email}</b>. Mở email và bấm <b>Xác nhận</b> — hồ sơ hiện tại được giữ nguyên trong tài khoản.</> : <>Đã gửi liên kết đến <b>{email}</b>. Mở email để tiếp tục.</>}</p>
         <p className="auth-hint">Không thấy email? Kiểm tra mục Spam/Quảng cáo, hoặc <button type="button" className="ob-inline-btn" onClick={() => setState("idle")}>gửi lại</button>.</p>
-        {afterOnboarding && <Link className="lp-cta" href="/shop">Vào tư vấn ngay <span aria-hidden="true">→</span></Link>}
+        <p className="auth-hint">Sau khi xác nhận, bạn sẽ được đưa thẳng vào phần tư vấn.</p>
       </div>}
 
       {configured && !signedIn && state !== "sent" && <form className="auth-form" onSubmit={submit}>
-        {anonymous && !afterOnboarding && <fieldset className="auth-modes"><legend className="ob-sr">Bạn muốn</legend>
+        {anonymous && (!afterOnboarding || mode === "signin") && <fieldset className="auth-modes"><legend className="ob-sr">Bạn muốn</legend>
           <label className={mode === "link" ? "on" : ""}><input type="radio" name="mode" checked={mode === "link"} onChange={() => setMode("link")} /> <span><b>Lưu hồ sơ đang có</b><small>Tạo tài khoản mới với email này</small></span></label>
           <label className={mode === "signin" ? "on" : ""}><input type="radio" name="mode" checked={mode === "signin"} onChange={() => setMode("signin")} /> <span><b>Đăng nhập tài khoản đã có</b><small>Dùng hồ sơ trong tài khoản đó</small></span></label>
         </fieldset>}
         <label className="auth-field"><span>Email của bạn</span><input type="email" required autoComplete="email" inputMode="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="ten@vi-du.com" /></label>
-        <button className="lp-cta" disabled={state === "sending"}>{state === "sending" ? "Đang gửi…" : afterOnboarding ? "Tạo tài khoản & gửi liên kết" : "Gửi liên kết đăng nhập"} <span aria-hidden="true">→</span></button>
+        <button className="lp-cta" disabled={state === "sending"}>{state === "sending" ? "Đang gửi…" : afterOnboarding && mode === "link" ? "Tạo tài khoản & gửi liên kết" : "Gửi liên kết đăng nhập"} <span aria-hidden="true">→</span></button>
         {error && <p className="form-error" role="alert">{error}</p>}
-        {afterOnboarding && <Link className="auth-secondary" href="/shop">Để sau — vào tư vấn luôn</Link>}
         {!afterOnboarding && anonymous && mode === "link" && <p className="auth-hint">Đã có tài khoản? Chọn “Đăng nhập tài khoản đã có” ở trên.</p>}
       </form>}
 

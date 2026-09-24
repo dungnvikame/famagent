@@ -31,7 +31,7 @@ Mục tiêu: onboarding là **agent hội thoại thật** — LLM hiểu câu t
 | D3 | Chưa có ngân sách AI → provider free-tier qua adapter chung, chuyển provider bằng env; nâng cấp trả phí khi có tín hiệu thị trường |
 | D4 | Plan chi tiết cho onboarding (P1–P4), roadmap tới MVP release (P5–P8) |
 | D5 | Guest = **Supabase anonymous sign-in**; rate limit tái dùng `api_request_limits` (thêm endpoint `onboarding`); không có Supabase → in-memory |
-| D6 | ~~Sau onboarding vào thẳng `/shop` ẩn danh; mời liên kết email sau~~ **Thay 24/09:** sau onboarding → bước tạo tài khoản bằng email (có “Để sau” để vào `/shop` với tư cách khách); onboarding là trắc nghiệm chạm chọn, có landing page ở `/` |
+| D6 | ~~Sau onboarding vào thẳng `/shop` ẩn danh; mời liên kết email sau~~ **Thay 24/09:** sau onboarding → bước tạo tài khoản bằng email, bắt buộc (khách ẩn danh không vào được `/shop`); onboarding là trắc nghiệm chạm chọn, có landing page ở `/` |
 | D7 | Provider: Gemini Flash chính, Groq dự phòng, rồi rules |
 | D8 | ~~dạng lồng spec §20~~ → **thay bởi D13**: `ShoppingIntentV1` theo [spec v1 §7](../../docs/SPEC_V1_PURCHASING_AGENT.md) trong P5 |
 | D9 | Duyệt mockup HTML onboarding trước khi code UI (P4) |

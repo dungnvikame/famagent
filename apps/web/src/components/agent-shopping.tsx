@@ -9,7 +9,6 @@ import { type AgentView, type ChatResponse, type ChatTurn, type Conversation, ty
 import { getConversations, getProfile, getSavedProducts, saveConversations, saveProfile, saveSavedProducts, trackEvent } from "@/lib/experience/storage";
 import Link from "next/link";
 import { FamilyContextPanel } from "@/components/onboarding/family-context-panel";
-import { isAnonymousUser } from "@/lib/supabase/browser";
 import { RecommendationCard } from "@/components/recommendation-card";
 import { compareToken, MAX_COMPARE } from "@/lib/catalog/compare";
 import { formatWeight } from "@/lib/onboarding/questions";
@@ -36,9 +35,6 @@ export function AgentShopping() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [mode, setMode] = useState<"ai" | "rules">("rules");
-  // Anonymous guests are invited (never forced) to link an email after they get value (plan D6).
-  const [invite, setInvite] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
   // Compare selection: exact recommended variant + offer per product (plan P7).
   const [compare, setCompare] = useState<string[]>([]);
 
@@ -74,11 +70,6 @@ export function AgentShopping() {
   const recentRecommendations = [...(active?.turns ?? [])].reverse().find((turn) => turn.recommendations?.length)?.recommendations ?? [];
   useEffect(() => { threadRef.current?.scrollTo({ top: threadRef.current.scrollHeight, behavior: "smooth" }); }, [active?.turns.length, busy]);
 
-  useEffect(() => {
-    try { setDismissed(localStorage.getItem("family-ai:link-invite-dismissed") === "1"); } catch { /* storage unavailable */ }
-    if (cloudEnabled) void isAnonymousUser().then(setInvite).catch(() => {});
-  }, []);
-  function dismissInvite() { setDismissed(true); try { localStorage.setItem("family-ai:link-invite-dismissed", "1"); } catch { /* storage unavailable */ } }
 
   /** Inline edit from the family panel (already stamped + validated there). */
   function updateProfile(next: FamilyProfile) {
@@ -141,7 +132,7 @@ export function AgentShopping() {
   return <div className="agent-app shopping-app"><div className="agent-decoration one" aria-hidden="true"/><div className="agent-decoration two" aria-hidden="true"/>
     <div className="agent-rail"><button className="agent-logo" onClick={startNew} aria-label="Cuộc trò chuyện mới">f<span>.</span></button><span className="rail-line"/><button className="rail-new" onClick={startNew} title="Cuộc trò chuyện mới" aria-label="Cuộc trò chuyện mới">＋</button><span className="rail-caption">FAMAGENT</span></div>
     <main className="agent-center shopping-center"><div className="agent-header"><span className="agent-status"><span className="status-dot"/> {mode === "ai" ? "AI đang hỗ trợ" : "Agent đang sẵn sàng"}</span><span className="agent-header-actions"><Link className="agent-history-trigger" href="/onboarding?update=1">Cập nhật hồ sơ</Link> <button className="agent-history-trigger" onClick={() => void send("Cho tôi xem lịch sử trò chuyện")}>Lịch sử ↗</button></span></div>{contextChips.length > 0 && <div className="agent-context" aria-label="Thông tin agent đang dùng">{contextChips.map((chip) => <span key={chip}>{chip}</span>)}</div>}
-      {invite && !dismissed && (saved.length > 0 || recentRecommendations.length > 0) && <div className="ob-link-banner" role="note"><span>Lưu hồ sơ gia đình để dùng trên thiết bị khác.</span><span><Link href="/sign-in?link=1">Lưu bằng email</Link> <button onClick={dismissInvite} aria-label="Ẩn lời mời">✕</button></span></div>}
+      
       {!active?.turns.length ? <div className="agent-core shopping-core"><div className="agent-orbit" aria-hidden="true"><span>✳</span></div><p className="agent-overline">TRỢ LÝ MUA SẮM CHO GIA ĐÌNH</p><h1>Hôm nay gia đình mình cần gì?</h1><p className="agent-subtitle">{child ? `Mình đã nhớ ${child.name ? `bé ${child.name}` : "bé"}${child.weightKg ? ` · ${formatWeight(child.weightKg)}` : ""}${profile?.maxBudget ? ` · ngân sách ≤ ${vnd(profile.maxBudget)}` : ""}. ` : ""}Hỏi mình như đang nhắn tin — mình sẽ lọc theo hồ sơ, giải thích vì sao và chỉ nơi bán. Bạn có thể bấm một gợi ý bên dưới để bắt đầu.</p><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/><div className="agent-suggestions"><span>HOẶC THỬ NÓI</span>{suggestionsFor(profile).map((item) => <button key={item} onClick={() => void send(item)}>{item}<b>↗</b></button>)}</div></div> : <><div className="agent-thread" ref={threadRef} aria-live="polite"><div className="agent-thread-heading"><p className="agent-overline">CUỘC TRÒ CHUYỆN VỚI FAMAGENT</p><h1>{active.title}</h1></div>{active.turns.map((turn) => <div className={`agent-line ${turn.role}`} key={turn.id}>{turn.role === "assistant" && <span className="agent-line-icon">✳</span>}<div className="agent-line-content"><p>{turn.text}</p>{turn.recommendations?.length ? <><div className="agent-results">{turn.recommendations.map((item, index) => <RecommendationCard key={item.product.id} item={item} liveOffer={products.length ? liveOffers.get(item.offerId) ?? null : undefined} rank={index + 1} saved={saved.includes(item.product.id)} comparing={compare.some((entry) => entry.startsWith(`${item.product.id}:`))} compareFull={compare.length >= MAX_COMPARE} onSave={() => void saveItem(item.product.id)} onDetails={() => openDetails(item)} onCompare={() => toggleCompare(item)} conversationId={active.id}/>)}</div><p className="agent-disclosure">{AFFILIATE_DISCLOSURE}</p></> : null}{turn.view && <AgentViewPanel view={turn.view} profile={profile} products={products} saved={saved} conversations={conversations} recent={recentRecommendations} onAsk={(value) => void send(value)} onConversation={setActiveId} onSave={(id) => void saveItem(id)} onProfileEdit={updateProfile}/>}</div></div>)}{busy && <div className="agent-line agent"><span className="agent-line-icon">✳</span><div className="agent-line-content"><p>Đang đối chiếu nhu cầu của gia đình...</p></div></div>}</div>{compare.length > 0 && <div className="agent-compare-bar" role="region" aria-label="So sánh"><span>{compare.length < 2 ? "Chọn thêm 1–2 sản phẩm để so sánh" : `Đã chọn ${compare.length} sản phẩm`}</span><span><button onClick={() => setCompare([])}>Bỏ chọn</button>{compare.length >= 2 && <Link href={`/compare?items=${encodeURIComponent(compare.join(","))}`} onClick={() => trackEvent("compare_started", { count: compare.length })}>So sánh ↗</Link>}</span></div>}<div className="agent-fixed-prompt"><AgentPrompt value={message} onChange={setMessage} onSend={() => void send()} busy={busy}/></div></>}
       {error && <p className="agent-error agent-stage-error">{error}</p>}
       <div className="agent-bottom-note">Gợi ý dựa trên mức phù hợp, không dùng hoa hồng để xếp hạng. {products.some((item) => item.isDemo) ? "Đang dùng dữ liệu minh họa." : "Giá có thể thay đổi tại nơi bán."}</div>

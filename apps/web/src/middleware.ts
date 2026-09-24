@@ -22,8 +22,11 @@ export async function middleware(request: NextRequest) {
     },
   });
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user && protectedPath.test(request.nextUrl.pathname)) {
-    const redirect = NextResponse.redirect(new URL("/sign-in", request.url));
+  if (protectedPath.test(request.nextUrl.pathname) && (!user || user.is_anonymous)) {
+    // Registration is mandatory: guests finish onboarding, then confirm an email before any advice/catalog page.
+    const onboarded = request.cookies.get("family-ai-onboarded")?.value === "1";
+    const target = !user ? "/sign-in" : onboarded ? "/sign-in?after=onboarding" : "/onboarding";
+    const redirect = NextResponse.redirect(new URL(target, request.url));
     response.cookies.getAll().forEach(({ name, value }) => redirect.cookies.set(name, value));
     return redirect;
   }

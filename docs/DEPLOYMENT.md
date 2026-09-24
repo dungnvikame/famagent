@@ -58,7 +58,11 @@ Có thể làm tự động các mục 1–3 bằng `pnpm --filter @family-ai/we
 3. **Authentication → Emails → Templates**, sửa liên kết trong nút:
    - *Magic Link* và *Confirm signup*: `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email`
    - *Change email address* (khách ẩn danh liên kết email): `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change`
-4. **SMTP**: email mặc định của Supabase bị giới hạn vài email/giờ, chỉ đủ tự thử. Trước khi mời người dùng, cấu hình **Authentication → Emails → SMTP Settings** (Resend, Brevo, SES…).
+4. **SMTP (bắt buộc vì đăng ký là bắt buộc):** email mặc định của Supabase chỉ gửi vài thư/giờ và không cho sửa mẫu. Cấu hình **Authentication → Emails → SMTP Settings** với một nhà cung cấp:
+   - **Brevo** (miễn phí 300 email/ngày, chỉ cần xác minh địa chỉ người gửi, không cần domain riêng): tạo tài khoản → Senders: thêm và xác minh email gửi → SMTP & API → tạo SMTP key. Điền vào Supabase: Host `smtp-relay.brevo.com`, Port `587`, Username là email đăng nhập Brevo, Password là SMTP key, Sender email = địa chỉ đã xác minh, Sender name `FamAgent`.
+   - **Resend** (miễn phí 3.000 email/tháng, cần domain riêng đã xác minh DNS): Host `smtp.resend.com`, Port `465`, Username `resend`, Password = API key, Sender = `FamAgent <hello@domain-cua-ban>`.
+   - Sau khi bật SMTP riêng, chạy `pnpm --filter @family-ai/web setup:auth` (không kèm `--skip-templates`) để đẩy 3 mẫu email tiếng Việt; rồi **Authentication → Rate Limits** nâng giới hạn email/giờ phù hợp số người test.
+   - Kiểm tra: gửi liên kết tới email của bạn từ `/sign-in`, thư phải đến trong dưới 1 phút và link mở về `/auth/confirm` rồi vào `/shop`.
 
 ### 3.4 Nối với Vercel
 Thêm `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DATABASE_URL` → Redeploy. Từ lúc này catalog đọc từ Supabase (rỗng cho tới khi nhập dữ liệu thật — ứng dụng không tự quay về demo), và người dùng có tài khoản ẩn danh/email.
