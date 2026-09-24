@@ -14,6 +14,8 @@ import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/mon
 import { loadPurchases } from "@/lib/shopping/purchase-client";
 import { estimateStock, type StockEstimate } from "@/lib/shopping/purchases";
 import { rateResolver } from "@/components/shopping/tracking-list";
+import { DailyTasks } from "./daily-tasks";
+import { localDay } from "@/lib/brief/daily-tasks";
 
 /** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
 export function FamilyBriefPage() {
@@ -23,6 +25,7 @@ export function FamilyBriefPage() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [savedCount, setSavedCount] = useState(0);
   const [money, setMoney] = useState<MonthSummary | null>(null);
+  const [loggedToday, setLoggedToday] = useState(false);
   const [stock, setStock] = useState<StockEstimate[]>([]);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -38,7 +41,7 @@ export function FamilyBriefPage() {
         if (!family?.onboardedAt) { router.replace("/onboarding"); return; }
         setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
         // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
-        loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
+        loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); const today = localDay(new Date()); setLoggedToday(bundle.transactions.some((tx) => tx.occurredOn === today)); }).catch(() => {});
         loadPurchases().then((purchases) => { if (!cancelled) setStock(estimateStock(purchases, rateResolver(family))); }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
@@ -59,6 +62,8 @@ export function FamilyBriefPage() {
     <section className="app-section" aria-labelledby="brief-att"><h2 id="brief-att">Cần chú ý</h2>
       <div className="brief-att">{brief.attention.map((card) => <div className="app-card brief-card" key={card.id}><span className={`ic ${card.tone}`} aria-hidden="true">{card.badge}</span><div className="t"><b>{card.title}</b><small>{card.detail}</small></div><Link className={`app-btn${card.tone === "warn" ? "" : " ghost"}`} href={card.cta.href}>{card.cta.label}</Link></div>)}</div>
     </section>
+
+    {profile && <DailyTasks profile={profile} loggedToday={loggedToday} />}
 
     <div className="app-grid2">
       <section className="app-section" aria-labelledby="brief-money"><h2 id="brief-money">Tiền tháng này</h2>

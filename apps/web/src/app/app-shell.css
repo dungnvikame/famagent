@@ -93,3 +93,19 @@ body:has(.app-shell)>main{min-height:100dvh}
 .memory-empty{font-size:13px;color:var(--muted);line-height:1.6;margin:0;border:1px dashed #cfc9e6;border-radius:var(--r);padding:14px}
 .agent-convs-empty{font-size:12.5px;color:var(--muted);line-height:1.55;margin:8px 4px}
 .agent-status{display:inline-flex;align-items:center;gap:8px}
+
+/* Home — Việc hôm nay */
+.daily-task{display:flex;gap:12px;align-items:flex-start;padding:14px 16px}
+.daily-task .t{flex:1;min-width:0;display:grid;gap:2px}
+.daily-task b{font-size:14px;line-height:1.45}
+.daily-task small{color:var(--muted);font-size:12.5px;line-height:1.45}
+.daily-source{font-size:11px!important;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--primary)!important}
+.daily-task.money .daily-source{color:var(--ok)!important}.daily-task.improve .daily-source{color:var(--warn)!important}
+.daily-check{flex:none;width:28px;height:28px;margin-top:2px;border-radius:50%;border:2px solid #c9c3e3;background:#fff;color:#fff;font-weight:800;cursor:pointer;display:grid;place-items:center;transition:background .15s,border-color .15s}
+.daily-check:hover{border-color:var(--primary-2)}
+.daily-task.done .daily-check{background:var(--ok);border-color:var(--ok)}
+.daily-task.done b{text-decoration:line-through;color:var(--muted)}
+.daily-task.invite{align-items:center;flex-wrap:wrap}
+.daily-invite-links{display:flex;gap:8px;flex-wrap:wrap}
+/* 44px touch target around the 28px circle */
+.daily-check{position:relative}.daily-check::after{content:"";position:absolute;inset:-8px}

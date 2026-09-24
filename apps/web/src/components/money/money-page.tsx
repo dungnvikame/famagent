@@ -27,6 +27,8 @@ export function MoneyPage() {
   const [bundle, setBundle] = useState<MoneyBundle | null>(null);
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [tab, setTab] = useState<Tab>("ledger");
+  // Deep links from Home (/money#month, /money#plan) open the matching tab.
+  useEffect(() => { const hash = window.location.hash.slice(1); if (TABS.some((item) => item.id === hash)) setTab(hash as Tab); }, []);
   const [error, setError] = useState("");
 
   const reload = useCallback(async (target = month) => {
