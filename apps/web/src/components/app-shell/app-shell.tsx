@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { IconAgent, IconBag, IconFamily, IconHome, IconMoney } from "./nav-icons";
 import { useAccount } from "./use-account";
+import { Inbox } from "@/components/inbox/inbox";
 
 /** Spec v2 §34: Home · Money · Shopping · Agent · Family. Same order on the desktop sidebar and the phone bottom bar. */
 export const SECTIONS = [
@@ -27,6 +28,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <aside className="app-side">
       <Link href="/home" className="app-brand"><span className="app-orb" aria-hidden="true" />FamAgent</Link>
       <nav className="app-nav" aria-label="Điều hướng chính">{items}</nav>
+      <Inbox />
       <Link href="/family#account" className="app-me" aria-label="Tài khoản & quyền riêng tư">
         {/* eslint-disable-next-line @next/next/no-img-element -- Google avatar; remote host not whitelisted for next/image */}
         {account.avatarUrl ? <img src={account.avatarUrl} alt="" width={36} height={36} referrerPolicy="no-referrer" /> : <span className="app-me-initial" aria-hidden="true">{account.status === "loading" ? "" : initial}</span>}

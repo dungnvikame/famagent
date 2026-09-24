@@ -29,8 +29,7 @@ import type { MoneyRecurring } from "@/lib/money/types";
 import { planTotal } from "@/lib/shopping/plan";
 import { ItemCard } from "./item-card";
 import { MarkPurchased } from "./mark-purchased";
-import { QuickCapture } from "./quick-capture";
-import { PhotoCapture } from "./photo-capture";
+import { DATA_CHANGED, openInbox } from "@/components/inbox/inbox";
 import { PushToggle } from "@/components/push-toggle";
 import { StarterItems } from "./starter-items";
 import { UpcomingTimeline } from "./upcoming-timeline";
@@ -58,6 +57,8 @@ export function ShoppingPlanPage() {
     Promise.all([loadMoney(current), loadMoney(shiftMonth(current, -1))]).then(([now, previous]) => { setMoney(summarizeMonth(now)); setLedger([...now.transactions, ...previous.transactions]); setRecurring(now.recurring); }).catch(() => {});
   }, []);
   useEffect(() => { void reload(); (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then(setProfile).catch(() => {}); }, [reload]);
+  // The global Inbox writes purchases/expenses: refresh when it says so.
+  useEffect(() => { const refresh = () => void reload(); window.addEventListener(DATA_CHANGED, refresh); return () => window.removeEventListener(DATA_CHANGED, refresh); }, [reload]);
 
   if (!state) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang tải kế hoạch mua sắm…</p></div>;
   const children = profile?.children ?? [];
@@ -86,7 +87,7 @@ export function ShoppingPlanPage() {
     <div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Nhà mình dùng gì · sắp cần mua gì · tháng này mua bao nhiêu</p></div></div>
     {error && <p className="form-error" role="alert">{error}</p>}
 
-    <QuickCapture items={state.items} familyChildren={children} onSaved={() => void reload()} extra={<PhotoCapture items={state.items} familyChildren={children} aiConsent={Boolean(profile?.aiConsent)} onSaved={() => void reload()} />} />
+    <button type="button" className="app-card inbox-hint" onClick={() => openInbox()}><span>Ghi lần mua… vd: 2 bịch Merries L 64 miếng 690k ở Shopee</span><b>＋ Ghi nhanh</b></button>
 
     <section className="app-section" aria-labelledby="sp-month"><h2 id="sp-month">Tháng này</h2>
       <div className="app-card money-kpis">
