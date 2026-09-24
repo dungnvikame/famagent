@@ -1,0 +1,56 @@
+/* Money module (SPEC_V2 §8–12): month KPIs, Excel-like ledger, budget rows, recurring/goals forms. */
+.month-nav{display:inline-flex;align-items:center;gap:10px}
+.month-nav b{min-width:120px;text-align:center;font-size:15px}
+.month-nav .app-btn{min-width:40px;padding:6px 12px;font-size:18px;line-height:1}
+.money-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.money-plan{grid-column:1/-1;display:grid;gap:6px}
+.money-plan small{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12.5px}
+.bar{display:block;height:8px;border-radius:var(--pill);background:#e8e4f6;overflow:hidden;margin-top:6px}
+.bar>span{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .3s}
+.bar>span.over{background:linear-gradient(135deg,#f0a08a,#b4413c)}
+.money-foot{margin-top:4px}
+
+.ledger-wrap{overflow-x:auto;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow)}
+.ledger{width:100%;min-width:760px;border-collapse:collapse;font-size:13.5px}
+.ledger th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#7a6fb0;padding:12px 12px 8px;border-bottom:1px solid var(--line)}
+.ledger td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.ledger tbody tr:last-child td{border-bottom:0}
+.ledger .num,.ledger td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
+.ledger-row.kind-expense td.num{color:var(--ink)}.ledger-row.kind-income td.num{color:var(--ok)}.ledger-row.kind-saving td.num{color:var(--primary-ink)}
+.ledger-kind{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--pill);background:#f1eff8;color:#4a4468}
+.ledger-kind.income{background:var(--ok-bg);color:var(--ok)}.ledger-kind.saving{background:#ece8ff;color:var(--primary-ink)}
+.ledger-content{display:block}.ledger td small{display:block;color:var(--muted);font-size:12px}
+.ledger td .app-pill{margin-left:6px;vertical-align:middle}
+.ledger-child{text-align:center}.ledger-child label{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
+.ledger-actions{white-space:nowrap;text-align:right}
+.ledger-actions .app-btn{min-height:36px;padding:6px 14px}
+.ledger-link{background:none;border:0;color:var(--primary);font:600 13px var(--font-sans),inherit;cursor:pointer;padding:6px 8px;min-height:36px}
+.ledger-link.danger{color:var(--danger)}
+.ledger-new td{background:#ffffffb8}
+.ledger input,.ledger select,.inline-form input,.inline-form select,.budget-edit input{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px}
+.ledger input:focus,.ledger select:focus,.inline-form input:focus,.inline-form select:focus,.budget-edit input:focus{outline:0;border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff}
+.ledger-new td:nth-child(1){width:150px}.ledger-new td:nth-child(3){width:110px}.ledger-new td:nth-child(4){width:170px}.ledger-new td:nth-child(5){width:130px}
+.ledger-empty{text-align:center;color:var(--muted);padding:26px 12px!important}
+
+.month-view{display:flex;flex-direction:column;gap:20px}
+.budget-rows>div{align-items:center}
+.budget-name{flex:1;min-width:0;display:grid}.budget-name b{font-size:14px}
+.budget-pill{border:0;cursor:pointer;min-height:32px;padding:6px 12px;font:700 12px var(--font-sans),inherit}
+.budget-edit{display:inline-flex;gap:6px;align-items:center}.budget-edit input{width:110px}.budget-edit .app-btn{min-height:36px;padding:6px 12px}
+.row-actions{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+
+.money-settings{display:flex;flex-direction:column;gap:20px}
+.inline-form{display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr auto auto;gap:8px;align-items:center;padding:12px 16px}
+.inline-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4a4468}
+.day-field{display:flex!important;align-items:center;gap:6px;white-space:nowrap}.day-field input{width:64px}
+.settings-form{grid-template-columns:repeat(3,1fr) auto;align-items:end}
+.app-rows .inline-form{border-top:1px solid var(--line)}
+.money-settings .app-rows>div.inline-form{display:grid}
+
+@media(max-width:900px){
+  .money-kpis{grid-template-columns:1fr 1fr}
+  .inline-form,.settings-form{grid-template-columns:1fr 1fr}
+  .inline-form .app-btn{grid-column:1/-1}
+  .ledger{min-width:680px}
+}
+@media(max-width:560px){.inline-form,.settings-form{grid-template-columns:1fr}.month-nav b{min-width:96px;font-size:14px}}

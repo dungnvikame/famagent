@@ -1,6 +1,7 @@
 import type { Conversation, FamilyProfile } from "../experience/types.ts";
 import { childAgeMonths } from "../experience/profile-mapper.ts";
 import { formatWeight } from "../onboarding/questions.ts";
+import { shortVnd, type MonthSummary } from "../money/summary.ts";
 
 /**
  * Family Brief (spec v2 §16–17): what needs attention, built from data the app already has.
@@ -31,6 +32,8 @@ export interface BriefInput {
   conversations: Conversation[];
   savedCount: number;
   displayName?: string;
+  /** Current-month money summary when the ledger is available (null = not loaded / not signed in). */
+  money?: MonthSummary | null;
   now?: Date;
 }
 
@@ -53,7 +56,7 @@ export function greetingFor(now: Date, name?: string): string {
   return name ? `${part}, ${name}` : part;
 }
 
-export function buildBrief({ profile, conversations, savedCount, displayName, now = new Date() }: BriefInput): FamilyBrief {
+export function buildBrief({ profile, conversations, savedCount, displayName, money = null, now = new Date() }: BriefInput): FamilyBrief {
   const attention: BriefCard[] = [];
   const insights: BriefInsight[] = [];
   const children = profile?.children ?? [];
@@ -84,7 +87,14 @@ export function buildBrief({ profile, conversations, savedCount, displayName, no
 
   if (profile && !profile.aiConsent) attention.push({ id: "ai-off", tone: "info", badge: "AI", title: "AI đang tắt — FamAgent chỉ dùng quy tắc", detail: "Bật AI để hiểu câu hỏi tự nhiên hơn. Tên bé được thay bằng mã trước khi gửi.", cta: { label: "Bật AI", href: "/family#account" } });
 
-  attention.push({ id: "money-setup", tone: "ok", badge: "₫", title: "Bắt đầu sổ thu chi của gia đình", detail: "Ghi vài khoản đầu tiên để Trang chủ hiện tiền tháng này và khoản sắp đến hạn.", cta: { label: "Mở Tiền", href: "/money" } });
+  // Money (SPEC_V2 §16): pace vs plan, bills due soon, or the nudge to start the ledger.
+  if (money && money.transactionCount > 0) {
+    if (money.plan && money.paceRatio !== undefined && money.paceRatio > 1.05) attention.push({ id: "money-pace", tone: "warn", badge: `+${Math.round((money.paceRatio - 1) * 100)}%`, title: `Chi tiêu tháng này cao hơn kế hoạch ${Math.round((money.paceRatio - 1) * 100)}%`, detail: money.insights.find((item) => item.id === "over-pace")?.text ?? `Dự kiến chi ${shortVnd(money.expectedExpense!)} so với kế hoạch ${shortVnd(money.plan)}.`, cta: { label: "Xem vì sao", href: "/money#month" } });
+    for (const item of money.upcoming.slice(0, 2)) attention.push({ id: `due-${item.id}`, tone: item.daysLeft <= 2 ? "warn" : "ok", badge: item.daysLeft === 0 ? "Nay" : `${item.daysLeft}d`, title: `${item.name} ${shortVnd(item.amount)} ${item.daysLeft === 0 ? "đến hạn hôm nay" : `đến hạn sau ${item.daysLeft} ngày`}`, detail: `Khoản định kỳ · ${item.kind === "income" ? "sẽ tự ghi là thu" : "sẽ tự ghi vào sổ khi tới ngày"}.`, cta: { label: "Xem sổ", href: "/money" } });
+    for (const insight of money.insights.filter((item) => item.id !== "over-pace").slice(0, 1)) insights.unshift({ text: insight.text, source: insight.source, href: "/money" });
+  } else {
+    attention.push({ id: "money-setup", tone: "ok", badge: "₫", title: "Bắt đầu sổ thu chi của gia đình", detail: "Ghi vài khoản đầu tiên để Trang chủ hiện tiền tháng này và khoản sắp đến hạn.", cta: { label: "Mở Tiền", href: "/money" } });
+  }
 
   if (savedCount > 0) insights.push({ text: `Bạn đang lưu ${savedCount} sản phẩm để xem lại. Hỏi FamAgent “so sánh các sản phẩm đã lưu” để thấy khác biệt theo giá mỗi miếng.`, source: "Từ danh sách đã lưu", href: "/shopping?tab=saved" });
 

@@ -9,6 +9,8 @@ import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved 
 import { getConversations, getProfile, getSavedProducts } from "@/lib/experience/storage";
 import type { Conversation, FamilyProfile } from "@/lib/experience/types";
 import { formatWeight } from "@/lib/onboarding/questions";
+import { loadMoney } from "@/lib/money/client";
+import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
 
 /** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
 export function FamilyBriefPage() {
@@ -17,6 +19,7 @@ export function FamilyBriefPage() {
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [savedCount, setSavedCount] = useState(0);
+  const [money, setMoney] = useState<MonthSummary | null>(null);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -30,6 +33,8 @@ export function FamilyBriefPage() {
         if (cancelled) return;
         if (!family?.onboardedAt) { router.replace("/onboarding"); return; }
         setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
+        // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
+        loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
     void load();
@@ -37,7 +42,7 @@ export function FamilyBriefPage() {
   }, [router]);
 
   if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
-  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name });
+  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money });
   const latest = conversations[0];
   const child = profile?.children[0];
 
@@ -51,7 +56,9 @@ export function FamilyBriefPage() {
 
     <div className="app-grid2">
       <section className="app-section" aria-labelledby="brief-money"><h2 id="brief-money">Tiền tháng này</h2>
-        <div className="app-card"><div className="app-grid2"><div className="brief-kpi"><small>Đã chi</small><b>—</b></div><div className="brief-kpi"><small>Kế hoạch</small><b>{profile?.maxBudget ? `${Math.round(profile.maxBudget / 1000)}k / lần mua` : "—"}</b></div></div><p className="app-sub" style={{ marginTop: 10 }}>Chưa có giao dịch nào. <Link className="brief-link" href="/money">Mở Tiền →</Link></p></div>
+        <div className="app-card"><div className="app-grid2"><div className="brief-kpi"><small>Đã chi</small><b>{money?.expense ? shortVnd(money.expense) : "—"}</b></div><div className="brief-kpi"><small>Kế hoạch</small><b>{money?.plan ? shortVnd(money.plan) : "—"}</b></div></div>
+          {money?.plan ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round(money.expense / money.plan * 100))}%` }} className={money.expense > money.plan ? "over" : undefined} /></span> : null}
+          <p className="app-sub" style={{ marginTop: 10 }}>{money && money.transactionCount ? <>{money.expectedExpense ? `Dự kiến cuối tháng chi ${shortVnd(money.expectedExpense)}` : `${money.transactionCount} khoản tháng này`}{money.plan && money.remainingOfPlan !== undefined ? ` · còn ${shortVnd(money.remainingOfPlan)} trong kế hoạch` : ""}. </> : "Chưa có giao dịch nào. "}<Link className="brief-link" href="/money">Mở Tiền →</Link></p></div>
       </section>
       <section className="app-section" aria-labelledby="brief-shop"><h2 id="brief-shop">Mua sắm</h2>
         <div className="app-card"><div className="brief-kv">

@@ -44,3 +44,16 @@ test("size trong hồ sơ lệch cân nặng → insight gợi ý lên size", ()
   const brief = buildBrief({ profile: profile({ children: [{ id: "c1", name: "Gold", weightKg: 13, diaperSize: "L" }] }), conversations: [], savedCount: 0, now });
   assert.match(brief.insights[0].text, /hợp size XL, hồ sơ đang ghi size L/);
 });
+
+test("có sổ thu chi: thẻ vượt nhịp + hóa đơn sắp đến hạn thay thẻ 'bắt đầu sổ'", async () => {
+  const { summarizeMonth } = await import("../src/lib/money/summary.ts");
+  const { DEFAULT_CATEGORIES } = await import("../src/lib/money/types.ts");
+  const money = summarizeMonth({ month: "2026-09", settings: { openingCash: 0, openingSavings: 0, monthlyPlan: 10_000_000, categories: DEFAULT_CATEGORIES }, totals: { income: 0, expense: 9_000_000, saving: 0 }, budgets: [], goals: [],
+    transactions: [{ id: "x", occurredOn: "2026-09-10", content: "Siêu thị", category: "Ăn uống", kind: "expense", amount: 9_000_000, forChild: false, source: "manual" }],
+    recurring: [{ id: "r1", name: "Internet", category: "Tiêu dùng", kind: "expense", amount: 450_000, dayOfMonth: 26, active: true }] }, now);
+  const brief = buildBrief({ profile: profile(), conversations: [], savedCount: 0, money, now });
+  const ids = brief.attention.map((card) => card.id);
+  assert.deepEqual(ids, ["money-pace", "due-r1"]);
+  assert.match(brief.attention[0].title, /cao hơn kế hoạch 1[0-9]%/);
+  assert.equal(brief.attention[1].tone, "warn"); assert.match(brief.attention[1].title, /Internet 450K đến hạn sau 2 ngày/);
+});
