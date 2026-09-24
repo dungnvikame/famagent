@@ -144,6 +144,8 @@ export interface ChatTurn {
   candidateProductIds?: string[];
   rankingVersion?: string;
   view?: AgentView;
+  /** Quick replies offered with a clarification (e.g. "Bỏ giới hạn giá"). */
+  choices?: string[];
 }
 
 export type AgentView = { kind: "family" | "saved" | "catalog" | "compare" | "product" | "history" | "help"; productId?: string };

@@ -14,7 +14,8 @@ import { FamilyContextPanel } from "./family-context-panel";
 import { IconCheck } from "./icons";
 import { OnboardingReview } from "./onboarding-review";
 
-const freshProfile = (): FamilyProfile => ({ id: crypto.randomUUID(), children: [], pricePreference: "balanced", aiConsent: false, updatedAt: new Date().toISOString() });
+// AI is the product's core value, so new profiles start opted in; the review switch and /family let people opt out.
+const freshProfile = (): FamilyProfile => ({ id: crypto.randomUUID(), children: [], pricePreference: "balanced", aiConsent: true, updatedAt: new Date().toISOString() });
 const GROUPS = ["Gia đình", "Về bé", "Chăm sóc", "Ưu tiên", "Nhà mình"] as const;
 /** Short pause so the tapped choice visibly registers before the next question (≤ 300 ms). */
 const ADVANCE_MS = 220;

@@ -118,6 +118,8 @@ export const EVAL_CASES: EvalCase[] = [
 
   // Không có sản phẩm đáp ứng toàn bộ điều kiện: name the constraint, never relax it.
   { id: "nr-01", group: "no_result", message: "bỉm cho bé 10kg dưới 100k", expect: { outcome: "none", maxTotalPriceVnd: 100000 } },
+  { id: "nr-04", group: "no_result", message: "ok nới giá đi", previousIntent: { schemaVersion: "1", intentType: "discover", categoryId: "diapers", requiredAttributes: { weightKg: 10 }, constraints: { maxTotalPriceVnd: 250000 }, preferences: {}, fieldEvidence: {}, ambiguity: [] }, expect: { outcome: "results", weightKg: 10 } },
+  { id: "nr-05", group: "no_result", message: "tăng ngân sách lên cũng được", previousIntent: { schemaVersion: "1", intentType: "discover", categoryId: "diapers", requiredAttributes: { weightKg: 10 }, constraints: { maxTotalPriceVnd: 250000 }, preferences: {}, fieldEvidence: {}, ambiguity: [] }, expect: { outcome: "results", weightKg: 10 } },
   { id: "nr-02", group: "no_result", message: "bỉm cho bé 30kg", expect: { outcome: "none", weightKg: 30 } },
   { id: "nr-03", group: "no_result", message: "bỉm size NB cho bé 10kg", expect: { outcome: "none", sizeLabel: "NB" } },
 

@@ -71,7 +71,7 @@ export function extractShoppingRules(message: string): ShoppingExtraction {
     if (small) { const value = Math.round(Number(small[1].replace(",", ".")) * 1000); if (value >= 1000 && value <= 20_000) result.maxUnitPriceVnd = value; }
   }
   // "giá bao nhiêu cũng được" drops carried-over ceilings, but never a cap stated in the same message.
-  result.removePriceLimit = /bỏ (?:giới hạn )?giá|không giới hạn giá/.test(lower) || (ANY_PRICE.test(lower) && result.maxTotalPriceVnd === null && result.maxUnitPriceVnd === null);
+  result.removePriceLimit = /bỏ (?:giới hạn )?giá|không giới hạn giá|nới(?:\s+(?:mức\s+)?(?:giá|ngân sách|ra|thêm|lên))?(?![\p{L}])|tăng ngân sách|ngân sách cao hơn|đắt hơn cũng được/u.test(lower) || (ANY_PRICE.test(lower) && result.maxTotalPriceVnd === null && result.maxUnitPriceVnd === null);
   if (result.removePriceLimit) result.maxTotalPriceVnd = null;
   result.nightUse = /ban đêm|dùng đêm|ngủ đêm|qua đêm/.test(lower) || /(?:bỉm|tã)\s+(?:dùng\s+)?đêm(?!\s+qua)/.test(lower) || (plain && word("ban dem|dung dem|ngu dem|qua dem|bim dem").test(folded)) ? true : null;
   result.leakProtection = /chống tràn|hay tràn|hạn chế tràn|bị tràn/.test(lower) ? true : null;
