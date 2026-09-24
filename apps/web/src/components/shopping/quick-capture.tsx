@@ -24,9 +24,9 @@ export function QuickCapture({ items, familyChildren, onSaved, extra }: { items:
     <h2 id="qc-title" className="sr-only">Ghi lần mua</h2>
     <form className="app-card quick-capture-bar" onSubmit={(event) => { event.preventDefault(); parse(); }}>
       <input value={text} onChange={(event) => setText(event.target.value)} placeholder="Ghi lần mua… vd: 2 bịch Merries L 64 miếng 690k ở Shopee" aria-label="Ghi lần mua bằng một câu" />
-      {extra}
       <button type="submit" className="app-btn">Ghi</button>
     </form>
+    {extra}
     {saved && <p className="purchased-done" role="status">{saved}</p>}
     {draft && <PurchaseDraftCard key={key} draft={draft} items={items} familyChildren={familyChildren} source="quick" title="Kiểm tra rồi ghi lại" onCancel={() => setDraft(null)} onSaved={(purchase, item) => { setDraft(null); setText(""); setSaved(`✓ Đã ghi ${item.name} — ${purchase.unitCount} ${item.unit}, vào Tiền`); onSaved(purchase, item); }} />}
   </section>;

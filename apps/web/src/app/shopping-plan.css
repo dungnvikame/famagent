@@ -84,3 +84,5 @@
 .item-trend{display:flex;gap:8px;align-items:center;color:var(--primary-ink)}
 .item-trend span{color:var(--muted)}
 .stages>div{flex-wrap:wrap}
+.photo-capture{display:grid;gap:10px;justify-items:start}
+.photo-drafts{display:grid;gap:10px;width:100%}

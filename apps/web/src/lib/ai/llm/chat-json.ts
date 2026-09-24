@@ -4,7 +4,9 @@ import { getProviders, isAiConfigured, type JsonMode, type LlmProvider } from ".
 import { matchesSchema } from "./schema-guard.ts";
 
 export type JsonSchema = Record<string, unknown>;
-export interface ChatMessage { role: "user" | "assistant"; content: string }
+/** OpenAI-compatible content parts; image parts carry a data: URL (vision-capable providers only). */
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+export interface ChatMessage { role: "user" | "assistant"; content: string | ContentPart[] }
 
 export interface ChatJsonRequest<T> {
   /** Schema name, [a-z0-9_]. */
