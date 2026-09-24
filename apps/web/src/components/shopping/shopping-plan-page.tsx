@@ -18,6 +18,15 @@ import { SHOPPING_CATEGORIES, unlinkedTransactions } from "@/lib/shopping/reconc
 import { MonthPlan } from "./month-plan";
 import { ReconcileCard } from "./reconcile-card";
 import { StockCheck } from "./stock-check";
+import { HabitsPanel } from "./habits-panel";
+import { StageList } from "./stage-list";
+import { paydays, saleDays, waitForSale } from "@/lib/shopping/calendar";
+import { benchmarkNote } from "@/lib/shopping/insights";
+import { upcomingStages } from "@/lib/shopping/stages";
+import { addDays } from "@/lib/shopping/items";
+import { childAgeMonths } from "@/lib/experience/profile-mapper";
+import type { MoneyRecurring } from "@/lib/money/types";
+import { planTotal } from "@/lib/shopping/plan";
 import { ItemCard } from "./item-card";
 import { MarkPurchased } from "./mark-purchased";
 import { QuickCapture } from "./quick-capture";
@@ -36,6 +45,7 @@ export function ShoppingPlanPage() {
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [money, setMoney] = useState<MonthSummary | null>(null);
   const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
+  const [recurring, setRecurring] = useState<MoneyRecurring[]>([]);
   const [error, setError] = useState("");
 
   const reload = useCallback(async () => {
@@ -43,7 +53,7 @@ export function ShoppingPlanPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu mua sắm."); setState((current) => current ?? { items: [], purchases: [], checks: [], plan: [], dismissed: [] }); }
     // Ledger: this month for the totals, this + last month for "khoản này là mua gì?".
     const current = monthKey(new Date());
-    Promise.all([loadMoney(current), loadMoney(shiftMonth(current, -1))]).then(([now, previous]) => { setMoney(summarizeMonth(now)); setLedger([...now.transactions, ...previous.transactions]); }).catch(() => {});
+    Promise.all([loadMoney(current), loadMoney(shiftMonth(current, -1))]).then(([now, previous]) => { setMoney(summarizeMonth(now)); setLedger([...now.transactions, ...previous.transactions]); setRecurring(now.recurring); }).catch(() => {});
   }, []);
   useEffect(() => { void reload(); (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then(setProfile).catch(() => {}); }, [reload]);
 
@@ -60,6 +70,15 @@ export function ShoppingPlanPage() {
   const spent = lines.reduce((sum, line) => sum + line.spent, 0);
   const limit = lines.reduce((sum, line) => sum + (line.limit ?? 0), 0);
   const paused = state.items.filter((item) => item.status !== "active");
+  // Phase 3: paydays + sale days on the timeline; "có thể chờ" only when stock lasts until the sale and the plan fits the budget.
+  const horizon = addDays(today, 30);
+  const sales = saleDays(today, horizon);
+  const markers = [...paydays(recurring, today, horizon), ...sales];
+  const overBudget = limit ? spent + planTotal(plan) > limit : false;
+  const saleNotes: Record<string, string> = {};
+  for (const estimate of estimates) { const sale = waitForSale(estimate, sales, today, overBudget); if (sale) saleNotes[estimate.item.id] = `còn đủ tới ${sale.label} (${Number(sale.on.slice(8))}/${Number(sale.on.slice(5, 7))}) — có thể chờ`; }
+  const stages = upcomingStages(profile, state.plan, now);
+  const benchmarks = estimates.map((estimate) => { const child = children.find((entry) => entry.id === estimate.item.childId) ?? children[0]; return benchmarkNote(estimate, child ? childAgeMonths(child, now) : undefined, child?.name ? `Bé ${child.name}` : "Bé"); }).filter((note): note is string => Boolean(note));
 
   return <div className="app-page shopping-plan">
     <div className="app-page-head"><div><h1>Mua sắm</h1><p className="app-sub">Nhà mình dùng gì · sắp cần mua gì · tháng này mua bao nhiêu</p></div></div>
@@ -82,18 +101,22 @@ export function ShoppingPlanPage() {
     </section>}
 
     {state.items.length === 0 ? <StarterItems profile={profile} onAdd={async (items) => { for (const item of items) await saveItem(item); await reload(); }} /> : <>
-      <UpcomingTimeline estimates={estimates} today={today} actions={(estimate) => <>
+      <UpcomingTimeline estimates={estimates} today={today} markers={markers} notes={saleNotes} actions={(estimate) => <>
         {estimate.item.productId && <Link className="app-btn ghost" href={`/agent?q=${encodeURIComponent(`Mua lại ${estimate.item.name}`)}`}>Tìm nơi mua</Link>}
         <MarkPurchased target={{ itemId: estimate.item.id, productId: estimate.item.productId, productName: estimate.item.name, brand: estimate.item.brand, merchant: estimate.item.merchant, price: estimate.lastPackPrice, piecesPerPack: estimate.item.packSize }} source="quick" label={estimate.lastPackPrice ? `Đã mua lại ~${shortVnd(estimate.lastPackPrice)}` : "Đã mua"} onDone={() => void reload()} />
       </>} />
 
-      <MonthPlan lines={plan} month={monthKey(now)} items={state.items} familyChildren={children} budget={limit ? { spent, limit } : undefined} remainingOfPlan={money?.remainingOfPlan} onChanged={() => void reload()} />
+      <MonthPlan lines={plan} month={monthKey(now)} items={state.items} familyChildren={children} budget={limit ? { spent, limit } : undefined} remainingOfPlan={money?.remainingOfPlan} notes={saleNotes} onChanged={() => void reload()} />
+
+      <StageList stages={stages} month={monthKey(now)} onChanged={() => void reload()} />
 
       <section className="app-section" aria-labelledby="sp-items"><h2 id="sp-items">Đồ nhà mình dùng · {estimates.length}</h2>
-        <div className="item-grid">{estimates.map((estimate) => <ItemCard key={estimate.item.id} estimate={estimate} familyChildren={children} onChanged={() => void reload()} onSave={saveItem} onRemove={(item) => deleteItem(item.id)} extra={estimate.rateSource !== "set" ? <details className="item-check"><summary>Còn không?</summary><StockCheck compact estimate={estimate} onDone={() => void reload()} /></details> : undefined} />)}</div>
+        <div className="item-grid">{estimates.map((estimate) => <ItemCard key={estimate.item.id} estimate={estimate} familyChildren={children} purchases={state.purchases} onChanged={() => void reload()} onSave={saveItem} onRemove={(item) => deleteItem(item.id)} extra={estimate.rateSource !== "set" ? <details className="item-check"><summary>Còn không?</summary><StockCheck compact estimate={estimate} onDone={() => void reload()} /></details> : undefined} />)}</div>
         {paused.length > 0 && <p className="app-sub">Đang ngừng theo dõi: {paused.map((item) => <button key={item.id} type="button" className="ledger-link" onClick={() => void saveItem({ ...item, status: "active" }).then(reload)}>{item.name}</button>)}</p>}
       </section>
     </>}
+
+    {state.purchases.length > 0 && <HabitsPanel purchases={state.purchases} items={state.items} notes={benchmarks} now={now} />}
 
     {state.purchases.length > 0 && <section className="app-section" aria-labelledby="sp-history"><details className="app-card history">
       <summary id="sp-history">Lịch sử mua · {state.purchases.length} lần</summary>

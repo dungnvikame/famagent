@@ -4,7 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import type { ChildProfile } from "@/lib/experience/types";
+import { cadenceDays, unitPrices, unitPriceTrend } from "@/lib/shopping/insights";
 import { CATEGORY_LABELS, type ItemEstimate, type ShoppingItem } from "@/lib/shopping/items";
+import type { Purchase } from "@/lib/shopping/purchases";
 import { MarkPurchased } from "./mark-purchased";
 import { tone } from "./upcoming-timeline";
 
@@ -24,8 +26,23 @@ export function findHref(item: ShoppingItem, children: ChildProfile[]): string |
   return `/shopping/find${query.size ? `?${query}` : ""}`;
 }
 
+/** Price per unit over the purchases (inline SVG), the latest change and the buying rhythm. */
+function ItemTrend({ item, purchases }: { item: ShoppingItem; purchases: Purchase[] }) {
+  const prices = unitPrices(item, purchases);
+  const trend = unitPriceTrend(item, purchases);
+  const cadence = cadenceDays(item, purchases);
+  if (prices.length < 2 && cadence === null) return null;
+  const values = prices.map((entry) => entry.price); const min = Math.min(...values); const max = Math.max(...values);
+  const points = values.map((value, index) => `${Math.round(index / Math.max(1, values.length - 1) * 96) + 2},${Math.round(22 - (max === min ? 0.5 : (value - min) / (max - min)) * 18)}`).join(" ");
+  const parts = [trend === null ? "" : trend === 0 ? "giá ổn định" : `giá/${item.unit} ${trend > 0 ? "+" : ""}${trend}% so với trước`, cadence === null ? "" : `mua mỗi ~${cadence} ngày`].filter(Boolean);
+  return <p className="item-meta item-trend">
+    {prices.length >= 2 && <svg width="100" height="24" viewBox="0 0 100 24" role="img" aria-label="Giá mỗi đơn vị qua các lần mua"><polyline points={points} fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" strokeLinecap="round" /></svg>}
+    <span>{parts.join(" · ")}</span>
+  </p>;
+}
+
 /** One household item: stock bar, rate and its source, rhythm, last price per unit, and quick actions. */
-export function ItemCard({ estimate, familyChildren, extra, onChanged, onSave, onRemove }: { estimate: ItemEstimate; familyChildren: ChildProfile[]; extra?: React.ReactNode; onChanged: () => void; onSave: (item: ShoppingItem) => Promise<void>; onRemove: (item: ShoppingItem) => Promise<void> }) {
+export function ItemCard({ estimate, familyChildren, purchases = [], extra, onChanged, onSave, onRemove }: { estimate: ItemEstimate; familyChildren: ChildProfile[]; purchases?: Purchase[]; extra?: React.ReactNode; onChanged: () => void; onSave: (item: ShoppingItem) => Promise<void>; onRemove: (item: ShoppingItem) => Promise<void> }) {
   const { item } = estimate;
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(item.name);
@@ -56,6 +73,7 @@ export function ItemCard({ estimate, familyChildren, extra, onChanged, onSave, o
       <p className={`item-left due ${tone(estimate.daysLeft ?? 99)}`}>{estimate.daysLeft === 0 ? "Ước tính đã hết" : `~${estimate.remaining} ${item.unit} · còn ~${estimate.daysLeft} ngày`}</p>
       <p className="item-meta">{rateLabel(estimate.dailyRate, item.unit)}{estimate.lastPurchase ? ` · lần cuối ${dayLabel(estimate.lastPurchase.purchasedOn)}${estimate.lastPurchase.merchant ? ` ở ${estimate.lastPurchase.merchant}` : ""}` : ""}</p>
       {unitPrice !== null && <p className="item-meta">{vnd(unitPrice)}/{item.unit}</p>}
+      <ItemTrend item={item} purchases={purchases} />
       {extra}
     </> : <p className="item-meta">Ghi lần mua đầu tiên để FamAgent bắt đầu đếm.</p>}
     {editing ? <form className="item-edit" onSubmit={(event) => { event.preventDefault(); submit(); }}>

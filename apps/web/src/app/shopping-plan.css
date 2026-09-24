@@ -18,7 +18,7 @@
 .draft-card .purchase-check select{width:auto}
 .purchase-form{width:min(460px,calc(100vw - 32px));max-height:calc(100vh - 48px);overflow:auto;padding:0;background:transparent;border:0;box-shadow:none}
 .purchase-form>.app-card{background:var(--glass-strong)}
-.timeline{position:relative;height:84px;margin:4px 12px 8px}
+.timeline{position:relative;height:106px;margin:4px 12px 8px}
 .timeline-line{position:absolute;left:0;right:0;top:42px;height:2px;background:var(--line)}
 .timeline-dot,.timeline-marker{position:absolute;top:36px;transform:translateX(-50%)}
 .timeline-dot{width:14px;height:14px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 3px #fff}
@@ -28,7 +28,7 @@
 .timeline-dot.low em{bottom:auto;top:20px}
 .timeline-marker{width:2px;height:16px;top:34px;background:var(--ok)}
 .timeline-marker.sale{background:var(--primary)}
-.timeline-marker em{top:20px;bottom:auto;color:var(--muted);font-weight:600}
+.timeline-marker em{top:40px;bottom:auto;color:var(--muted);font-weight:600}
 .timeline-rows>div{padding:10px 4px}
 .due.warn{color:var(--danger)!important}
 .due.info{color:var(--primary-ink)!important}
@@ -69,3 +69,18 @@
 .plan-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .plan-add input{flex:1;min-width:140px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;min-height:40px;background:#fff}
 .brief-upcoming>div{padding:8px 0}
+.habits{display:grid;gap:12px}
+.habits-bars{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:10px;align-items:end;height:170px;padding-top:6px}
+.habits-col{display:grid;grid-template-rows:auto 1fr auto;height:100%;text-align:center;gap:4px;font-size:11px;color:var(--muted)}
+.habits-col>.habits-stack{align-self:end;display:flex;flex-direction:column-reverse;min-height:2px;border-radius:8px 8px 3px 3px;overflow:hidden;background:var(--line)}
+.habits-stack>span{display:block;min-height:3px}
+.habits-total{font-weight:700;color:var(--ink)}
+.habits-legend{display:flex;gap:12px;flex-wrap:wrap;margin:0;font-size:12px;color:var(--muted)}
+.habits-legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.habits-share{display:grid;gap:4px}
+.habits-share small{color:var(--muted);font-size:12px}
+.share-bar{display:flex;height:8px;border-radius:var(--pill);overflow:hidden;background:var(--line)}
+.share-bar>span{background:var(--primary)}
+.item-trend{display:flex;gap:8px;align-items:center;color:var(--primary-ink)}
+.item-trend span{color:var(--muted)}
+.stages>div{flex-wrap:wrap}
