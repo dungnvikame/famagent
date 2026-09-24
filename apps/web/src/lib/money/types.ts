@@ -38,11 +38,35 @@ export interface MoneyGoal { id: string; name: string; targetAmount: number; sav
 
 export interface MoneyCategory { name: string; kind: "expense" | "income"; archived?: boolean }
 
+export const ACCOUNT_TYPES = ["bank", "cash", "ewallet", "saving"] as const;
+export type AccountType = (typeof ACCOUNT_TYPES)[number];
+export const ACCOUNT_TYPE_LABELS: Record<AccountType, string> = { bank: "Ngân hàng", cash: "Tiền mặt", ewallet: "Ví điện tử", saving: "Tiết kiệm" };
+
+/** A place money sits, as the family told us on `MoneyPosition.asOf`; "saving" accounts count toward savings. */
+export interface MoneyAccount { id: string; name: string; type: AccountType; amount: number; note?: string }
+
+/** A debt the family owes. With a monthly payment + due day it is paid through a linked recurring item. */
+/** `balance` is what was owed on `asOf` (defaults to the position date); later payments come off it. */
+export interface MoneyDebt { id: string; name: string; balance: number; asOf?: string; monthlyPayment?: number; dueDay?: number; ratePct?: number; note?: string; recurringId?: string }
+
+/** Where the family stands on one date; balances after that date follow the ledger. */
+export interface MoneyPosition { asOf: string; accounts: MoneyAccount[]; debts: MoneyDebt[] }
+
+/** One part of the family's own money split: a share of income and the ledger categories that count toward it. */
+export interface AllocationBucket { key: string; label: string; share: number; categories: string[] }
+export interface MoneyAllocation { buckets: AllocationBucket[] }
+
 export interface MoneySettings {
   openingCash: number;
   openingSavings: number;
   monthlyPlan?: number;
   categories: MoneyCategory[];
+  /** Current financial position; when set, it replaces openingCash/openingSavings as the balance anchor. */
+  position?: MoneyPosition;
+  /** The family's own split (money method "custom"). */
+  allocation?: MoneyAllocation;
+  /** What the family corrected in quick add: normalized content key → category. */
+  categoryMemory?: Record<string, string>;
 }
 
 /** Everything the Money page needs for one month, in one request. */
@@ -56,6 +80,8 @@ export interface MoneyBundle {
   budgets: MoneyBudget[];
   recurring: MoneyRecurring[];
   goals: MoneyGoal[];
+  /** Paid toward each debt (by debt id) through its recurring item since `position.asOf`. */
+  debtPaid?: Record<string, number>;
 }
 
 /** Category set from the product owner's household sheet (plan §6.2); users can rename/archive/add. */

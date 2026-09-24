@@ -3,7 +3,8 @@
 // Browser-side Money store: Supabase via /api/money when configured, otherwise localStorage (demo mode).
 // Both paths return the same MoneyBundle so the UI and the Family Brief do not care where data lives.
 import { cloudEnabled } from "@/lib/experience/cloud";
-import { dueRecurring, postingFor, sumByKind } from "./summary";
+import { sumUntil, withPosition } from "./position";
+import { dueRecurring, postingFor } from "./summary";
 import { DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
 
 const KEY = "family-ai:money:v1";
@@ -28,8 +29,8 @@ export async function loadMoney(month: string, now = new Date()): Promise<MoneyB
     data.recurring = data.recurring.map((item) => due.some((posted) => posted.id === item.id) ? { ...item, lastPostedMonth: month } : item);
     writeLocal(data);
   }
-  const monthEnd = `${month}-31`;
-  return { month, settings: data.settings, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumByKind(data.transactions.filter((item) => item.occurredOn <= monthEnd)), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals };
+  // "YYYY-MM-99" sorts after every day of the month, so it works as an exclusive upper bound for string dates.
+  return withPosition({ month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals }, data.transactions);
 }
 
 type Resource = "transactions" | "budgets" | "recurring" | "goals";

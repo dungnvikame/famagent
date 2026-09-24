@@ -7,7 +7,11 @@ import type { MoneyBudget, MoneyTransaction } from "./types.ts";
  */
 export type FrameworkId = (typeof MONEY_METHODS)[number];
 
-export interface Bucket { key: string; label: string; /** Share of income (0–1); undefined = no fixed share. */ share?: number; hint: string }
+export interface Bucket {
+  key: string; label: string; /** Share of income (0–1); undefined = no fixed share. */ share?: number; hint: string;
+  /** Custom split only: the ledger categories that count toward this part. */ categories?: string[];
+  /** A saving target ("at least") rather than a spending cap ("at most"). */ atLeast?: boolean;
+}
 export interface Framework {
   id: FrameworkId;
   name: string;
@@ -109,6 +113,7 @@ export function bucketOf(id: FrameworkId, tx: Pick<MoneyTransaction, "kind" | "c
     case "kakeibo": return saving ? null : c === "Học tập" ? "culture" : c === "Khám, thuốc" || c === "Hiếu hỉ" ? "unexpected" : ESSENTIAL.has(c) ? "survival" : "wants";
     case "baby-steps": return saving || INVEST.has(c) ? "save" : DEBT.has(c) ? "debt" : "spend";
     case "zero-based": return null;
+    case "custom": return null; // mapped by each part's own categories in frameworkProgress
   }
 }
 
@@ -122,8 +127,9 @@ export function frameworkProgress(fw: Framework, income: number, transactions: M
     return [{ ...fw.buckets[0], target: income, actual: assigned }, { ...fw.buckets[1], target: 0, actual: Math.max(0, income - assigned) }];
   }
   const actual = new Map<string, number>();
+  const byCategory = new Map(fw.buckets.flatMap((bucket) => (bucket.categories ?? []).map((name) => [name, bucket.key] as const)));
   for (const tx of transactions) {
-    const key = bucketOf(fw.id, tx);
+    const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? null) : bucketOf(fw.id, tx);
     if (key && !(tx.kind === "saving" && tx.amount < 0)) actual.set(key, (actual.get(key) ?? 0) + tx.amount);
   }
   return fw.buckets.map((bucket) => ({ ...bucket, target: bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined, actual: actual.get(bucket.key) ?? 0 }));

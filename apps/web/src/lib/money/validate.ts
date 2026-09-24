@@ -1,4 +1,4 @@
-import { MONEY_KINDS, type MoneyBudget, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
+import { ACCOUNT_TYPES, MONEY_KINDS, type MoneyAccount, type MoneyAllocation, type MoneyBudget, type MoneyDebt, type MoneyGoal, type MoneyPosition, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
 
 // Hand-rolled guards (no schema lib in the project); each returns a clean object or null.
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
@@ -45,12 +45,65 @@ export function validSettings(input: unknown): MoneySettings | null {
   const openingCash = int(input.openingCash ?? 0); const openingSavings = int(input.openingSavings ?? 0);
   const plan = input.monthlyPlan === undefined || input.monthlyPlan === null || input.monthlyPlan === "" ? undefined : int(input.monthlyPlan);
   if (openingCash === null || openingSavings === null || plan === null || (plan !== undefined && plan <= 0) || Math.abs(openingCash) > MAX_VND || Math.abs(openingSavings) > MAX_VND) return null;
-  if (!Array.isArray(input.categories) || input.categories.length > 60) return null;
+  if (!Array.isArray(input.categories) || input.categories.length > 80) return null;
   const categories: MoneySettings["categories"] = [];
   for (const item of input.categories) {
     if (!isRecord(item)) return null;
     const name = text(item.name, 40); if (!name || (item.kind !== "expense" && item.kind !== "income")) return null;
     categories.push({ name, kind: item.kind as "expense" | "income", archived: item.archived === true || undefined });
   }
-  return { openingCash, openingSavings, monthlyPlan: plan, categories };
+  const position = input.position === undefined || input.position === null ? undefined : validPosition(input.position);
+  const allocation = input.allocation === undefined || input.allocation === null ? undefined : validAllocation(input.allocation);
+  const categoryMemory = input.categoryMemory === undefined || input.categoryMemory === null ? undefined : validMemory(input.categoryMemory);
+  if (position === null || allocation === null || categoryMemory === null) return null;
+  return { openingCash, openingSavings, monthlyPlan: plan, categories, position, allocation, categoryMemory };
+}
+
+const optionalInt = (value: unknown) => value === undefined || value === null || value === "" ? undefined : int(value);
+const optionalText = (value: unknown, max: number) => value === undefined || value === null || value === "" ? undefined : text(value, max);
+
+function validAccount(input: unknown): MoneyAccount | null {
+  if (!isRecord(input)) return null;
+  const name = text(input.name, 60); const amount = int(input.amount); const note = optionalText(input.note, 120);
+  if (!name || !uuid(input.id) || !(ACCOUNT_TYPES as readonly string[]).includes(input.type as string) || amount === null || Math.abs(amount) > MAX_VND || note === null) return null;
+  return { id: input.id, name, type: input.type as MoneyAccount["type"], amount, note };
+}
+
+function validDebt(input: unknown): MoneyDebt | null {
+  if (!isRecord(input)) return null;
+  const name = text(input.name, 60); const balance = int(input.balance); const monthly = optionalInt(input.monthlyPayment); const day = optionalInt(input.dueDay); const note = optionalText(input.note, 120);
+  const rate = input.ratePct === undefined || input.ratePct === null || input.ratePct === "" ? undefined : typeof input.ratePct === "number" && Number.isFinite(input.ratePct) ? input.ratePct : null;
+  if (!name || !uuid(input.id) || balance === null || balance < 0 || balance > MAX_VND || monthly === null || (monthly !== undefined && (monthly <= 0 || monthly > MAX_VND)) || note === null) return null;
+  if (day === null || (day !== undefined && (day < 1 || day > 31)) || rate === null || (rate !== undefined && (rate < 0 || rate > 100))) return null;
+  return { id: input.id, name, balance, asOf: isDate(input.asOf) ? input.asOf : undefined, monthlyPayment: monthly, dueDay: day, ratePct: rate, note, recurringId: uuid(input.recurringId) ? input.recurringId : undefined };
+}
+
+export function validPosition(input: unknown): MoneyPosition | null {
+  if (!isRecord(input) || !isDate(input.asOf) || !Array.isArray(input.accounts) || !Array.isArray(input.debts) || input.accounts.length > 30 || input.debts.length > 30) return null;
+  const accounts = input.accounts.map(validAccount); const debts = input.debts.map(validDebt);
+  if (accounts.some((item) => !item) || debts.some((item) => !item)) return null;
+  return { asOf: input.asOf, accounts: accounts as MoneyAccount[], debts: debts as MoneyDebt[] };
+}
+
+export function validAllocation(input: unknown): MoneyAllocation | null {
+  if (!isRecord(input) || !Array.isArray(input.buckets) || !input.buckets.length || input.buckets.length > 12) return null;
+  const buckets: MoneyAllocation["buckets"] = [];
+  for (const item of input.buckets) {
+    if (!isRecord(item)) return null;
+    const label = text(item.label, 40); const key = text(item.key, 40);
+    if (!label || !key || typeof item.share !== "number" || !(item.share >= 0 && item.share <= 1) || !Array.isArray(item.categories) || item.categories.length > 60) return null;
+    const categories = item.categories.map((name) => text(name, 40));
+    if (categories.some((name) => !name)) return null;
+    buckets.push({ key, label, share: Math.round(item.share * 1000) / 1000, categories: [...new Set(categories as string[])] });
+  }
+  return { buckets };
+}
+
+function validMemory(input: unknown): Record<string, string> | null {
+  if (!isRecord(input)) return null;
+  const entries = Object.entries(input);
+  if (entries.length > 300) return null;
+  const out: Record<string, string> = {};
+  for (const [key, value] of entries) { const category = text(value, 40); if (!category || key.length > 60) return null; out[key] = category; }
+  return out;
 }

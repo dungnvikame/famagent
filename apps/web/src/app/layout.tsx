@@ -15,6 +15,7 @@ import "./onboarding-wizard.css";
 import "./app-shell.css";
 import "./money.css";
 import "./money-frameworks.css";
+import "./money-upgrade.css";
 import "./financial-health.css";
 import "./family-notes.css";
 import "./shopping-plan.css";
