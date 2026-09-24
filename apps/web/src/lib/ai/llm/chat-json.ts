@@ -4,7 +4,9 @@ import { getProviders, isAiConfigured, type JsonMode, type LlmProvider } from ".
 import { matchesSchema } from "./schema-guard.ts";
 
 export type JsonSchema = Record<string, unknown>;
-export interface ChatMessage { role: "user" | "assistant"; content: string }
+/** OpenAI-compatible content parts; image parts carry a data: URL (vision-capable providers only). */
+export type ContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
+export interface ChatMessage { role: "user" | "assistant"; content: string | ContentPart[] }
 
 export interface ChatJsonRequest<T> {
   /** Schema name, [a-z0-9_]. */
@@ -16,6 +18,8 @@ export interface ChatJsonRequest<T> {
   validate?: (value: unknown) => value is T;
   /** Total budget across all providers. */
   timeoutMs?: number;
+  /** Message carries an image: only providers listed in LLM_VISION_PROVIDERS (default gemini, openai, openrouter) are tried. */
+  vision?: boolean;
 }
 
 export interface ChatJsonResult<T> { data: T; provider: string }
@@ -79,8 +83,15 @@ async function attempt(provider: LlmProvider, request: ChatJsonRequest<unknown>,
   }
 }
 
+/** Providers that accept image parts (LLM_VISION_PROVIDERS, default gemini, openai, openrouter). */
+export function visionProviders(providers: LlmProvider[] = getProviders()): LlmProvider[] {
+  const names = (process.env.LLM_VISION_PROVIDERS ?? "gemini,openai,openrouter").split(",").map((name) => name.trim()).filter(Boolean);
+  return providers.filter((provider) => names.includes(provider.name));
+}
+
 export async function chatJson<T>(request: ChatJsonRequest<T>, overrides: Partial<ChatJsonDeps> = {}): Promise<ChatJsonResult<T> | null> {
-  const deps = { ...defaultDeps(), ...overrides };
+  const base = { ...defaultDeps(), ...overrides };
+  const deps = request.vision ? { ...base, providers: visionProviders(base.providers) } : base;
   if (!deps.enabled || !deps.providers.length) return null;
   const deadline = deps.now() + (request.timeoutMs ?? 9000);
   for (const [index, provider] of deps.providers.entries()) {

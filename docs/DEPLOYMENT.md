@@ -118,7 +118,14 @@ Chi tiết cột và quy tắc: [DATA.md](DATA.md).
 | `LLM_PROVIDERS` | Không | Không | vd `gemini,groq` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Khi dùng Gemini | **Không** | |
 | `GROQ_API_KEY`, `GROQ_MODEL` | Tùy chọn | **Không** | console.groq.com; vd `openai/gpt-oss-120b,qwen/qwen3.8-27b` (`llama-3.3-70b-versatile` đã gỡ) |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | Khi bật nhắc “sắp hết” | Có | `npx web-push generate-vapid-keys` (một lần) |
+| `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT` | Khi bật nhắc | **Không** | Subject: `mailto:` liên hệ |
+| `CRON_SECRET` | Khi bật nhắc | **Không** | Vercel Cron gửi `Authorization: Bearer …` tới `/api/cron/reminders`; cần `DATABASE_URL` |
 
 ## 7. Việc định kỳ
+
+**Nhắc “sắp hết” (Vercel Cron):** `vercel.json` gọi `/api/cron/reminders` lúc 01:00 UTC (08:00 giờ VN). Cần `DATABASE_URL`, cặp khóa VAPID và `CRON_SECRET`; thiếu thì route trả 503 và nút bật nhắc bị ẩn. Mỗi món tối đa 1 nhắc/ngày (`push_log`); đăng ký hết hạn (404/410) tự xóa. Đọc ảnh đơn hàng dùng cùng chuỗi provider AI (cần model có vision, vd Gemini) và hạn mức 20 ảnh/giờ.
+
+**Thứ tự triển khai Mua sắm mới (plan 260924-1431):** `pg_dump` → áp migration `202609240012`–`202609240014` → deploy app. Migration giữ `purchases.item_id` nullable nên bản app cũ vẫn chạy trong lúc chờ deploy.
 
 Chạy từ máy có `DATABASE_URL` (hoặc GitHub Actions có secret, khi cần tự động hóa): `pnpm verify-offers` mỗi ngày, `pnpm cleanup-anonymous` mỗi tuần — xem [OPERATIONS.md](OPERATIONS.md).

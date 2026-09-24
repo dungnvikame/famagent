@@ -39,7 +39,7 @@ export async function DELETE() {
   const { error: analyticsError } = await client.from("analytics_events").delete().eq("user_id", userId);
   const { error: clicksError } = await client.from("affiliate_clicks").delete().eq("user_id", userId);
   const { error: conversationsError } = await client.from("conversations").delete().eq("user_id", userId);
-  const moneyErrors = await Promise.all(["daily_task_done", "family_notes", "purchases", "family_events", "money_transactions", "money_budgets", "money_recurring", "money_goals", "money_settings"].map(async (table) => (await client.from(table).delete().eq("user_id", userId)).error));
+  const moneyErrors = await Promise.all(["daily_task_done", "family_notes", "purchases", "shopping_items", "stock_checks", "shopping_plan_entries", "shopping_tx_dismissed", "push_subscriptions", "family_events", "money_transactions", "money_budgets", "money_recurring", "money_goals", "money_settings"].map(async (table) => (await client.from(table).delete().eq("user_id", userId)).error));
   const { error: familyError } = await client.from("family_profiles").delete().eq("user_id", userId);
   if (savedError || logsError || analyticsError || clicksError || conversationsError || familyError || moneyErrors.some(Boolean)) return NextResponse.json({ error: "Chưa thể xóa toàn bộ dữ liệu" }, { status: 500 });
   return NextResponse.json({ ok: true });
