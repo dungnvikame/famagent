@@ -64,6 +64,14 @@ Có thể làm tự động các mục 1–3 bằng `pnpm --filter @family-ai/we
    - Sau khi bật SMTP riêng, chạy `pnpm --filter @family-ai/web setup:auth` (không kèm `--skip-templates`) để đẩy 3 mẫu email tiếng Việt; rồi **Authentication → Rate Limits** nâng giới hạn email/giờ phù hợp số người test.
    - Kiểm tra: gửi liên kết tới email của bạn từ `/sign-in`, thư phải đến trong dưới 1 phút và link mở về `/auth/confirm` rồi vào `/shop`.
 
+### 3.3b Đăng nhập bằng Google (khuyến nghị — không cần SMTP)
+1. console.cloud.google.com → tạo project (hoặc dùng project sẵn có) → **APIs & Services → OAuth consent screen**: loại External, tên app “FamAgent”, email hỗ trợ; phạm vi mặc định (email, profile, openid) là đủ. Bấm **Publish app** để mọi người đăng nhập được (chưa cần Google xét duyệt với phạm vi cơ bản).
+2. **Credentials → Create credentials → OAuth client ID** → Web application. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback` (ref lấy từ Project URL Supabase). Copy Client ID và Client secret.
+3. Điền `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` vào `apps/web/.env.local` rồi chạy `pnpm --filter @family-ai/web setup:auth -- --skip-templates` — script bật provider Google và “manual linking” (để tài khoản khách gắn được vào Google, giữ nguyên hồ sơ). Hoặc làm tay: Supabase **Authentication → Providers → Google** dán ID/secret; **Authentication → Settings** bật *Allow manual linking*.
+4. Kiểm tra: `/sign-in` có nút “Tiếp tục với Google”; sau khi chọn tài khoản Google, trang về `/auth/callback` rồi `/shop`.
+
+Email magic link vẫn hoạt động song song nhưng phụ thuộc SMTP (mục 3.3 bước 4); khi chưa có SMTP, hướng người dùng đi Google.
+
 ### 3.4 Nối với Vercel
 Thêm `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `DATABASE_URL` → Redeploy. Từ lúc này catalog đọc từ Supabase (rỗng cho tới khi nhập dữ liệu thật — ứng dụng không tự quay về demo), và người dùng có tài khoản ẩn danh/email.
 

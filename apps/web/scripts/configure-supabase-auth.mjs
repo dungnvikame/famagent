@@ -1,4 +1,4 @@
-// Configure Supabase Auth for Family AI through the Management API (plan P8, docs/DEPLOYMENT.md §3.3).
+// Configure Supabase Auth for FamAgent through the Management API (plan P8, docs/DEPLOYMENT.md §3.3).
 //   node --env-file=.env.local scripts/configure-supabase-auth.mjs [--dry-run]
 // Needs NEXT_PUBLIC_SUPABASE_URL (project ref), APP_URL and SUPABASE_ACCESS_TOKEN (personal token; revoke after).
 // Sets: Site URL, redirect allow-list (/auth/confirm), email sign-in, anonymous sign-ins, and the three email
@@ -24,17 +24,22 @@ const config = {
   uri_allow_list: `${appUrl}/auth/confirm,${appUrl}/**`,
   external_email_enabled: true,
   external_anonymous_users_enabled: true,
+  // linkIdentity() (guest → Google/email) requires manual linking.
+  security_manual_linking_enabled: true,
+  ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+    ? { external_google_enabled: true, external_google_client_id: process.env.GOOGLE_CLIENT_ID, external_google_secret: process.env.GOOGLE_CLIENT_SECRET }
+    : {}),
 };
 const templates = {
-  mailer_subjects_magic_link: "Đăng nhập Family AI",
-  mailer_templates_magic_link_content: button("Bấm nút dưới đây để đăng nhập Family AI.", "email"),
-  mailer_subjects_confirmation: "Xác nhận email Family AI",
+  mailer_subjects_magic_link: "Đăng nhập FamAgent",
+  mailer_templates_magic_link_content: button("Bấm nút dưới đây để đăng nhập FamAgent.", "email"),
+  mailer_subjects_confirmation: "Xác nhận email FamAgent",
   mailer_templates_confirmation_content: button("Bấm nút dưới đây để xác nhận email và lưu hồ sơ gia đình.", "email"),
-  mailer_subjects_email_change: "Xác nhận email để lưu hồ sơ Family AI",
+  mailer_subjects_email_change: "Xác nhận email để lưu hồ sơ FamAgent",
   mailer_templates_email_change_content: button("Bấm nút dưới đây để liên kết email này với hồ sơ gia đình của bạn.", "email_change"),
 };
 
-console.log(`Project ${ref}: site_url=${appUrl}, anonymous=on, email=on, ${skipTemplates ? "giữ mẫu email mặc định" : "3 mẫu email → /auth/confirm"}.`);
+console.log(`Project ${ref}: site_url=${appUrl}, anonymous=on, email=on, manual-linking=on, google=${config.external_google_enabled ? "on" : "unchanged"}, ${skipTemplates ? "giữ mẫu email mặc định" : "3 mẫu email → /auth/confirm"}.`);
 if (dryRun) process.exit(0);
 const response = await fetch(`https://api.supabase.com/v1/projects/${ref}/config/auth`, {
   method: "PATCH",
