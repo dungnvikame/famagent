@@ -45,3 +45,10 @@
   .ob-text .ob-btn{width:100%}
 }
 @media (prefers-reduced-motion:reduce){.ob-step{animation:none}.ob-option,.ob-option-mark{transition:none}}
+
+/* Loading state: full-width centred (the base .ob-app grid has a 56px first column). */
+.ob-app.ob-loading{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;font-size:15px;color:var(--muted)}
+.ob-app.ob-loading p{margin:0}
+.ob-app.ob-loading::before{content:"";width:44px;height:44px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 4px #ffffffb3;animation:ob-pulse 1.4s ease-in-out infinite}
+@keyframes ob-pulse{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1);opacity:1}}
+@media(prefers-reduced-motion:reduce){.ob-app.ob-loading::before{animation:none}}
