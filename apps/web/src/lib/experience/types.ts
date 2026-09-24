@@ -154,6 +154,7 @@ export interface FamilyProfile {
 }
 
 import type { PurchaseDraft } from "../shopping/capture.ts";
+import type { Decision } from "../money/decision.ts";
 
 /** Intents the agent recognises (spec v1 §7). MVP handles discover/compare/update_family; the rest answer "coming soon". */
 export const INTENT_TYPES = ["discover", "compare", "reorder", "check_replenishment", "monthly_basket", "price_check", "update_family", "unknown"] as const;
@@ -239,6 +240,9 @@ export interface ChatTurn {
   purchaseDraft?: PurchaseDraft;
   /** Set once the draft was confirmed, so reopening the conversation never logs it twice. */
   purchaseSaved?: string;
+  /** "Muốn mua robot hút bụi 8 triệu" → financial fit + 3 options (spec §6). */
+  decision?: Decision;
+  decisionDone?: string;
 }
 
 export type AgentView = { kind: "family" | "saved" | "catalog" | "compare" | "product" | "history" | "help"; productId?: string };
@@ -264,4 +268,5 @@ export interface ChatResponse {
   profile?: FamilyProfile;
   notesRecorded?: string[];
   purchaseDraft?: PurchaseDraft;
+  decision?: Decision;
 }

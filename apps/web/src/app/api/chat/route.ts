@@ -10,6 +10,7 @@ import { reorderLines } from "@/lib/shopping/reorder";
 import { explainMonth } from "@/lib/money/explain";
 import { shiftMonth } from "@/lib/shopping/plan";
 import { reorderDraft } from "@/lib/shopping/capture";
+import { decide, detectBigPurchase } from "@/lib/money/decision";
 import { looksLikePurchaseLog, parsePurchase } from "@/lib/shopping/capture";
 import { validItem } from "@/lib/shopping/item-validate";
 import { todayLocal } from "@/lib/money/parse";
@@ -67,6 +68,14 @@ export async function POST(request: Request) {
     const missing = draft.missing.includes("amount") ? " Bạn nhập thêm số tiền nhé." : draft.missing.includes("packSize") ? " Mỗi gói bao nhiêu " + draft.unit + "?" : "";
     const response: ChatResponse = { text: `Mình ghi lại lần mua ${draft.name} thế này, bạn kiểm tra rồi bấm “Ghi lại”.${missing}`, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "purchase-capture-v1", mode: "rules", purchaseDraft: draft };
     return NextResponse.json(response);
+  }
+
+  // Spec §6: "muốn mua robot hút bụi 8 triệu" → financial fit this month + 3 options, before the diaper pipeline.
+  const big = detectBigPurchase(body.message);
+  if (big && account) {
+    const bundle = await loadBundle(account.client, account.user.id, monthKey(new Date()));
+    const decision = decide(big, bundle ? summarizeMonth(bundle) : null, bundle?.goals ?? [], profile?.household?.monthlyIncome);
+    return NextResponse.json({ text: decision.text, intent: previousIntent ?? emptyIntent(), recommendations: [], candidateCount: 0, candidateProductIds: [], rankingVersion: "decision-rules-v1", mode: "rules", decision } satisfies ChatResponse);
   }
 
   // Family Coordinator (spec v2 §18): finance questions are answered from the ledger by rules, no LLM.
