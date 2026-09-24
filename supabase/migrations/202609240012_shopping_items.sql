@@ -30,7 +30,7 @@ alter table public.purchases add column source text not null default 'catalog' c
 -- Backfill: one item per (user, catalog product), named after the latest purchase; the latest user-set rate moves to the item.
 insert into public.shopping_items (user_id, name, category, unit, pack_size, brand, merchant, daily_rate, child_id, product_id)
 select distinct on (p.user_id, p.product_id)
-  p.user_id, p.product_name, 'diapers', 'miếng', greatest(1, p.unit_count / greatest(p.packs, 1)), p.brand, p.merchant,
+  p.user_id, left(p.product_name, 120), 'diapers', 'miếng', greatest(1, p.unit_count / greatest(p.packs, 1)), p.brand, p.merchant,
   (select r.daily_rate from public.purchases r where r.user_id = p.user_id and r.product_id = p.product_id and r.daily_rate is not null order by r.purchased_on desc limit 1),
   p.child_id, p.product_id
 from public.purchases p
@@ -40,7 +40,10 @@ update public.purchases p set item_id = i.id
 from public.shopping_items i
 where p.item_id is null and i.user_id = p.user_id and i.product_id = p.product_id;
 
-alter table public.purchases alter column item_id set not null;
+-- item_id stays nullable so the previous app version keeps working between applying this migration and deploying:
+-- rows it inserts carry product_id and are matched to their item by product (lib/shopping/items purchasesOf).
+-- One purchase per ledger row: linking an expense twice (two tabs) fails instead of double-counting.
+create unique index purchases_transaction_unique on public.purchases(transaction_id) where transaction_id is not null;
 create index purchases_user_item_idx on public.purchases(user_id, item_id, purchased_on desc);
 
 alter table public.shopping_items enable row level security;

@@ -6,6 +6,8 @@ import type { Purchase } from "./purchases";
 
 const PURCHASES_KEY = "family-ai:purchases:v1";
 const ITEMS_KEY = "family-ai:shopping-items:v1";
+/** Demo-mode keys for the phase 2 resources (checks, plan, dismissed). */
+export const LOCAL_KEYS = { checks: "family-ai:stock-checks:v1", plan: "family-ai:shopping-plan:v1", dismissed: "family-ai:shopping-dismissed:v1" } as const;
 
 export function readLocal<T>(key: string): T[] { try { return JSON.parse(localStorage.getItem(key) || "[]") as T[]; } catch { return []; } }
 export const writeLocal = <T,>(key: string, items: T[]) => localStorage.setItem(key, JSON.stringify(items));

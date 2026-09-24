@@ -12,14 +12,18 @@ import { deleteItem, loadShopping, saveItem } from "@/lib/shopping/item-client";
 import { estimateItems, itemRateResolver, localDate, type ItemEstimate } from "@/lib/shopping/items";
 import { deletePurchase } from "@/lib/shopping/purchase-client";
 import type { ShoppingState } from "@/lib/shopping/state";
+import type { MoneyTransaction } from "@/lib/money/types";
+import { mergePlan, proposePlan, shiftMonth } from "@/lib/shopping/plan";
+import { SHOPPING_CATEGORIES, unlinkedTransactions } from "@/lib/shopping/reconcile";
+import { MonthPlan } from "./month-plan";
+import { ReconcileCard } from "./reconcile-card";
+import { StockCheck } from "./stock-check";
 import { ItemCard } from "./item-card";
 import { MarkPurchased } from "./mark-purchased";
 import { QuickCapture } from "./quick-capture";
 import { StarterItems } from "./starter-items";
 import { UpcomingTimeline } from "./upcoming-timeline";
 
-/** Ledger categories that Shopping spend lands in (transactionForPurchase). */
-export const SHOPPING_CATEGORIES = ["Con", "Mua sắm"];
 const dayLabel = (iso: string) => `${Number(iso.slice(8))}/${Number(iso.slice(5, 7))}`;
 
 /**
@@ -31,12 +35,15 @@ export function ShoppingPlanPage() {
   const [state, setState] = useState<ShoppingState | null>(null);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
   const [money, setMoney] = useState<MonthSummary | null>(null);
+  const [ledger, setLedger] = useState<MoneyTransaction[]>([]);
   const [error, setError] = useState("");
 
   const reload = useCallback(async () => {
     try { setState(await loadShopping()); setError(""); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu mua sắm."); setState((current) => current ?? { items: [], purchases: [] }); }
-    loadMoney(monthKey(new Date())).then((bundle) => setMoney(summarizeMonth(bundle))).catch(() => {});
+    catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu mua sắm."); setState((current) => current ?? { items: [], purchases: [], checks: [], plan: [], dismissed: [] }); }
+    // Ledger: this month for the totals, this + last month for "khoản này là mua gì?".
+    const current = monthKey(new Date());
+    Promise.all([loadMoney(current), loadMoney(shiftMonth(current, -1))]).then(([now, previous]) => { setMoney(summarizeMonth(now)); setLedger([...now.transactions, ...previous.transactions]); }).catch(() => {});
   }, []);
   useEffect(() => { void reload(); (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then(setProfile).catch(() => {}); }, [reload]);
 
@@ -44,7 +51,9 @@ export function ShoppingPlanPage() {
   const children = profile?.children ?? [];
   const now = new Date();
   const today = localDate(now);
-  const estimates: ItemEstimate[] = estimateItems(state.items, state.purchases, itemRateResolver(profile, now), now);
+  const estimates: ItemEstimate[] = estimateItems(state.items, state.purchases, itemRateResolver(profile, now), now, state.checks);
+  const plan = mergePlan(proposePlan(estimates, monthKey(now), today), state.plan, monthKey(now));
+  const unlinked = unlinkedTransactions(ledger, state.purchases, state.dismissed).slice(0, 3);
   const month = monthKey(now);
   const monthPurchases = state.purchases.filter((purchase) => purchase.purchasedOn.startsWith(month));
   const lines = money?.byCategory.filter((line) => SHOPPING_CATEGORIES.includes(line.category)) ?? [];
@@ -68,14 +77,20 @@ export function ShoppingPlanPage() {
       </div>
     </section>
 
+    {unlinked.length > 0 && state.items.length > 0 && <section className="app-section" aria-labelledby="sp-reconcile"><h2 id="sp-reconcile">Khoản trong sổ chưa rõ mua gì</h2>
+      <div className="brief-att">{unlinked.map((tx) => <ReconcileCard key={tx.id} tx={tx} items={state.items} purchases={state.purchases} familyChildren={children} onDone={() => void reload()} />)}</div>
+    </section>}
+
     {state.items.length === 0 ? <StarterItems profile={profile} onAdd={async (items) => { for (const item of items) await saveItem(item); await reload(); }} /> : <>
       <UpcomingTimeline estimates={estimates} today={today} actions={(estimate) => <>
         {estimate.item.productId && <Link className="app-btn ghost" href={`/agent?q=${encodeURIComponent(`Mua lại ${estimate.item.name}`)}`}>Tìm nơi mua</Link>}
         <MarkPurchased target={{ itemId: estimate.item.id, productId: estimate.item.productId, productName: estimate.item.name, brand: estimate.item.brand, merchant: estimate.item.merchant, price: estimate.lastPackPrice, piecesPerPack: estimate.item.packSize }} source="quick" label={estimate.lastPackPrice ? `Đã mua lại ~${shortVnd(estimate.lastPackPrice)}` : "Đã mua"} onDone={() => void reload()} />
       </>} />
 
+      <MonthPlan lines={plan} month={monthKey(now)} items={state.items} familyChildren={children} budget={limit ? { spent, limit } : undefined} remainingOfPlan={money?.remainingOfPlan} onChanged={() => void reload()} />
+
       <section className="app-section" aria-labelledby="sp-items"><h2 id="sp-items">Đồ nhà mình dùng · {estimates.length}</h2>
-        <div className="item-grid">{estimates.map((estimate) => <ItemCard key={estimate.item.id} estimate={estimate} familyChildren={children} onChanged={() => void reload()} onSave={saveItem} onRemove={(item) => deleteItem(item.id)} />)}</div>
+        <div className="item-grid">{estimates.map((estimate) => <ItemCard key={estimate.item.id} estimate={estimate} familyChildren={children} onChanged={() => void reload()} onSave={saveItem} onRemove={(item) => deleteItem(item.id)} extra={estimate.rateSource !== "set" ? <details className="item-check"><summary>Còn không?</summary><StockCheck compact estimate={estimate} onDone={() => void reload()} /></details> : undefined} />)}</div>
         {paused.length > 0 && <p className="app-sub">Đang ngừng theo dõi: {paused.map((item) => <button key={item.id} type="button" className="ledger-link" onClick={() => void saveItem({ ...item, status: "active" }).then(reload)}>{item.name}</button>)}</p>}
       </section>
     </>}

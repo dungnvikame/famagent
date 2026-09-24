@@ -50,3 +50,22 @@
 .starter-list small{display:block;color:var(--muted);font-size:12px}
 .history summary{cursor:pointer;font-weight:700;padding:4px 0;min-height:32px}
 @media (max-width:560px){.draft-row{grid-template-columns:1fr 1fr}.draft-row .grow{grid-column:span 2}.quick-capture-bar{flex-wrap:wrap}.quick-capture-bar input{flex-basis:100%}}
+.chip-row{display:flex;gap:6px;flex-wrap:wrap}
+.chip{min-height:36px;padding:6px 12px;border-radius:var(--pill);border:1px solid var(--line);background:#fff;font:600 13px var(--font-sans),inherit;color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--primary)}
+.chip.ghost{color:var(--muted)}
+.stock-check{display:grid;gap:8px;margin-top:10px}
+.stock-check>span:first-child{font-weight:700;font-size:14px}
+.item-check summary{cursor:pointer;color:var(--primary-ink);font-weight:700;font-size:13px;min-height:28px}
+.reconcile-card{display:grid;gap:10px}
+.reconcile-card p{margin:0;display:flex;gap:10px;align-items:center;font-size:14px}
+.reconcile-card .ic{flex:none;width:28px;height:28px;border-radius:9px;display:grid;place-items:center;font-weight:800;background:var(--mint);color:var(--primary-ink)}
+.month-plan{display:grid;gap:10px}
+.plan-line{flex-wrap:wrap}
+.plan-line.skipped b,.plan-line.bought b{text-decoration:line-through;color:var(--muted)}
+.plan-line .draft-card{flex-basis:100%}
+.plan-total{margin:0;display:grid;gap:2px}
+.plan-total small{color:var(--muted);font-size:12px}
+.plan-add{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.plan-add input{flex:1;min-width:140px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;min-height:40px;background:#fff}
+.brief-upcoming>div{padding:8px 0}

@@ -81,7 +81,7 @@ export function AgentShopping() {
         setConversations(prefill || !existing.length ? [first, ...existing] : existing); setActiveId(first.id);
         if (prefill) { pendingPrefill.current = prefill; window.history.replaceState(null, "", "/agent"); }
         loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
-        loadShopping().then((shopping) => { if (!cancelled) { setShoppingItems(shopping.items); setStock(stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family)))); } }).catch(() => {});
+        loadShopping().then((shopping) => { if (!cancelled) { setShoppingItems(shopping.items); setStock(stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks))); } }).catch(() => {});
       } catch (cause) { if (!cancelled) setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); }
     }
     void load();

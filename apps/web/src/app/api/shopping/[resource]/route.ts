@@ -5,7 +5,7 @@ import { isUuid } from "@/lib/shopping/item-validate";
 
 export const dynamic = "force-dynamic";
 
-const resourceOf = (value: string): ShoppingResource | null => value in SHOPPING_RESOURCES ? value as ShoppingResource : null;
+const resourceOf = (value: string): ShoppingResource | null => Object.hasOwn(SHOPPING_RESOURCES, value) ? value as ShoppingResource : null;
 
 /** PUT { item } upserts one validated row of the resource (RLS scopes it to the user). */
 export async function PUT(request: Request, { params }: { params: Promise<{ resource: string }> }) {

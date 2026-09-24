@@ -24,7 +24,9 @@ export interface PurchaseDraft {
 const MERCHANTS: Array<[RegExp, string]> = [
   [/shopee/, "Shopee"], [/lazada/, "Lazada"], [/tiki/, "Tiki"], [/tiktok/, "TikTok Shop"], [/con cung/, "Con Cưng"], [/bibo ?mart/, "Bibo Mart"],
   [/kids ?plaza/, "Kids Plaza"], [/bach hoa xanh|bhx/, "Bách Hóa Xanh"], [/winmart|vinmart/, "WinMart"], [/co\.?op ?(mart|food)?/, "Co.op"],
-  [/aeon/, "AEON"], [/lotte/, "Lotte Mart"], [/circle ?k/, "Circle K"], [/guardian/, "Guardian"], [/sieu thi/, "Siêu thị"], [/\bcho\b(?! (be|con)\b)/, "Chợ"],
+  [/aeon/, "AEON"], [/lotte/, "Lotte Mart"], [/circle ?k/, "Circle K"], [/guardian/, "Guardian"], [/sieu thi/, "Siêu thị"],
+  // Folded "chợ" = "cho" (for): only a market when it follows "ở/tại/ngoài".
+  [/\b(?:o|tai|ngoai) cho\b(?! (be|con|em|chong|vo|nha|minh|ba|me|ong)\b)/, "Chợ"],
 ];
 const PACK_WORDS: Record<string, string> = { bich: "bịch", goi: "gói", hop: "hộp", lon: "lon", thung: "thùng", chai: "chai", hu: "hũ", tui: "túi", cuon: "cuộn", loc: "lốc", can: "can", tuyp: "tuýp", vi: "vỉ", lo: "lọ", set: "set", combo: "combo" };
 const PIECE_WORDS: Record<string, string> = { mieng: "miếng", to: "tờ", cai: "cái", vien: "viên" };
@@ -35,8 +37,11 @@ const CATEGORY_WORDS: Array<[RegExp, ItemCategory]> = [
   [/nuoc giat|nuoc xa|nuoc rua bat|giay ve sinh|khan giay|nuoc lau|tui rac|kem danh rang|xa phong|nuoc rua tay/, "household"],
   [/\b(merries|huggies|bobby|pampers|moony|goon|molfix|genki|mamamy|yubest|unidry|rascal|babydry|caryn|kochi|takato|whito)\b/, "diapers"],
 ];
-const PAST = /\b(vua|moi|da|hom qua|hom nay|hom kia|sang nay|chieu nay|toi qua|luc nay|roi|xong)\b/;
-const NEED = /\?|\b(nen|can|muon|tim|goi y|so sanh|loai nao|mua gi|o dau|bao nhieu|mua lai|dat hang giup|re nhat|tot nhat)\b|\b(duoi|toi da|khong qua|tam|khoang|max|tren)\s*\d/;
+// Checked on the lower-cased original (with diacritics): folded "da" would also match "da" (skin), "can" would match the unit.
+const word = (list: string) => new RegExp(String.raw`(?<![\p{L}\d])(?:${list})(?![\p{L}\d])`, "u");
+const PAST = word("vừa|mới|đã|hôm qua|hôm nay|hôm kia|sáng nay|chiều nay|tối qua|trưa nay|lúc nãy|hồi nãy|rồi|xong");
+const NEED = word("nên|cần|muốn|tìm|gợi ý|so sánh|loại nào|mua gì|ở đâu|bao nhiêu|đặt hàng giúp|rẻ nhất|tốt nhất|định|tính|sắp|dự định|hay là|được không|có rẻ không|có nên|không nhỉ|giúp mình|giúp tôi|cho mình xem");
+const PRICE_LIMIT = /(?<![\p{L}\d])(?:dưới|tối đa|không quá|tầm|khoảng|max|trên|từ)\s*\d/u;
 const AMOUNT = /(?<![\p{L}\d.,])(\d+(?:[.,]\d+)?\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m)\d?|\d{1,3}(?:[.,]\d{3})+\s?(?:đ|vnđ|vnd|d)?|\d{5,}\s?(?:đ|vnđ|vnd|d)?)(?![\p{L}\d])/giu;
 
 /** Lower-cased, diacritics stripped, one output character per input character (so indexes map back). */
@@ -47,10 +52,11 @@ const cut = (text: string, spans: Span[]) => { let out = ""; let cursor = 0; for
 
 /** True when the sentence reports a purchase already made (not a request to find or compare something). */
 export function looksLikePurchaseLog(text: string): boolean {
-  const folded = fold(text);
-  if (!/\bmua\b/.test(folded) || NEED.test(folded)) return false;
+  const lower = text.toLocaleLowerCase("vi");
+  if (!/(?<![\p{L}\d])mua(?![\p{L}\d])/u.test(lower) || lower.includes("?") || NEED.test(lower) || PRICE_LIMIT.test(lower)) return false;
+  // "mua lại Merries" asks the agent to reorder; "vừa mua lại 2 bịch 600k" reports a purchase.
   if (!findAmount(text)) return false;
-  return PAST.test(folded) || MERCHANTS.some(([pattern]) => pattern.test(folded));
+  return PAST.test(lower);
 }
 
 function findAmount(text: string): { value: number; span: Span } | null {

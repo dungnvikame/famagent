@@ -35,14 +35,14 @@ export function MarkPurchased({ target, compact = false, source = "catalog", lab
 
   if (done) return <span className="purchased-done" role="status">✓ Đã ghi {vnd(done.amount)} vào Tiền · theo dõi {done.unitCount} {context?.items.find((item) => item.id === done.itemId)?.unit ?? "đơn vị"}</span>;
   const match = context?.items.find((item) => item.id === target.itemId) ?? context?.items.find((item) => target.productId && item.productId === target.productId);
-  const draft: PurchaseDraft = { itemId: match?.id, name: match?.name ?? target.productName, category: match?.category ?? "diapers", unit: match?.unit ?? "miếng", packs: 1, packSize: match?.packSize ?? target.piecesPerPack, brand: target.brand, amount: target.price, merchant: target.merchant ?? match?.merchant, purchasedOn: todayLocal(), missing: [] };
+  const draft: PurchaseDraft = { itemId: match?.id, name: match?.name ?? target.productName, category: match?.category ?? "diapers", unit: match?.unit ?? "miếng", packs: 1, packSize: target.productId && target.piecesPerPack ? target.piecesPerPack : match?.packSize ?? target.piecesPerPack, brand: target.brand, amount: target.price, merchant: target.merchant ?? match?.merchant, purchasedOn: todayLocal(), missing: [] };
   return <span className="mark-purchased">
     <button type="button" className={compact ? "ledger-link" : "app-btn ghost"} onClick={() => open ? setOpen(false) : void show()} aria-expanded={open}>{label}</button>
     {open && createPortal(<>
       <button type="button" className="purchase-backdrop" aria-label="Đóng" onClick={() => setOpen(false)} />
       <div className="purchase-form" role="dialog" aria-modal="true" aria-label={`Ghi lần mua ${target.productName}`}>
         {error ? <p className="form-error" role="alert">{error}</p> : !context ? <p className="app-sub" aria-busy="true">Đang tải…</p>
-          : <PurchaseDraftCard draft={draft} items={context.items} familyChildren={context.children} source={source} catalog={target.productId ? { productId: target.productId, variantId: target.variantId, offerId: target.offerId, brand: target.brand } : undefined} title={target.productName} onCancel={() => setOpen(false)} onSaved={(purchase) => { setDone(purchase); setOpen(false); onDone?.(purchase); }} />}
+          : <PurchaseDraftCard draft={draft} items={context.items} familyChildren={context.children} source={source} defaultChildId={target.childId} catalog={target.productId ? { productId: target.productId, variantId: target.variantId, offerId: target.offerId, brand: target.brand } : undefined} title={target.productName} onCancel={() => setOpen(false)} onSaved={(purchase) => { setDone(purchase); setOpen(false); onDone?.(purchase); }} />}
       </div></>, document.body)}
   </span>;
 }

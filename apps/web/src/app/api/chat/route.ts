@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   let stock: StockLine[] = [];
   if (account) {
     const shopping = await loadShoppingState(account.client, account.user.id);
-    if (shopping) stock = stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(profile)));
+    if (shopping) stock = stockLines(estimateItems(shopping.items, shopping.purchases, itemRateResolver(profile), new Date(), shopping.checks));
   } else if (Array.isArray(body.stock)) {
     stock = body.stock.filter((item): item is StockLine => typeof item === "object" && item !== null && typeof (item as StockLine).productName === "string" && typeof (item as StockLine).daysLeft === "number").slice(0, 20);
   }

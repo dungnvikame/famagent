@@ -130,8 +130,10 @@ export function estimateItems(items: ShoppingItem[], purchases: Purchase[], rate
       units = Math.max(0, units - dailyRate * Math.max(0, daysBetween(cursor, purchase.purchasedOn))) + purchase.unitCount;
       cursor = purchase.purchasedOn;
     }
-    const remaining = Math.max(0, Math.round(units - dailyRate * Math.max(0, daysBetween(cursor, today))));
-    const daysLeft = Math.floor(remaining / dailyRate);
+    // Days left come from the unrounded stock so slow items (1 can / 30 days) are not rounded to a whole can.
+    const left = Math.max(0, units - dailyRate * Math.max(0, daysBetween(cursor, today)));
+    const remaining = Math.round(left);
+    const daysLeft = Math.floor(left / dailyRate + 1e-9);
     return { item, known: true, remaining, dailyRate, rateSource, daysLeft, runsOutOn: addDays(today, daysLeft), lastPurchase: last, purchaseCount: own.length, lastPackPrice };
   });
   return out.sort((a, b) => (a.daysLeft ?? Infinity) - (b.daysLeft ?? Infinity) || a.item.name.localeCompare(b.item.name, "vi"));

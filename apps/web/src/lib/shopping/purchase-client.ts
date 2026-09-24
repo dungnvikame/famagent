@@ -23,7 +23,7 @@ export async function recordPurchase(purchase: Purchase, forChild: boolean, item
   if (item) saveLocalItem(item);
   let transactionId = linkTransactionId;
   if (!transactionId) { const transaction = transactionForPurchase(withItem, forChild, crypto.randomUUID()); await saveMoneyItem("transactions", transaction); transactionId = transaction.id; }
-  const stored = { ...withItem, transactionId, source: linkTransactionId ? "ledger" as const : withItem.source };
+  const stored = { ...withItem, transactionId, source: linkTransactionId ? "ledger" as const : withItem.source === "ledger" ? "quick" as const : withItem.source };
   writeLocalPurchases([...readLocalPurchases(), stored]);
   return stored;
 }

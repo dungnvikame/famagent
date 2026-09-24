@@ -9,12 +9,21 @@ const merries: ShoppingItem = { id: "i1", name: "Bỉm Merries L", category: "di
 test("nhận ra câu ghi lần mua, bỏ qua câu hỏi mua", () => {
   assert.equal(looksLikePurchaseLog("vừa mua 2 bịch Merries L 64 miếng 690k ở Shopee"), true);
   assert.equal(looksLikePurchaseLog("hôm qua mua khăn ướt Bobby 135k"), true);
-  assert.equal(looksLikePurchaseLog("mua sữa Meiji 1tr1 ở Con Cưng"), true);
+  // Without a past-tense word the chat treats it as a request; the Shopping quick-entry bar still logs it.
+  assert.equal(looksLikePurchaseLog("mua sữa Meiji 1tr1 ở Con Cưng"), false);
   assert.equal(looksLikePurchaseLog("mua bỉm dưới 400k"), false);
   assert.equal(looksLikePurchaseLog("tôi cần mua bỉm ban đêm cho Gold, dưới 400k"), false);
   assert.equal(looksLikePurchaseLog("nên mua bỉm gì 300k?"), false);
   assert.equal(looksLikePurchaseLog("mua lại Merries L 345k"), false);
   assert.equal(looksLikePurchaseLog("vừa mua bỉm"), false);
+  // Review 260924-1452: questions and plans that mention a price and a shop are not purchase logs.
+  for (const question of ["mua bỉm 300k cho em bé 8kg", "mua bỉm Merries ở Shopee 300k được không", "mình định mua bỉm Merries 690k ở Shopee", "mua Huggies 350k ở Tiki có rẻ không", "mua kem dưỡng da 200k", "mua bỉm Merries 690k ở Shopee"]) assert.equal(looksLikePurchaseLog(question), false, question);
+  for (const log of ["đã mua 2 can nước giặt 380k", "vừa mua lại 2 bịch bỉm 600k", "mua 2 bịch bỉm 690k ở Shopee rồi", "sáng nay mua rau ở chợ 120k"]) assert.equal(looksLikePurchaseLog(log), true, log);
+});
+
+test("“cho” không bị hiểu là chợ; “ở chợ” thì đúng", () => {
+  assert.equal(parsePurchase("vừa mua bỉm cho em bé 300k", [], today).merchant, undefined);
+  assert.equal(parsePurchase("sáng nay mua rau ở chợ 120k", [], today).merchant, "Chợ");
 });
 
 test("tách số gói, số miếng, số tiền, nơi mua, ngày", () => {

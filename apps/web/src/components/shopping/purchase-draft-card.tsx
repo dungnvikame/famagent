@@ -16,8 +16,10 @@ export interface CatalogLink { productId: string; variantId?: string; offerId?: 
  * The one confirmation card for every purchase capture (chat, quick entry, photo, "Đã mua", plan, ledger link):
  * prefilled from the draft, the family fixes what is wrong, then one tap writes purchase + ledger expense + item.
  */
-export function PurchaseDraftCard({ draft, items, familyChildren, source, catalog, linkTransactionId, title = "Ghi lần mua", onSaved, onCancel }: {
+export function PurchaseDraftCard({ draft, items, familyChildren, source, catalog, linkTransactionId, defaultChildId, title = "Ghi lần mua", onSaved, onCancel }: {
   draft: PurchaseDraft; items: ShoppingItem[]; familyChildren: ChildProfile[]; source: PurchaseSource; catalog?: CatalogLink; linkTransactionId?: string; title?: string;
+  /** Child the purchase is for when the caller knows (a recommendation for bé Gold). */
+  defaultChildId?: string;
   onSaved: (purchase: Purchase, item: ShoppingItem) => void; onCancel?: () => void;
 }) {
   const active = items.filter((item) => item.status !== "outgrown");
@@ -32,7 +34,7 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
   const [date, setDate] = useState(draft.purchasedOn);
   const [forChild, setForChild] = useState(CHILD_CATEGORIES.has(draft.category));
   const existing = active.find((item) => item.id === itemId);
-  const [childId, setChildId] = useState(existing?.childId ?? familyChildren[0]?.id ?? "");
+  const [childId, setChildId] = useState(defaultChildId ?? existing?.childId ?? familyChildren[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
