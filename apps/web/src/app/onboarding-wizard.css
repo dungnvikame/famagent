@@ -52,3 +52,26 @@
 .ob-app.ob-loading::before{content:"";width:44px;height:44px;border-radius:50%;background:var(--orb);box-shadow:0 0 0 4px #ffffffb3;animation:ob-pulse 1.4s ease-in-out infinite}
 @keyframes ob-pulse{0%,100%{transform:scale(.9);opacity:.75}50%{transform:scale(1);opacity:1}}
 @media(prefers-reduced-motion:reduce){.ob-app.ob-loading::before{animation:none}}
+
+/* Assessment (end of onboarding) */
+.ob-assess{max-width:720px;display:grid;gap:14px}
+.ob-assess .ob-review-head{align-items:center;margin:0}
+.ob-assess .ob-orb{width:40px;height:40px;flex:none}
+.ob-assess-kicker{margin:0 0 2px;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--primary)}
+.ob-assess h2{margin:0;font-size:20px;line-height:1.3}
+.ob-assess-note{margin:0;font-size:15px;line-height:1.65;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.ob-assess-typing{color:var(--muted);font-size:13px}
+.ob-assess-block{background:#ffffffb8;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.ob-assess-block h3{display:flex;gap:8px;align-items:center;margin:0 0 6px;font-size:15px;font-weight:800}
+.ob-assess-block h3 svg{color:var(--primary);flex:none}
+.ob-assess-why{margin:0 0 8px;color:var(--muted);font-size:13.5px;line-height:1.6}
+.ob-assess-block ul{margin:0;padding-left:18px;display:grid;gap:6px;font-size:14px;line-height:1.55}
+.ob-assess-steps{margin:0;padding-left:20px;display:grid;gap:8px;font-size:14px}
+.ob-assess-steps b{display:block}.ob-assess-steps small{color:var(--muted);font-size:12.5px}
+.ob-assess-answers summary{cursor:pointer;font-weight:700;font-size:13.5px;color:var(--primary);padding:4px 0}
+.ob-assess-answers .ob-review-list{margin-top:10px!important}
+/* "Khác — tự nhập" */
+.ob-other{display:grid;gap:8px;margin-top:10px}
+.ob-other input{width:100%;border:1.5px solid var(--primary-2);border-radius:var(--r);padding:13px 15px;font:inherit;font-size:15px;background:#fff}
+.ob-other input:focus{outline:0;box-shadow:0 0 0 4px #ece8ff}
+.ob-option.other b{color:var(--primary-ink)}

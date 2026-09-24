@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
 import { getProfile, trackEvent } from "@/lib/experience/storage";
@@ -9,6 +9,7 @@ import type { ChildProfile } from "@/lib/experience/types";
 import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyBundle } from "@/lib/money/types";
+import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { LedgerTable } from "./ledger-table";
 import { MonthView } from "./month-view";
 import { RecurringGoals } from "./recurring-goals";
@@ -31,13 +32,18 @@ export function MoneyPage() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải sổ thu chi."); }
   }, [month]);
   useEffect(() => { void reload(month); }, [month, reload]);
-  const [spendHint, setSpendHint] = useState<number | undefined>();
-  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((profile) => { setChildren(profile?.children ?? []); setSpendHint(profile?.household?.monthlySpend); }).catch(() => {}); }, []);
-  // Onboarding asked for a rough monthly spend: use it as the plan once, until the family sets its own.
+  const [suggested, setSuggested] = useState<Assessment["plan"] | null>(null);
+  useEffect(() => { (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then((profile) => { setChildren(profile?.children ?? []); if (profile?.household) setSuggested(buildAssessment(profile).plan); }).catch(() => {}); }, []);
+  // The onboarding assessment suggested a monthly plan and an emergency fund: apply each once, until the family sets its own.
+  const seeded = useRef(false);
   useEffect(() => {
-    if (!bundle || bundle.settings.monthlyPlan || !spendHint) return;
-    void saveMoneySettings({ ...bundle.settings, monthlyPlan: spendHint }).then(() => reload()).catch(() => {});
-  }, [bundle, spendHint, reload]);
+    if (!bundle || !suggested || seeded.current) return;
+    seeded.current = true;
+    const tasks: Array<Promise<unknown>> = [];
+    if (!bundle.settings.monthlyPlan && suggested.monthlyPlan) tasks.push(saveMoneySettings({ ...bundle.settings, monthlyPlan: suggested.monthlyPlan }));
+    if (!bundle.goals.length && suggested.emergencyTarget) tasks.push(saveMoneyItem("goals", { id: crypto.randomUUID(), name: "Quỹ dự phòng", targetAmount: suggested.emergencyTarget, savedAmount: 0, monthlyPlan: suggested.monthlySaving }));
+    if (tasks.length) void Promise.all(tasks).then(() => reload()).catch(() => {});
+  }, [bundle, suggested, reload]);
 
   const summary = bundle ? summarizeMonth(bundle) : null;
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };

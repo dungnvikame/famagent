@@ -1,6 +1,6 @@
 // Multiple-choice onboarding (tap, don't type): each question reads its current answer from the profile and
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
-import { HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, SAVING_GOALS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
+import { CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
 export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tiền";
 export interface Choice { value: string; label: string; hint?: string }
@@ -12,6 +12,8 @@ export interface Question {
   help?: string;
   mode: "single" | "multi" | "text";
   choices: Choice[];
+  /** Shows a "Khác — tự nhập" option; the typed text is stored in household.notes[id] and passed as `other:<text>`. */
+  other?: { placeholder: string };
   /** Weight questions also accept an exact number. */
   exact?: { min: number; max: number; step: number; unit: string };
   current: (profile: FamilyProfile) => string[];
@@ -58,32 +60,53 @@ export function weightChoiceFor(kg: number | undefined): string | undefined {
 const band = (list: Array<[number, string]>) => list.map(([amount, label]) => ({ value: String(amount), label, amount }));
 export const SPEND_CHOICES = band([[8_000_000, "Dưới 10 triệu"], [15_000_000, "10–20 triệu"], [25_000_000, "20–30 triệu"], [40_000_000, "30–50 triệu"], [60_000_000, "Trên 50 triệu"]]);
 export const INCOME_CHOICES = band([[12_000_000, "Dưới 15 triệu"], [22_000_000, "15–30 triệu"], [40_000_000, "30–50 triệu"], [75_000_000, "50–100 triệu"], [120_000_000, "Trên 100 triệu"]]);
+export const DEBT_CHOICES = band([[0, "Không có khoản nào"], [3_000_000, "Dưới 5 triệu"], [10_000_000, "5–15 triệu"], [20_000_000, "Trên 15 triệu"]]);
 const SETUP_ADULTS: Record<NonNullable<HouseholdContext["setup"]>, number> = { couple: 2, single_parent: 1, multigen: 4, expecting: 2, no_kids: 2 };
 const household = (p: FamilyProfile, patch: Partial<HouseholdContext>): FamilyProfile => ({ ...p, household: { ...p.household, ...patch } });
 const pick = <T extends string>(list: readonly T[], values: string[]) => values.filter((value): value is T => (list as readonly string[]).includes(value));
-const nearest = (choices: Array<{ value: string; amount: number }>, amount?: number) => amount ? [choices.reduce((best, choice) => Math.abs(choice.amount - amount) < Math.abs(best.amount - amount) ? choice : best).value] : [];
+const nearest = (choices: Array<{ value: string; amount: number }>, amount?: number) => amount === undefined ? [] : [choices.reduce((best, choice) => Math.abs(choice.amount - amount) < Math.abs(best.amount - amount) ? choice : best).value];
 const HAS_KIDS = (p: FamilyProfile) => p.household?.setup !== "expecting" && p.household?.setup !== "no_kids";
+export const OTHER_PREFIX = "other:";
+
+/** Adds the free-text "Khác" answer to a question: stored in household.notes[id], read back as `other:<text>`. */
+function withOther(question: Question): Question {
+  if (!question.other) return question;
+  return {
+    ...question,
+    current: (p) => { const note = p.household?.notes?.[question.id]; return [...question.current(p), ...(note ? [OTHER_PREFIX + note] : [])]; },
+    apply: (p, values) => {
+      const typed = values.find((value) => value.startsWith(OTHER_PREFIX))?.slice(OTHER_PREFIX.length).trim().slice(0, 120);
+      const known = values.filter((value) => !value.startsWith(OTHER_PREFIX));
+      const applied = known.length || question.mode === "multi" ? question.apply(p, known) : p;
+      const notes = { ...applied.household?.notes };
+      if (typed) notes[question.id] = typed; else delete notes[question.id];
+      return household(applied, { notes: Object.keys(notes).length ? notes : undefined });
+    },
+  };
+}
 
 /**
- * Onboarding v4 — general family information only (no products): what the family wants help with, who lives in
- * the house, each child (name, age, weight when under 6, health notes), housing, income, spend, saving goals.
- * Everything is skippable; families without children skip the child block.
+ * Onboarding v5 — family insight that drives the first assessment (no products): what the family wants help with,
+ * household, each child, what worries them about raising the kids, housing, income/spend/debt/buffer, how they track
+ * money today, what hurts, and what they save for. Every question is skippable; many accept a typed "Khác" answer.
  */
 export function buildQuestions(profile: FamilyProfile, newId: () => string = () => crypto.randomUUID(), now = Date.now()): Question[] {
+  const kids = HAS_KIDS(profile);
+  const expecting = profile.household?.setup === "expecting";
   const questions: Question[] = [
     {
-      id: "focus", group: "Mục tiêu", title: "Bạn muốn FamAgent đỡ việc gì cho nhà mình?", help: "Chọn một hoặc vài việc — mình sẽ ưu tiên những việc này trên Trang chủ.", mode: "multi",
+      id: "focus", group: "Mục tiêu", title: "Bạn muốn FamAgent đỡ việc gì cho nhà mình?", help: "Chọn một hoặc vài việc — mình sẽ đề xuất kế hoạch xoay quanh những việc này.", mode: "multi", other: { placeholder: "Ví dụ: lên kế hoạch cho con đi học" },
       choices: [
         { value: "money", label: "Quản lý thu chi hằng tháng", hint: "biết tiền đi đâu, còn tiêu được bao nhiêu" },
         { value: "shopping", label: "Mua sắm cho gia đình hợp lý hơn", hint: "chọn đúng, không mua thừa" },
         { value: "replenish", label: "Nhắc những thứ dễ quên", hint: "đồ dùng sắp hết, hóa đơn đến hạn" },
-        { value: "care", label: "Theo dõi sức khỏe, thói quen của các con", hint: "dị ứng, cân nặng, điều cần tránh" },
+        { value: "care", label: "Chăm sóc và theo dõi các con", hint: "sức khỏe, cân nặng, điều cần tránh" },
       ],
       current: (p) => p.household?.focus ? [...p.household.focus] : [],
       apply: (p, values) => household(p, { focus: pick(HOUSEHOLD_FOCUS, values) }),
     },
     {
-      id: "setup", group: "Gia đình", title: "Nhà mình hiện thế nào?", help: "Để mình hiểu quy mô gia đình khi tính chi tiêu và nhắc việc.", mode: "single",
+      id: "setup", group: "Gia đình", title: "Nhà mình hiện thế nào?", help: "Để mình hiểu quy mô gia đình khi tính chi tiêu và kế hoạch.", mode: "single",
       choices: [
         { value: "couple", label: "Vợ chồng và các con" },
         { value: "multigen", label: "Sống cùng ông bà", hint: "3 thế hệ" },
@@ -100,7 +123,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       },
     },
   ];
-  if (HAS_KIDS(profile)) questions.push({
+  if (kids) questions.push({
     id: "kids", group: "Gia đình", title: "Nhà mình có mấy con?", help: "Mình sẽ hỏi vài điều cơ bản về từng con.", mode: "single",
     choices: [{ value: "1", label: "1 con" }, { value: "2", label: "2 con" }, { value: "3", label: "3 con trở lên" }],
     current: (p) => p.children.length ? [String(Math.min(p.children.length, 3))] : [],
@@ -111,7 +134,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       return { ...p, children };
     },
   });
-  const count = HAS_KIDS(profile) ? Math.min(profile.children.length, 3) : 0;
+  const count = kids ? Math.min(profile.children.length, 3) : 0;
   for (let index = 0; index < count; index++) {
     const child = profile.children[index];
     const who = childTitle(child, index, count);
@@ -136,7 +159,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
         apply: (p, [value]) => withChild(p, index, (c) => ({ ...c, ageMonths: AGE_CHOICES.find((choice) => choice.value === value)?.months, birthDate: undefined })),
       },
     );
-    // Weight matters for small children (growth, sizes); skip it once they are 6+.
+    // Weight matters for small children (growth); skip it once they are 6+.
     if (months === undefined || months < 72) questions.push({
       id: `child-weight:${suffix}`, group: "Các con", title: `${Who} nặng khoảng bao nhiêu?`, help: "Chọn khoảng gần nhất, hoặc nhập số chính xác. Mình sẽ nhắc cập nhật khi con lớn.", mode: "single", choices: WEIGHT_CHOICES,
       exact: { min: 2, max: 30, step: 0.1, unit: "kg" },
@@ -148,33 +171,68 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       },
     });
     questions.push({
-      id: `child-care:${suffix}`, group: "Các con", title: `${Who} có điều gì cần lưu ý về sức khỏe?`, help: "Chọn tất cả điều đúng — mình sẽ nhớ và tránh những thứ không hợp với con.", mode: "multi",
+      id: `child-care:${suffix}`, group: "Các con", title: `${Who} có điều gì cần lưu ý về sức khỏe?`, help: "Chọn tất cả điều đúng — mình sẽ nhớ và tránh những thứ không hợp với con.", mode: "multi", other: { placeholder: "Ví dụ: dị ứng đạm sữa bò, hay viêm họng" },
       choices: [{ value: "sensitive_skin", label: "Da nhạy cảm" }, { value: "rash_prone", label: "Hay bị hăm, mẩn ngứa" }, { value: "fragrance_free", label: "Dị ứng mùi hương, hóa chất" }, { value: "none", label: "Không có gì đặc biệt" }],
       current: (p) => { const list = p.children[index]?.sensitivities; return list === undefined ? [] : list.length ? [...list] : ["none"]; },
       apply: (p, values) => withChild(p, index, (c) => ({ ...c, sensitivities: values.filter((value): value is Sensitivity => value !== "none") })),
     });
   }
+  if (kids || expecting) questions.push({
+    id: "care-worry", group: "Các con", title: expecting ? "Chuẩn bị đón em bé, bạn đang bận tâm điều gì?" : "Chăm con lúc này, bạn bận tâm điều gì nhất?", help: "Chọn tất cả điều đúng — mình sẽ đưa vào kế hoạch chăm sóc.", mode: "multi", other: { placeholder: "Ví dụ: con biếng ăn, chưa chọn được trường" },
+    choices: expecting
+      ? [{ value: "birth_prep", label: "Chi phí sinh và 6 tháng đầu" }, { value: "health", label: "Sức khỏe mẹ và bé, lịch khám" }, { value: "caregiver", label: "Sắp xếp người chăm khi đi làm lại" }]
+      : [{ value: "nutrition", label: "Ăn uống, dinh dưỡng" }, { value: "sleep", label: "Giấc ngủ" }, { value: "health", label: "Sức khỏe, tiêm chủng" }, { value: "development", label: "Học hành, phát triển" }, { value: "cost", label: "Chi phí nuôi con ngày càng tăng" }],
+    current: (p) => p.household?.careWorries ? [...p.household.careWorries] : [],
+    apply: (p, values) => household(p, { careWorries: pick(CARE_WORRIES, values) }),
+  });
   questions.push(
     {
-      id: "housing", group: "Nhà ở", title: "Nhà mình đang ở thế nào?", help: "Nếu thuê nhà, mình sẽ gợi ý đặt tiền nhà thành khoản cố định hằng tháng.", mode: "single",
+      id: "housing", group: "Nhà ở", title: "Nhà mình đang ở thế nào?", help: "Nếu thuê nhà, tiền nhà sẽ là khoản cố định trong kế hoạch.", mode: "single",
       choices: [{ value: "own", label: "Nhà của mình" }, { value: "rent", label: "Thuê nhà" }, { value: "with_parents", label: "Ở cùng bố mẹ" }],
       current: (p) => p.household?.housing ? [p.household.housing] : [],
       apply: (p, [value]) => household(p, { housing: pick(HOUSING_TYPES, [value])[0] }),
     },
     {
-      id: "income", group: "Tiền", title: "Thu nhập cả nhà mỗi tháng khoảng bao nhiêu?", help: "Ước chừng là được, có thể bỏ qua. Chỉ dùng để tính tỷ lệ tiết kiệm cho bạn — không chia sẻ với ai.", mode: "single",
+      id: "income", group: "Tiền", title: "Thu nhập cả nhà mỗi tháng khoảng bao nhiêu?", help: "Ước chừng là được, có thể bỏ qua. Chỉ dùng để tính kế hoạch cho bạn — không chia sẻ với ai.", mode: "single",
       choices: INCOME_CHOICES,
       current: (p) => nearest(INCOME_CHOICES, p.household?.monthlyIncome),
       apply: (p, [value]) => household(p, { monthlyIncome: INCOME_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "spend", group: "Tiền", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, chi cho các con. Mình dùng làm kế hoạch chi tháng để báo sớm khi tiêu quá tay; sửa lại lúc nào cũng được.", mode: "single",
+      id: "spend", group: "Tiền", title: "Mỗi tháng nhà mình tiêu khoảng bao nhiêu?", help: "Tính cả ăn uống, hóa đơn, chi cho các con — chưa tính trả nợ.", mode: "single",
       choices: SPEND_CHOICES,
       current: (p) => nearest(SPEND_CHOICES, p.household?.monthlySpend),
       apply: (p, [value]) => household(p, { monthlySpend: SPEND_CHOICES.find((choice) => choice.value === value)?.amount }),
     },
     {
-      id: "goals", group: "Tiền", title: "Nhà mình đang để dành cho điều gì?", help: "Chọn tất cả điều đúng — mình sẽ giúp theo dõi tiến độ.", mode: "multi",
+      id: "debt", group: "Tiền", title: "Mỗi tháng nhà mình trả nợ, trả góp khoảng bao nhiêu?", help: "Vay mua nhà, xe, trả góp điện thoại, thẻ tín dụng…", mode: "single",
+      choices: DEBT_CHOICES,
+      current: (p) => nearest(DEBT_CHOICES, p.household?.monthlyDebt),
+      apply: (p, [value]) => household(p, { monthlyDebt: DEBT_CHOICES.find((choice) => choice.value === value)?.amount }),
+    },
+    {
+      id: "emergency", group: "Tiền", title: "Nếu tạm mất thu nhập, tiền để dành đủ cho nhà mình sống bao lâu?", mode: "single",
+      choices: [{ value: "none", label: "Chưa có khoản để dành" }, { value: "lt3", label: "Dưới 3 tháng" }, { value: "3to6", label: "3–6 tháng" }, { value: "gt6", label: "Trên 6 tháng" }],
+      current: (p) => p.household?.emergency ? [p.household.emergency] : [],
+      apply: (p, [value]) => household(p, { emergency: pick(EMERGENCY_LEVELS, [value])[0] }),
+    },
+    {
+      id: "tracking", group: "Tiền", title: "Hiện nhà mình theo dõi chi tiêu thế nào?", mode: "single", other: { placeholder: "Ví dụ: vợ giữ sổ, chồng không theo dõi" },
+      choices: [{ value: "none", label: "Chưa ghi chép gì" }, { value: "memory", label: "Nhớ trong đầu, áng chừng" }, { value: "spreadsheet", label: "Ghi Excel hoặc sổ tay" }, { value: "app", label: "Dùng một app quản lý chi tiêu" }],
+      current: (p) => p.household?.tracking ? [p.household.tracking] : [],
+      apply: (p, [value]) => household(p, { tracking: pick(TRACKING_METHODS, [value])[0] }),
+    },
+    {
+      id: "money-pain", group: "Tiền", title: "Chuyện tiền nong, điều gì khiến bạn đau đầu nhất?", help: "Chọn tất cả điều đúng — đây là điều mình sẽ giúp trước.", mode: "multi", other: { placeholder: "Ví dụ: chi cho hai bên nội ngoại nhiều" },
+      choices: [
+        { value: "short_month_end", label: "Cuối tháng hay bị hụt tiền" }, { value: "unknown_spending", label: "Không biết tiền đi đâu hết" }, { value: "cant_save", label: "Mãi chưa để dành được" },
+        { value: "debt", label: "Trả nợ, trả góp nặng quá" }, { value: "couple_disagree", label: "Vợ chồng chưa thống nhất chuyện chi tiêu" }, { value: "none", label: "Không có gì, chỉ muốn gọn gàng hơn" },
+      ],
+      current: (p) => { const list = p.household?.moneyPains; return list === undefined ? [] : list.length ? [...list] : ["none"]; },
+      apply: (p, values) => household(p, { moneyPains: pick(MONEY_PAINS, values) }),
+    },
+    {
+      id: "goals", group: "Tiền", title: "Nhà mình đang để dành cho điều gì?", help: "Chọn tất cả điều đúng — mình sẽ giúp theo dõi tiến độ.", mode: "multi", other: { placeholder: "Ví dụ: cưới hỏi, mở cửa hàng" },
       choices: [
         { value: "emergency", label: "Quỹ dự phòng" }, { value: "education", label: "Học hành của các con" }, { value: "home", label: "Mua hoặc sửa nhà" },
         { value: "car", label: "Mua xe" }, { value: "travel", label: "Du lịch" }, { value: "retirement", label: "Về hưu, chăm sóc bố mẹ" },
@@ -183,7 +241,7 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
       apply: (p, values) => household(p, { savingGoals: pick(SAVING_GOALS, values) }),
     },
   );
-  return questions;
+  return questions.map(withOther);
 }
 
 /** Records answered/skipped ids (profile.onboarding v2) so analytics and resume see the same state. */

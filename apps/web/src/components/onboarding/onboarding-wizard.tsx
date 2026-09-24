@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { buildQuestions, markQuestion, type Question } from "@/lib/onboarding/questions";
+import { buildQuestions, markQuestion, OTHER_PREFIX, type Question } from "@/lib/onboarding/questions";
 import { cloudEnabled, loadCloudProfile, saveCloudProfile } from "@/lib/experience/cloud";
 import { stampChanges } from "@/lib/experience/profile-meta";
 import { getProfile, saveProfile, trackEvent } from "@/lib/experience/storage";
@@ -28,6 +28,9 @@ export function OnboardingWizard() {
   const [index, setIndex] = useState(0);
   const [picked, setPicked] = useState<string[]>([]);
   const [text, setText] = useState("");
+  // "Khác — tự nhập": free-text answer next to the choices.
+  const [otherOn, setOtherOn] = useState(false);
+  const [otherText, setOtherText] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
@@ -77,7 +80,9 @@ export function OnboardingWizard() {
     if (!profile || !question) return;
     const current = question.current(profile);
     advancing.current = false;
-    setPicked(current); setText(question.mode === "text" ? current[0] ?? "" : ""); setError("");
+    const typed = current.find((value) => value.startsWith(OTHER_PREFIX))?.slice(OTHER_PREFIX.length) ?? "";
+    setPicked(current.filter((value) => !value.startsWith(OTHER_PREFIX))); setOtherOn(Boolean(typed)); setOtherText(typed);
+    setText(question.mode === "text" ? current[0] ?? "" : ""); setError("");
     // Keyboard/screen-reader users land on the new question.
     titleRef.current?.focus({ preventScroll: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- run per question, not per profile edit
@@ -106,14 +111,20 @@ export function OnboardingWizard() {
     if (!question || busy) return;
     if (question.mode === "multi") {
       // "none" is exclusive with the real options.
+      if (value === "none") setOtherOn(false);
       setPicked((current) => value === "none" ? ["none"] : current.includes(value) ? current.filter((item) => item !== value) : [...current.filter((item) => item !== "none"), value]);
       return;
     }
     if (advancing.current) return;
     advancing.current = true;
+    setOtherOn(false);
     setPicked([value]);
     window.setTimeout(() => answer([value]), window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ADVANCE_MS);
   }
+
+  /** Values to submit for the current choice question, with the typed "Khác" answer when present. */
+  const withTyped = () => [...picked, ...(otherOn && otherText.trim() ? [OTHER_PREFIX + otherText.trim()] : [])];
+  const canContinue = picked.length > 0 || (otherOn && otherText.trim().length > 0);
 
   function edit(next: FamilyProfile) { persist(next); if (cloudEnabled && session && !remoteFailed) void saveCloudProfile(next).catch(() => setError("Chưa lưu được thay đổi lên máy chủ.")); }
 
@@ -148,7 +159,7 @@ export function OnboardingWizard() {
         <span className="ob-who"><span className="ob-orb" aria-hidden="true"/><span><b>FamAgent</b><small>{updating ? "Cập nhật hồ sơ" : "Làm quen với gia đình bạn"}</small></span></span>
         <span className="ob-progress" role="progressbar" aria-label="Tiến độ" aria-valuemin={0} aria-valuemax={total} aria-valuenow={Math.min(index, total)} aria-valuetext={reviewing ? "Đã xong" : `Câu ${index + 1} trên ${total}`}>
           {GROUPS.map((group, position) => <i key={group} className={position < groupIndex ? "on" : position === groupIndex ? "now" : ""}/>)}
-          <em>{reviewing ? "Hoàn tất" : <>Câu {index + 1}/{total} · <b>{question!.group}</b></>}</em>
+          <em>{reviewing ? "Nhận định & kế hoạch" : <>Câu {index + 1}/{total} · <b>{question!.group}</b></>}</em>
         </span>
       </header>
       <div className="ob-stage">
@@ -179,7 +190,15 @@ export function OnboardingWizard() {
                         <span className="ob-option-mark" aria-hidden="true">{on && <IconCheck size={14} />}</span>
                       </button>;
                     })}
+                    {question!.other && <button type="button" className={`ob-option other${otherOn ? " on" : ""}`} role={question!.mode === "multi" ? "checkbox" : "radio"} aria-checked={otherOn} disabled={busy} onClick={() => { const next = !otherOn; setOtherOn(next); if (next && question!.mode === "single") setPicked([]); if (next && question!.mode === "multi") setPicked((current) => current.filter((item) => item !== "none")); }}>
+                      <span className="ob-option-text"><b>Khác — tự nhập</b><small>trả lời theo cách của bạn</small></span>
+                      <span className="ob-option-mark" aria-hidden="true">{otherOn && <IconCheck size={14} />}</span>
+                    </button>}
                   </div>}
+              {question!.other && otherOn && <form className="ob-other" onSubmit={(event) => { event.preventDefault(); if (canContinue) answer(withTyped()); }}>
+                <label htmlFor="ob-other-input" className="ob-sr">Câu trả lời của bạn</label>
+                <input id="ob-other-input" autoFocus value={otherText} maxLength={120} autoComplete="off" placeholder={question!.other.placeholder} onChange={(event) => setOtherText(event.target.value)} />
+              </form>}
               {question!.exact && <details className="ob-exact"><summary>Biết số cân chính xác? Nhập ở đây</summary>
                 <form onSubmit={(event) => { event.preventDefault(); const value = new FormData(event.currentTarget).get("exact"); if (value) answer([String(value)]); }}>
                   <label htmlFor="ob-exact-input" className="ob-sr">Cân nặng chính xác (kg)</label>
@@ -192,7 +211,7 @@ export function OnboardingWizard() {
                 <button type="button" className="ob-link-btn" disabled={index === 0} onClick={() => setIndex((value) => Math.max(0, value - 1))}>← Quay lại</button>
                 <span>
                   {question!.mode !== "text" && <button type="button" className="ob-link-btn" onClick={skip}>Bỏ qua</button>}
-                  {question!.mode === "multi" && <button type="button" className="ob-btn primary" disabled={!picked.length} onClick={() => answer(picked)}>Tiếp tục</button>}
+                  {(question!.mode === "multi" || (question!.other && otherOn)) && <button type="button" className="ob-btn primary" disabled={!canContinue} onClick={() => answer(withTyped())}>Tiếp tục</button>}
                 </span>
               </div>
             </section>}

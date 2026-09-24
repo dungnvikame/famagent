@@ -54,6 +54,10 @@ export interface OnboardingState {
 export const HOUSEHOLD_SETUPS = ["couple", "single_parent", "multigen", "expecting", "no_kids"] as const;
 export const HOUSING_TYPES = ["own", "rent", "with_parents"] as const;
 export const SAVING_GOALS = ["emergency", "education", "home", "car", "travel", "retirement"] as const;
+export const CARE_WORRIES = ["nutrition", "sleep", "health", "development", "cost", "birth_prep", "caregiver"] as const;
+export const MONEY_PAINS = ["short_month_end", "unknown_spending", "cant_save", "debt", "couple_disagree"] as const;
+export const TRACKING_METHODS = ["none", "spreadsheet", "app", "memory"] as const;
+export const EMERGENCY_LEVELS = ["none", "lt3", "3to6", "gt6"] as const;
 export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
@@ -72,6 +76,15 @@ export interface HouseholdContext {
   monthlyIncome?: number;
   /** What the family is saving for. */
   savingGoals?: Array<(typeof SAVING_GOALS)[number]>;
+  /** Onboarding insight questions that drive the first assessment. */
+  careWorries?: Array<(typeof CARE_WORRIES)[number]>;
+  moneyPains?: Array<(typeof MONEY_PAINS)[number]>;
+  tracking?: (typeof TRACKING_METHODS)[number];
+  /** Monthly loan / instalment payments (VND); 0 = none. */
+  monthlyDebt?: number;
+  emergency?: (typeof EMERGENCY_LEVELS)[number];
+  /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */
+  notes?: Record<string, string>;
 }
 
 export interface FamilyProfile {

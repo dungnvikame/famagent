@@ -15,15 +15,16 @@ const answer = (profile: FamilyProfile, id: string, values: string[]) => {
   return next;
 };
 
-test("bộ câu hỏi v4: chỉ thông tin chung về gia đình, không nhắc sản phẩm", () => {
+test("bộ câu hỏi v5: insight gia đình để đưa ra nhận định, không nhắc sản phẩm", () => {
   const first = buildQuestions(blank(), newId);
   assert.equal(first[0].id, "focus");
-  assert.deepEqual(first.map((q) => q.id), ["focus", "setup", "kids", "housing", "income", "spend", "goals"]);
+  assert.deepEqual(first.map((q) => q.id), ["focus", "setup", "kids", "care-worry", "housing", "income", "spend", "debt", "emergency", "tracking", "money-pain", "goals"]);
+  assert.deepEqual(first.filter((q) => q.other).map((q) => q.id), ["focus", "care-worry", "tracking", "money-pain", "goals"]);
   const one = answer(blank(), "kids", ["1"]);
-  assert.equal(buildQuestions(one, newId).length, 11, "+4 câu cho mỗi con: tên, tuổi, cân nặng (dưới 6 tuổi), sức khỏe");
+  assert.equal(buildQuestions(one, newId).length, 16, "+4 câu cho mỗi con: tên, tuổi, cân nặng (dưới 6 tuổi), sức khỏe");
   const three = answer(one, "kids", ["3"]);
   assert.equal(three.children.length, 3);
-  assert.equal(buildQuestions(three, newId).length, 19);
+  assert.equal(buildQuestions(three, newId).length, 24);
   assert.equal(three.children[0].id, one.children[0].id, "giữ con đã có khi tăng số con");
   assert.equal(answer(three, "kids", ["1"]).children.length, 1);
   const text = JSON.stringify(buildQuestions(one, newId).map((q) => [q.title, q.help, q.choices]));
