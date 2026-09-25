@@ -98,10 +98,20 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
 /** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */
 export function dueRecurring(recurring: MoneyRecurring[], month: string, now: Date): MoneyRecurring[] {
   const current = monthKey(now) === month;
-  return recurring.filter((item) => item.active && item.lastPostedMonth !== month && (!current || item.dayOfMonth <= now.getDate()) && month <= monthKey(now));
+  // Only forward: a month after the last posted one (never back-fill older months, never twice when switching
+  // months); an item never posted starts with the current month.
+  return recurring.filter((item) => item.active && month <= monthKey(now) && (item.lastPostedMonth ? month > item.lastPostedMonth : current) && (!current || item.dayOfMonth <= now.getDate()));
 }
 
 /** Transaction created when a recurring item posts. */
+/**
+ * A monthly recurring item made from an entry the family just typed ("Hằng tháng"): the entry itself is this
+ * month's posting, so the item counts that month as posted and repeats from the next one.
+ */
+export function recurringFor(entry: Pick<MoneyTransaction, "content" | "kind" | "category" | "amount" | "occurredOn">, dayOfMonth: number, id: string): MoneyRecurring {
+  return { id, name: entry.content, kind: entry.kind, category: entry.category, amount: Math.abs(entry.amount), dayOfMonth, active: true, lastPostedMonth: entry.occurredOn.slice(0, 7) };
+}
+
 export function postingFor(item: MoneyRecurring, month: string, id: string): MoneyTransaction {
   const day = Math.min(item.dayOfMonth, daysInMonth(month));
   return { id, occurredOn: `${month}-${String(day).padStart(2, "0")}`, content: item.name, category: item.category, kind: item.kind, amount: item.amount, forChild: false, source: "recurring", recurringId: item.id };

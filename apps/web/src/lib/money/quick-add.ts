@@ -21,6 +21,10 @@ export interface QuickDraft {
   unsure: boolean;
   /** Placed by the model (second pass), shown so the family double-checks. */
   aiPicked?: boolean;
+  /** Also make it a monthly recurring item (on this line's day). */
+  repeat: boolean;
+  /** Looks like a monthly item (rent, school fee, salary…): suggested, never ticked for the family. */
+  repeatHint: boolean;
   /** Category worth creating for this line (e.g. "Đi lại") when the family has none that fits. */
   suggestNew?: string;
   /** Why the date may be off ("ngày theo dòng trên", "không ghi ngày"). */
@@ -76,6 +80,7 @@ const INCOME_RULES: Rule[] = [
   { test: /\bluong\b/, category: "Lương" },
   { test: /\b(thuong|bonus|luong thang 13)\b/, category: "Thưởng" },
   { test: /\b(co tuc|lai tiet kiem|lai ngan hang|ban co phieu|loi nhuan|ban vang)\b/, category: "Đầu tư" },
+  { test: /(?<!\p{L})(lời|lãi|tiền lãi|lãi suất)(?!\p{L})/u, raw: true, category: "Đầu tư" },
   { test: /\b(freelance|du an|lam them|job ngoai|ban hang|hoa hong)\b/, category: "Dự án ngoài" },
   { test: /\b(bo me cho|ong ba cho|duoc cho|me cho|bo cho|ho tro|mung tuoi|li xi)\b/, category: "Gia đình hỗ trợ" },
   { test: /\b(tra no|tra lai tien)\b/, category: "Tiền trả nợ nhận về" },
@@ -98,7 +103,8 @@ function loanOf(raw: string): { kind: "income" | "expense"; category: string } |
   if (word("cho").test(text) && borrowWord.test(text) && /cho(?:\s+\p{L}+){0,3}\s+(vay|mượn)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền cho vay" };
   if (borrowWord.test(text)) return { kind: "expense", category: "Tiền cho vay" }; // "<ai đó> vay/mượn" — the family lent it
   if (/^(trả nợ|trả tiền vay|trả lại tiền|trả tiền)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền trả nợ" };
-  if (/(?<!^)(?<!\p{L})trả (nợ|lại|tiền)(?!\p{L})/u.test(text) && !/^trả/u.test(text)) return { kind: "income", category: "Tiền trả nợ nhận về" };
+  // "<ai đó> trả nợ / trả lại / trả" (someone paid us back): "trả" after a name, never "trả góp" or a line starting with "trả".
+  if (!/^trả/u.test(text) && (/(?<!\p{L})trả (nợ|lại|tiền)(?!\p{L})/u.test(text) || /(?<!\p{L})trả\s*$/u.test(text))) return { kind: "income", category: "Tiền trả nợ nhận về" };
   return null;
 }
 // Words too generic to match a family's own category by ("Tiền đi lại" should match on "đi lại", not "tiền").
@@ -109,7 +115,8 @@ const DEFAULT_NAMES = new Set(DEFAULT_CATEGORIES.map((item) => item.name));
 const DATE = /(?:^|\s)(?:ng[aà]y\s*)?(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?(?=\s|$|[,:;])/i;
 const LEAD_DATE = /^(?:ng[aà]y\s*)?(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?(?=\s|$|[,:;])/i;
 // An amount token: digits with separators, an optional unit, optionally "2tr5"; a leading sign means out/in.
-const AMOUNT = /(?:^|\s)([-+−]?\d[\d.,]*\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m|đ|d|vnd)?\d?)(?=\s|$|[.,;!)])/gi;
+// A space is allowed only before a unit ("350 k"), so "tháng 9 1,2tr" reads 1,2tr — not "9 1".
+const AMOUNT = /(?:^|\s)([-+−]?\d[\d.,]*(?:\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m|đ|d|vnd)\d?)?)(?=\s|$|[.,;!)])/gi;
 
 function isoFrom(day: number, month: number, year: number | undefined, today: string): string | null {
   const [ty, tm] = today.split("-").map(Number);
@@ -168,26 +175,51 @@ function duplicateOf(draft: Pick<QuickDraft, "kind" | "amount" | "content" | "ca
   return hit ? `“${hit.content}” ${shortVnd(hit.amount)} ngày ${dayLabel(hit.occurredOn)}` : undefined;
 }
 
-function draftFor(content: string, amount: number, direction: "in" | "out" | undefined, occurredOn: string, dateNote: string | undefined, context: QuickContext): QuickDraft {
+// Profit / interest words, on the marked text ("lãi" ≠ "lại", "lời" ≠ "lỗi").
+const PROFIT_WORDS = /(?<!\p{L})(lời|lãi|tiền lãi|lãi suất)(?!\p{L})/u;
+// Lines that usually repeat every month: suggested (never ticked) for "Hằng tháng" in the review.
+const MONTHLY_HINT = /\b(tien nha|thue nha|tien phong|hoc phi|mam non|nha tre|internet|wifi|cuoc|goi cuoc|luong|tra gop|bao hiem|phi quan ly|gui xe thang|tien dien|tien nuoc|dien thang|nuoc thang|netflix|spotify|youtube premium|icloud|google one|giup viec)\b/;
+
+/**
+ * A line with no amount that tells the kind for the lines after it: a sentence ("Nhập tất cả khoản dưới đây thành
+ * khoản Thu") or a header ("Thu:", "Khoản chi"). Returns the kind, or null when the line is not such an instruction.
+ */
+export function kindDirective(line: string): MoneyKind | null {
+  const norm = normalize(line);
+  const target = (word: string) => /^thu/.test(word) ? "income" : /^chi/.test(word) ? "expense" : "saving";
+  const header = norm.match(/^(?:cac |nhung )?(?:khoan )?(thu nhap|thu|chi tieu|chi|tiet kiem)(?: nhap| vao| thang \d{1,2})?$/);
+  if (header) return target(header[1]);
+  if (!/\b(nhap|ghi|them|chuyen|xep|danh dau|tat ca|toan bo|het|deu|nhung khoan|cac khoan|duoi day)\b/.test(norm)) return null;
+  const sentence = norm.match(/\b(?:khoan|thanh|la|vao|loai|muc|kieu)\s+(thu nhap|thu|chi tieu|chi|tiet kiem)\b/);
+  return sentence ? target(sentence[1]) : null;
+}
+
+function draftFor(content: string, amount: number, direction: "in" | "out" | undefined, occurredOn: string, dateNote: string | undefined, context: QuickContext, forced?: MoneyKind): QuickDraft {
   const norm = normalize(content);
-  const saving = SAVING_WORDS.test(norm);
+  // "lãi tiết kiệm" is interest earned (income), not a transfer into savings.
+  const saving = SAVING_WORDS.test(norm) && !PROFIT_WORDS.test(content.toLowerCase().normalize("NFC"));
   const loan = saving ? null : loanOf(content);
-  const kind: MoneyKind = saving ? "saving" : direction === "in" ? "income" : direction === "out" ? "expense" : loan ? loan.kind : INCOME_WORDS.test(norm) ? "income" : "expense";
+  const income = INCOME_WORDS.test(norm) || PROFIT_WORDS.test(content.toLowerCase().normalize("NFC"));
+  const kind: MoneyKind = forced ?? (saving ? "saving" : direction === "in" ? "income" : direction === "out" ? "expense" : loan ? loan.kind : income ? "income" : "expense");
   const withdraw = saving && /\b(rut|tat toan)\b/.test(norm);
   const signed = kind === "saving" && withdraw ? -Math.abs(amount) : Math.abs(amount);
   const label = tidy(content) || (kind === "income" ? "Khoản thu" : kind === "saving" ? "Tiết kiệm" : "Khoản chi");
   const picked = categorize(label, kind, signed, context);
   const dupeOf = duplicateOf({ kind, amount: signed, content: label, category: picked.category }, context.existing);
-  return { key: crypto.randomUUID(), occurredOn, content: label, kind, amount: signed, autoCategory: picked.category, dateNote, dupeOf, selected: !dupeOf, ...picked };
+  return { key: crypto.randomUUID(), occurredOn, content: label, kind, amount: signed, autoCategory: picked.category, dateNote, dupeOf, selected: !dupeOf, repeat: false, repeatHint: kind !== "saving" && MONTHLY_HINT.test(norm), ...picked };
 }
 
 /** Splits pasted text into drafts. A date at the start of a line applies to the rest of it and to following lines. */
 export function parseQuickList(text: string, context: QuickContext): QuickDraft[] {
   const drafts: QuickDraft[] = [];
   let carried: string | undefined;
-  for (const rawLine of text.split(/\r?\n/).slice(0, 200)) {
+  let forced: MoneyKind | undefined;
+  for (const rawLine of text.split(/\r?\n/).slice(0, 300)) {
     const line = rawLine.trim();
     if (!line) continue;
+    // "Nhập tất cả thành khoản Thu" / "Chi:" set the kind of the lines that follow (no amount on that line).
+    const directive = kindDirective(line);
+    if (directive && ![...line.replace(DATE, " ").matchAll(AMOUNT)].some((match) => Math.abs(parseVnd(match[1].replace(/\s+/g, "")) ?? 0) >= 1000)) { forced = directive; continue; }
     const lead = line.match(LEAD_DATE);
     let lineDate = lead ? isoFrom(Number(lead[1]), Number(lead[2]), lead[3] ? Number(lead[3]) : undefined, context.today) ?? undefined : undefined;
     const items = line.split(/[;]|,(?!\d)|\s[|•]\s/).map((item) => item.trim()).filter(Boolean);
@@ -204,7 +236,7 @@ export function parseQuickList(text: string, context: QuickContext): QuickDraft[
       const content = scan.replace(token, " ");
       const date = ownDate ?? lineDate ?? carried;
       const dateNote = ownDate || lineDate ? undefined : carried ? "ngày theo dòng trên" : "không ghi ngày, lấy hôm nay";
-      drafts.push(draftFor(content, Math.abs(amount), direction, date ?? context.today, dateNote, context));
+      drafts.push(draftFor(content, Math.abs(amount), direction, date ?? context.today, dateNote, context, forced));
       if (ownDate) lineDate = lineDate ?? ownDate;
     }
     if (lineDate) carried = lineDate;

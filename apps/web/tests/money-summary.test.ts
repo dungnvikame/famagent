@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dueRecurring, postingFor, shortVnd, summarizeMonth, upcomingRecurring } from "../src/lib/money/summary.ts";
+import { dueRecurring, postingFor, recurringFor, shortVnd, summarizeMonth, upcomingRecurring } from "../src/lib/money/summary.ts";
 import { DEFAULT_CATEGORIES, type MoneyBundle, type MoneyTransaction } from "../src/lib/money/types.ts";
 import { validGoal, validRecurring, validSettings, validTransaction } from "../src/lib/money/validate.ts";
 
@@ -68,3 +68,21 @@ test("validate: chi âm bị từ chối, tiết kiệm âm hợp lệ (rút), s
 });
 
 test("shortVnd", () => { assert.equal(shortVnd(18_200_000), "18,2M"); assert.equal(shortVnd(450_000), "450K"); assert.equal(shortVnd(-698_000), "−698K"); assert.equal(shortVnd(17), "17đ"); });
+
+test("recurring items post forward only: no back-fill, no double post when switching months", () => {
+  const now = new Date(2026, 8, 24, 10);
+  const item = { id: "r1", name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 6_000_000, dayOfMonth: 1, active: true };
+  assert.equal(dueRecurring([item], "2026-09", now).length, 1);
+  assert.equal(dueRecurring([item], "2026-07", now).length, 0);
+  const posted = { ...item, lastPostedMonth: "2026-09" };
+  assert.equal(dueRecurring([posted], "2026-08", now).length, 0);
+  assert.equal(dueRecurring([posted], "2026-09", now).length, 0);
+  assert.equal(dueRecurring([{ ...item, lastPostedMonth: "2026-08" }], "2026-09", now).length, 1);
+});
+
+test("an entry marked Hằng tháng becomes a recurring item that starts next month", () => {
+  const rec = recurringFor({ content: "Học phí mầm non", kind: "expense", category: "Học tập", amount: 3_500_000, occurredOn: "2026-09-05" }, 5, "r9");
+  assert.deepEqual(rec, { id: "r9", name: "Học phí mầm non", kind: "expense", category: "Học tập", amount: 3_500_000, dayOfMonth: 5, active: true, lastPostedMonth: "2026-09" });
+  assert.equal(dueRecurring([rec], "2026-09", new Date(2026, 8, 24)).length, 0);
+  assert.equal(dueRecurring([rec], "2026-10", new Date(2026, 9, 6)).length, 1);
+});

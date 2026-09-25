@@ -124,7 +124,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
       {refining > 0 && <p className="app-sub quick-note" role="status">Trợ lý AI đang xếp nhóm cho {refining} dòng chưa chắc…</p>}
       {from === "photo" && <p className="app-sub quick-note">Ảnh chỉ được gửi tới nhà cung cấp AI để đọc, không lưu lại. Đối chiếu số tiền với ảnh trước khi ghi.</p>}
       <div className="quick-scroll"><table className="quick-review">
-        <thead><tr><th><span className="sr-only">Chọn</span></th><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num">Số tiền</th></tr></thead>
+        <thead><tr><th><span className="sr-only">Chọn</span></th><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num">Số tiền</th><th>Hằng tháng</th></tr></thead>
         <tbody>{drafts.map((draft) => <tr key={draft.key} className={`${draft.unsure ? "unsure" : ""}${draft.dupeOf && !draft.selected ? " dupe" : ""}`}>
           <td><input type="checkbox" aria-label={`Ghi “${draft.content}”`} checked={draft.selected} onChange={(event) => update(draft.key, { selected: event.target.checked })} /></td>
           <td><input type="date" aria-label="Ngày" value={draft.occurredOn} onChange={(event) => update(draft.key, { occurredOn: event.target.value, dateNote: undefined })} />{draft.dateNote && <span className="flag">{draft.dateNote}</span>}</td>
@@ -135,9 +135,11 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
             {draft.unsure && <span className="flag">Chưa chắc{draft.suggestNew ? <> · <button type="button" className="ledger-link" onClick={() => void createCategory(draft)}>tạo nhóm “{draft.suggestNew}”?</button></> : ""}</span>}</td>
           <td className="num"><input aria-label="Số tiền" inputMode="decimal" defaultValue={draft.amount.toLocaleString("vi-VN")} onBlur={(event) => { const value = parseVnd(event.target.value); if (value !== null && (value > 0 || draft.kind === "saving")) update(draft.key, { amount: value }); else event.target.value = draft.amount.toLocaleString("vi-VN"); }} />
             {draft.dupeOf && <span className="flag">Có thể trùng {draft.dupeOf}</span>}</td>
+          <td className="repeat-cell"><label className="repeat"><input type="checkbox" aria-label={`Lặp lại “${draft.content}” hằng tháng`} disabled={draft.amount < 0} checked={draft.repeat} onChange={(event) => update(draft.key, { repeat: event.target.checked })} /> <span>ngày {Number(draft.occurredOn.slice(8, 10))}</span></label>
+            {draft.repeatHint && !draft.repeat && <span className="flag ai">có vẻ là khoản hằng tháng</span>}</td>
         </tr>)}</tbody>
       </table></div>
-      <div className="review-foot"><span><b>{chosen.length} khoản đã chọn</b>{totals && <small> · {totals}</small>}</span>
+      <div className="review-foot"><span><b>{chosen.length} khoản đã chọn</b>{totals && <small> · {totals}</small>}{chosen.some((draft) => draft.repeat) && <small> · {chosen.filter((draft) => draft.repeat).length} khoản sẽ lặp lại hằng tháng</small>}</span>
         <span className="row-actions"><button type="button" className="app-btn ghost" disabled={busy} onClick={() => setDrafts(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy || !chosen.length} onClick={() => void save()}>{busy ? "Đang ghi…" : `Ghi ${chosen.length} khoản vào sổ`}</button></span></div>
       <p className="app-sub quick-note">Đổi nhóm của một dòng thì lần sau Trợ lý tự xếp dòng giống vậy vào nhóm bạn chọn.</p>
     </>}

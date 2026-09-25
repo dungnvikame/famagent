@@ -101,3 +101,20 @@ test("the owner's real lines: loans, baby items, drinks, SIM, cosmetics, a child
   assert.equal(drafts.filter((d) => d.unsure).length, 0);
   assert.equal(drafts[0].forChild, true);
 });
+
+test("an instruction line or a header sets the kind of the lines after it", () => {
+  const drafts = parseQuickList("Nhập cho tôi tất cả khoản dưới đây thành khoản Thu\n01/01/2026\tLời\t2,866\n01/01/2026\tBác Thủy trả\t200,000\n02/01/2026\tLời\t2,162\nChi:\nđổ xăng 80k", context());
+  assert.deepEqual(drafts.map((d) => [d.content, d.kind, d.category, d.amount]), [
+    ["Lời", "income", "Đầu tư", 2_866],
+    ["Bác Thủy trả", "income", "Tiền trả nợ nhận về", 200_000],
+    ["Lời", "income", "Đầu tư", 2_162],
+    ["Đổ xăng", "expense", "Tiêu dùng", 80_000],
+  ]);
+  const plain = parseQuickList("Bác Thủy trả 200k\nlãi tiết kiệm tháng 9 1,2tr\nmua lại ốp lưng 90k", context());
+  assert.deepEqual(plain.map((d) => d.kind), ["income", "income", "expense"]);
+});
+
+test("monthly-looking lines are suggested, never ticked", () => {
+  const drafts = parseQuickList("tiền nhà 6tr\nlương t9 25tr\nphở 50k", context());
+  assert.deepEqual(drafts.map((d) => [d.repeatHint, d.repeat]), [[true, false], [true, false], [false, false]]);
+});

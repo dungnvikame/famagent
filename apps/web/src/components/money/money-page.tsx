@@ -11,8 +11,8 @@ import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/
 import { todayLocal } from "@/lib/money/parse";
 import { syncDebtRecurring } from "@/lib/money/position";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
-import { monthKey, shortVnd, summarizeMonth } from "@/lib/money/summary";
-import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRecurring } from "@/lib/money/types";
+import { monthKey, recurringFor, shortVnd, summarizeMonth } from "@/lib/money/summary";
+import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { FrameworkPanel } from "./framework-panel";
 import { GoalsPlan } from "./goals-plan";
@@ -66,11 +66,31 @@ export function MoneyPage() {
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };
   const quickContext = bundle ? { categories: bundle.settings.categories, memory: bundle.settings.categoryMemory, existing: bundle.transactions, children: children.map((child) => child.name).filter((name): name is string => Boolean(name?.trim())) } : null;
 
-  /** Quick add: writes the selected lines, then remembers any category the family corrected. */
+  const debtRecurringIds = new Set((bundle?.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
+
+  /**
+   * One ledger entry + its "Hằng tháng" choice: on = create (or re-enable and update) the linked monthly item,
+   * off = pause it so later months stop posting (entries already written stay). Debt-owned items are left alone.
+   */
+  async function saveEntry(item: MoneyTransaction, repeat: { on: boolean; day: number }) {
+    if (!bundle) return;
+    const linked = item.recurringId ? bundle.recurring.find((rec) => rec.id === item.recurringId) : undefined;
+    let recurringId = item.recurringId;
+    if (!(linked && debtRecurringIds.has(linked.id))) {
+      if (repeat.on && item.amount > 0) {
+        const next = linked ? { ...linked, active: true, name: item.content, kind: item.kind, category: item.category, amount: Math.abs(item.amount), dayOfMonth: repeat.day } : recurringFor(item, repeat.day, crypto.randomUUID());
+        await saveMoneyItem("recurring", next);
+        recurringId = next.id;
+      } else if (!repeat.on && linked?.active) await saveMoneyItem("recurring", { ...linked, active: false });
+    }
+    await saveMoneyItem("transactions", { ...item, recurringId });
+  }
+
+  /** Quick add: writes the selected lines (and their monthly items), then remembers any category the family corrected. */
   async function saveQuick(drafts: QuickDraft[]) {
     if (!bundle) return;
     for (const draft of drafts.filter((item) => item.selected)) {
-      await saveMoneyItem("transactions", { id: crypto.randomUUID(), occurredOn: draft.occurredOn, content: draft.content.trim(), category: draft.category, kind: draft.kind, amount: draft.amount, forChild: draft.forChild, source: "manual" });
+      await saveEntry({ id: crypto.randomUUID(), occurredOn: draft.occurredOn, content: draft.content.trim(), category: draft.category, kind: draft.kind, amount: draft.amount, forChild: draft.forChild, source: "manual" }, { on: draft.repeat, day: Number(draft.occurredOn.slice(8, 10)) || 1 });
     }
     const categoryMemory = rememberCorrections(bundle.settings.categoryMemory, drafts);
     if (categoryMemory) await saveMoneySettings({ ...bundle.settings, categoryMemory });
@@ -133,7 +153,7 @@ export function MoneyPage() {
       {tab === "ledger" && <>
         {!bundle.settings.position && <div className="banner"><span>Nhập tình hình hiện tại để FamAgent tính đúng số dư, nợ và khoản cố định.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Nhập ngay</button></div>}
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
-        <LedgerTable transactions={bundle.transactions} categories={bundle.settings.categories} familyChildren={children} month={month} onSave={(item) => act("money_transaction_saved")(() => saveMoneyItem("transactions", item))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
+        <LedgerTable transactions={bundle.transactions} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} categories={bundle.settings.categories} budgets={bundle.budgets} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} />}
       {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}

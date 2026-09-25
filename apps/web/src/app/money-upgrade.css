@@ -129,3 +129,15 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
   .quick-review td:first-child{grid-row:span 3}
   .quick-review td:nth-child(3),.quick-review td.num{grid-column:2/4}
 }
+
+/* "Hằng tháng" (25/09): monthly toggle on ledger entries and quick-add lines */
+.ledger-options{display:grid;gap:6px;justify-items:start}
+.ledger-options label{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;white-space:nowrap}
+.ledger-options input[type=checkbox],.repeat input{width:16px!important;height:16px;min-height:0!important;padding:0!important;accent-color:var(--primary)}
+.repeat{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:#4a4468;white-space:nowrap;cursor:pointer}
+.repeat-day{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.repeat-day input{width:56px!important;min-height:30px!important;padding:4px 6px!important}
+.repeat-locked{font-size:11.5px;color:var(--muted)}
+.rec-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#e6f4ee;color:#1f7a5a;margin-left:6px;vertical-align:middle}
+.ledger-notice{margin:8px 0 0;color:var(--ok);font-weight:600}
+.quick-review td.repeat-cell{white-space:nowrap}
