@@ -8,7 +8,7 @@ import { shrinkImage } from "@/lib/image/shrink";
 import { parseVnd, todayLocal } from "@/lib/money/parse";
 import { draftsFromImage, parseQuickList, type ImageLine, type QuickContext, type QuickDraft } from "@/lib/money/quick-add";
 import { shortVnd } from "@/lib/money/summary";
-import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind } from "@/lib/money/types";
+import { MONEY_KIND_LABELS, OTHER_CATEGORY, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind } from "@/lib/money/types";
 
 interface Props {
   context: Omit<QuickContext, "today">;
@@ -52,7 +52,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
       const response = await fetch("/api/money/classify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const data = await response.json().catch(() => ({})) as { items?: Array<{ i: number; kind: "expense" | "income"; category: string }>; error?: string };
       if (!response.ok || !data.items) throw new Error(data.error || "Trợ lý AI chưa xếp được, bạn chọn nhóm giúp nhé.");
-      const byLine = new Map(data.items.filter((item) => item.category !== "Khác").map((item) => [found[item.i]?.key, item]));
+      const byLine = new Map(data.items.filter((item) => item.category !== OTHER_CATEGORY).map((item) => [found[item.i]?.key, item]));
       setDrafts((current) => current?.map((draft) => { const answer = byLine.get(draft.key); return answer && draft.unsure ? { ...draft, kind: answer.kind, category: answer.category, unsure: false, suggestNew: undefined, aiPicked: true } : draft; }) ?? null);
       trackEvent("money_quick_ai_refined", { asked: unsure.length, placed: byLine.size });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Trợ lý AI chưa xếp được."); }
@@ -129,7 +129,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
           <td><input type="checkbox" aria-label={`Ghi “${draft.content}”`} checked={draft.selected} onChange={(event) => update(draft.key, { selected: event.target.checked })} /></td>
           <td><input type="date" aria-label="Ngày" value={draft.occurredOn} onChange={(event) => update(draft.key, { occurredOn: event.target.value, dateNote: undefined })} />{draft.dateNote && <span className="flag">{draft.dateNote}</span>}</td>
           <td><input aria-label="Nội dung" value={draft.content} maxLength={120} onChange={(event) => update(draft.key, { content: event.target.value })} />{draft.forChild && <span className="flag ok">Cho con</span>}</td>
-          <td><select aria-label="Loại" value={draft.kind} onChange={(event) => { const kind = event.target.value as MoneyKind; const first = options(kind)[0] ?? "Khác"; update(draft.key, { kind, category: first, amount: Math.abs(draft.amount), unsure: false, suggestNew: undefined }); }}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
+          <td><select aria-label="Loại" value={draft.kind} onChange={(event) => { const kind = event.target.value as MoneyKind; const first = options(kind)[0] ?? OTHER_CATEGORY; update(draft.key, { kind, category: first, amount: Math.abs(draft.amount), unsure: false, suggestNew: undefined }); }}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
           <td><select className="cat" aria-label="Nhóm" value={draft.category} onChange={(event) => update(draft.key, { category: event.target.value, unsure: false })}>{[...new Set([draft.category, ...options(draft.kind)])].map((name) => <option key={name}>{name}</option>)}</select>
             {draft.aiPicked && <span className="flag ai">Trợ lý AI xếp · kiểm tra lại</span>}
             {draft.unsure && <span className="flag">Chưa chắc{draft.suggestNew ? <> · <button type="button" className="ledger-link" onClick={() => void createCategory(draft)}>tạo nhóm “{draft.suggestNew}”?</button></> : ""}</span>}</td>

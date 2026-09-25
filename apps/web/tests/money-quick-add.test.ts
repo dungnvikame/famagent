@@ -15,7 +15,7 @@ test("the preview's pasted list: dates carry, kinds and categories, duplicates s
     ["2026-09-12", "Cà phê highlands", "expense", "Ăn uống", 45_000],
     ["2026-09-12", "Đổ xăng", "expense", "Tiêu dùng", 80_000],
     ["2026-09-13", "Bỉm bobby shopee", "expense", "Sữa & bỉm", 329_000],
-    ["2026-09-14", "Gửi tiết kiệm", "saving", "Tiết kiệm", 5_000_000],
+    ["2026-09-14", "Gửi tiết kiệm", "saving", "Tiết kiệm cho gia đình", 5_000_000],
     ["2026-09-15", "Lương tháng 9", "income", "Lương", 25_000_000],
     ["2026-09-15", "Điện tháng 8", "expense", "Tiền điện", 612_000],
   ]);
@@ -44,7 +44,7 @@ test("bank-style lines: signs, thousand separators, VND suffix, withdrawals", ()
   assert.deepEqual(drafts.map((d) => [d.kind, d.amount, d.category]), [
     ["expense", 500_000, "Gia đình"],
     ["income", 12_000_000, "Lương"],
-    ["saving", -3_000_000, "Rút tiết kiệm"],
+    ["saving", -3_000_000, "Rút tiền tiết kiệm"],
     ["expense", 1_500_000, "Ăn uống"],
   ]);
 });
@@ -67,7 +67,7 @@ test("lines without an amount are skipped; small numbers are not amounts; past-y
 
 test("photo lines use the model's direction and dates", () => {
   const drafts = draftsFromImage([{ date: "2026-09-20", content: "Highlands Coffee", amount: 59_000, direction: "out" }, { date: null, content: "Nhận tiền từ Nguyen Van A", amount: 2_000_000, direction: "in" }, { date: "2026-09-30", content: "sai ngày", amount: 10_000, direction: "out" }], context());
-  assert.deepEqual(drafts.map((d) => [d.occurredOn, d.kind, d.category]), [["2026-09-20", "expense", "Ăn uống"], ["2026-09-24", "income", "Khác"], ["2026-09-24", "expense", "Khác"]]);
+  assert.deepEqual(drafts.map((d) => [d.occurredOn, d.kind, d.category]), [["2026-09-20", "expense", "Ăn uống"], ["2026-09-24", "income", "Others"], ["2026-09-24", "expense", "Others"]]);
 });
 
 test("rememberCorrections keeps only changed, selected lines", () => {
@@ -95,7 +95,7 @@ test("the owner's real lines: loans, baby items, drinks, SIM, cosmetics, a child
     ["A Báu vay", "expense", "Tiền cho vay"],
     ["Trang trí sinh nhật Gold", "expense", "Con"],
     ["Vay ngân hàng", "income", "Vay ngân hàng"],
-    ["Anh Nam trả nợ", "income", "Tiền trả nợ nhận về"],
+    ["Anh Nam trả nợ", "income", "Tiền trả nợ"],
     ["Cho chị Hà mượn", "expense", "Tiền cho vay"],
   ]);
   assert.equal(drafts.filter((d) => d.unsure).length, 0);
@@ -106,7 +106,7 @@ test("an instruction line or a header sets the kind of the lines after it", () =
   const drafts = parseQuickList("Nhập cho tôi tất cả khoản dưới đây thành khoản Thu\n01/01/2026\tLời\t2,866\n01/01/2026\tBác Thủy trả\t200,000\n02/01/2026\tLời\t2,162\nChi:\nđổ xăng 80k", context());
   assert.deepEqual(drafts.map((d) => [d.content, d.kind, d.category, d.amount]), [
     ["Lời", "income", "Đầu tư", 2_866],
-    ["Bác Thủy trả", "income", "Tiền trả nợ nhận về", 200_000],
+    ["Bác Thủy trả", "income", "Tiền trả nợ", 200_000],
     ["Lời", "income", "Đầu tư", 2_162],
     ["Đổ xăng", "expense", "Tiêu dùng", 80_000],
   ]);
