@@ -17,7 +17,7 @@ interface Props {
   onBudget: (item: MoneyBudget) => Promise<void>;
   onDeleteBudget: (id: string) => Promise<void>;
   /** Open the Sổ tab filtered on one category. */
-  onOpenLedger: (category: string) => void;
+  onOpenLedger: (category?: string) => void;
   onTab: (tab: "situ" | "plan") => void;
 }
 
@@ -37,7 +37,9 @@ export function MonthView({ summary, bundle, openingCash, onBudget, onDeleteBudg
   const lastDay = current ? now.getDate() : days;
   const pulse = pulseOf(summary, now);
   const rows = categoryRows(bundle.transactions, bundle.budgets, bundle.history, month);
-  const insights = monthInsights(summary, rows, now);
+  // Spent beyond cash this month (taken from the savings fund): end-of-month shortfall minus the one it started with.
+  const lemAdded = Math.max(0, -summary.balances.cash) - Math.max(0, -openingCash);
+  const insights = monthInsights(summary, rows, now, lemAdded);
   const versus = versusLastMonth(bundle.history, month);
   const idle = bundle.settings.categories.filter((item) => item.kind === "expense" && !item.archived && !rows.some((row) => row.name === item.name)).map((item) => item.name);
   const scale = Math.max(1, ...rows.map((row) => Math.max(row.spent, row.budget ?? 0, row.average ?? 0))) * 1.05;
@@ -56,7 +58,7 @@ export function MonthView({ summary, bundle, openingCash, onBudget, onDeleteBudg
 
   const act = (insight: MonthInsight) => {
     if (!insight.action) return;
-    if (insight.action.kind === "ledger" && insight.action.category) onOpenLedger(insight.action.category);
+    if (insight.action.kind === "ledger") onOpenLedger(insight.action.category);
     else if (insight.action.kind === "situ") onTab("situ");
     else if (insight.action.kind === "budget" && insight.action.category) { setEditing(insight.action.category); setValue(""); }
   };

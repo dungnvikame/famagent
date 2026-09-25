@@ -52,3 +52,15 @@ test("versus last month, cumulative spend, daily cash, top expenses", () => {
   assert.equal(cash[1], 1_000_000); assert.equal(cash[5], 26_000_000); assert.equal(cash[24], 11_800_000);
   assert.deepEqual(topExpenses(september, "2026-09", 2).map((t) => t.amount), [6_000_000, 4_700_000]);
 });
+
+test("backfill: one transfer per month on the day, existing months skipped", async () => {
+  const { backfillPlan, parseMonthInput } = await import("../src/lib/money/backfill.ts");
+  const plan = backfillPlan(7_000_000, 5, "2025-05", "2026-09", [tx("2026-09-05", "saving", 7_000_000, "Tiết kiệm"), tx("2025-06-05", "saving", 3_000_000, "Tiết kiệm")]);
+  assert.equal(plan.length, 17);
+  assert.deepEqual(plan[0], { month: "2025-05", occurredOn: "2025-05-05", skip: false });
+  assert.equal(plan.filter((line) => line.skip).length, 1);
+  assert.equal(plan[16].skip, true);
+  assert.equal(backfillPlan(1, 31, "2026-02", "2026-02", [])[0].occurredOn, "2026-02-28");
+  assert.equal(parseMonthInput("5/2025"), "2025-05");
+  assert.equal(parseMonthInput("13/2025"), null);
+});

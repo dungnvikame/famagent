@@ -44,8 +44,10 @@ export function categoryRows(transactions: MoneyTransaction[], budgets: MoneyBud
 }
 
 /** At most three insights, most useful first: overspend, jumps vs usual, bills due soon, then what went well. */
-export function monthInsights(summary: MonthSummary, rows: CategoryRow[], now = new Date()): MonthInsight[] {
+export function monthInsights(summary: MonthSummary, rows: CategoryRow[], now = new Date(), lemAdded = 0): MonthInsight[] {
   const out: MonthInsight[] = [];
+  // Spending that ran past cash this month came out of the savings fund: first, it is the one to act on.
+  if (lemAdded > 0) out.push({ key: "lem", tone: "warn", text: `Tháng này tiêu lẹm tiết kiệm ${vnd(lemAdded)}`, action: { label: "Xem các khoản", kind: "ledger" } });
   for (const row of rows) if (row.budget && row.spent > row.budget) out.push({ key: `over:${row.name}`, tone: "warn", text: `${row.name} vượt ngân sách ${vnd(row.spent - row.budget)}`, action: { label: `Xem ${row.count} khoản`, kind: "ledger", category: row.name } });
   const jump = rows.filter((row) => row.average && row.change !== undefined && row.change >= 20 && row.spent - row.average >= 300_000 && !(row.budget && row.spent > row.budget)).sort((a, b) => (b.spent - b.average!) - (a.spent - a.average!))[0];
   if (jump) out.push({ key: `jump:${jump.name}`, tone: "warn", text: `${jump.name} cao hơn trung bình 3 tháng ${jump.change}%`, action: { label: `Xem ${jump.count} khoản`, kind: "ledger", category: jump.name } });

@@ -8,7 +8,7 @@ import { getProfile, saveProfile, trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile, FamilyProfile } from "@/lib/experience/types";
 import type { FrameworkId } from "@/lib/money/frameworks";
 import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
-import { categoryAverages, runningBalances } from "@/lib/money/history";
+import { categoryAverages, potsOf, runningPots } from "@/lib/money/history";
 import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
 import { syncDebtRecurring } from "@/lib/money/position";
@@ -23,6 +23,7 @@ import { LedgerTable } from "./ledger-table";
 import { MonthView } from "./month-view";
 import { PositionView } from "./position-view";
 import { QuickAddPanel } from "./quick-add-panel";
+import { SavingsBackfill } from "./savings-backfill";
 
 type Tab = "situ" | "ledger" | "month" | "plan";
 const TABS: Array<{ id: Tab; label: string }> = [{ id: "situ", label: "Tình hình" }, { id: "ledger", label: "Sổ" }, { id: "month", label: "Tháng" }, { id: "plan", label: "Mục tiêu" }];
@@ -86,13 +87,17 @@ export function MoneyPage() {
   // Entries in the filter's date range, their running cash, and what the filters leave.
   const source = outsideMonth ? range?.transactions ?? [] : bundle?.transactions ?? [];
   const opening = outsideMonth ? range?.openingCash ?? 0 : summary ? summary.balances.cash - summary.net : 0;
-  const balances = runningBalances(source, opening);
+  const openingSavings = outsideMonth ? range?.openingSavings ?? 0 : summary ? summary.balances.savings - summary.saving : 0;
+  const balances = runningPots(source, opening, openingSavings);
   const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
   const monthlyIds = new Set((bundle?.recurring ?? []).filter((item) => item.active).map((item) => item.id));
   const shown = applyFilter(source, filter, monthlyIds);
   // The running balance only reads right when no entry between two rows is hidden (a date range alone is fine).
   const showBalance = !filter.kinds.length && !filter.categories.length && !filter.text.trim() && !filter.forChild && !filter.monthly && filter.min === undefined && filter.max === undefined;
-  const firstNegative = showBalance ? [...shown].reverse().find((tx) => (balances.get(tx.id) ?? 0) < 0) : undefined;
+  const firstNegative = showBalance ? [...shown].reverse().find((tx) => (balances.get(tx.id)?.account ?? 0) < 0) : undefined;
+  // "Tiền đang có" at the end of the month viewed, and how much more was spent out of savings during that month.
+  const pots = summary ? potsOf(summary.balances.cash, summary.balances.savings) : undefined;
+  const lemAdded = summary && pots ? pots.lem - Math.max(0, -(summary.balances.cash - summary.net)) : 0;
   const filterInsight = (() => {
     // One comparison when a single expense category is viewed over the whole month.
     if (!bundle?.history || filter.categories.length !== 1 || outsideMonth) return undefined;
@@ -176,25 +181,31 @@ export function MoneyPage() {
 
     {error && <p className="form-error" role="alert">{error}{!cloudEnabled ? "" : " "}<Link href="/sign-in">{error.includes("đăng nhập") ? "Đăng nhập" : ""}</Link></p>}
     {!bundle || !summary || !quickContext ? <div className="app-card" aria-busy="true"><p className="app-sub">Đang tải sổ thu chi…</p></div> : <>
+      {tab !== "month" && pots && <div className="app-card pots-row">
+        <div className="pot main"><small>Hiện có</small><b className={pots.account < 0 ? "neg" : undefined}>{vnd(pots.account)}</b><em>số dư tài khoản</em></div>
+        <div className="pot"><small>Quỹ tiết kiệm</small><b>{vnd(pots.savings)}</b></div>
+        <div className={`pot${pots.lem > 0 ? " debt" : ""}`}><small>Tiêu lẹm (nợ quỹ tiết kiệm)</small><b>{vnd(pots.lem)}</b>{lemAdded !== 0 && <em>tháng này {lemAdded > 0 ? "+" : "−"}{vnd(Math.abs(lemAdded))}</em>}</div>
+      </div>}
       {tab !== "month" && <div className="app-card money-kpis">
         <div className="brief-kpi"><small>Thu</small><b>{summary.income ? vnd(summary.income) : "—"}</b></div>
         <div className="brief-kpi"><small>Đã chi</small><b>{summary.expense ? vnd(summary.expense) : "—"}</b></div>
-        <div className="brief-kpi"><small>Tiết kiệm</small><b>{summary.saving ? vnd(summary.saving) : "—"}</b></div>
+        <div className="brief-kpi"><small>Gửi tiết kiệm</small><b>{summary.saving ? vnd(summary.saving) : "—"}</b></div>
         <div className="brief-kpi"><small>{summary.plan ? "Còn lại trong kế hoạch" : "Còn lại (thu − chi − tiết kiệm)"}</small><b>{summary.plan ? vnd(summary.remainingOfPlan!) : summary.income || summary.expense ? vnd(summary.net) : "—"}</b></div>
         {summary.plan ? <div className="money-plan"><span className="bar"><span style={{ width: `${Math.min(100, Math.round(summary.expense / summary.plan * 100))}%` }} className={summary.expense > summary.plan ? "over" : undefined} /></span><small>{vnd(summary.expense)} / kế hoạch {vnd(summary.plan)}{summary.expectedExpense ? ` · dự kiến cuối tháng ${vnd(summary.expectedExpense)}` : ""}{summary.paceRatio && summary.paceRatio > 1.05 ? <span className="app-pill warn">Cao hơn kế hoạch</span> : summary.paceRatio ? <span className="app-pill ok">Đúng nhịp</span> : null}</small></div>
           : <div className="money-plan"><small>Chưa đặt kế hoạch chi tháng. <button type="button" className="ledger-link" onClick={() => setTab("plan")}>Đặt kế hoạch</button> để FamAgent so nhịp chi cho bạn.</small></div>}
       </div>}
       {profile && <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} onSaveCustom={saveCustom} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
+      {tab === "situ" && <SavingsBackfill recurring={bundle.recurring} onDone={() => reload()} />}
       {tab === "situ" && <PositionView key={`${bundle.settings.position?.asOf ?? "none"}:${bundle.settings.position?.accounts.length ?? 0}:${bundle.settings.position?.debts.length ?? 0}`} bundle={bundle} summary={summary} estimatedIncome={profile?.household?.monthlyIncome ?? 0} onSavePosition={savePosition} onRecurring={(item) => act("money_recurring_saved")(() => saveMoneyItem("recurring", item))} onDeleteRecurring={(id) => act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id))} />}
       {tab === "ledger" && <>
         {!bundle.settings.position && <div className="banner"><span>Nhập tình hình hiện tại để FamAgent tính đúng số dư, nợ và khoản cố định.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Nhập ngay</button></div>}
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
         <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} balanceHidden={!showBalance} />
-        {firstNegative && <div className="banner warn-banner"><span>Số dư âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
+        {firstNegative && <div className="banner warn-banner"><span>Số dư tài khoản âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
         <LedgerTable transactions={shown} balances={balances} showBalance={showBalance} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
-      {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.net} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: [category], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
+      {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.net} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}
       <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}. <Link className="brief-link" href="/agent">Hỏi FamAgent về tiền →</Link></p>
     </>}

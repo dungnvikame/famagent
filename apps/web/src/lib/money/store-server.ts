@@ -84,5 +84,5 @@ export async function loadRange(client: SupabaseClient, userId: string, from: st
   // Opening balances as of the position anchor (same rule as the month bundle), then everything before `from`.
   const anchored = withPosition({ month: from.slice(0, 7), settings: settingsFromRow(settings.data), transactions: [], totals: { income: 0, expense: 0, saving: 0 }, budgets: [], recurring: [], goals: [] }, all).settings;
   const before = sumUntil(all, from);
-  return { from, to, transactions: (transactions.data ?? []).map(transactionFromRow), openingCash: anchored.openingCash + before.income - before.expense - before.saving };
+  return { from, to, transactions: (transactions.data ?? []).map(transactionFromRow), openingCash: anchored.openingCash + before.income - before.expense - before.saving, openingSavings: anchored.openingSavings + before.saving };
 }

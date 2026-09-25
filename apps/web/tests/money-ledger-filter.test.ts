@@ -50,3 +50,15 @@ test("running balance, history and category averages", () => {
   assert.deepEqual(history.map((row) => [row.month, row.expense]), [["2026-07", 300_000], ["2026-08", 600_000], ["2026-09", 1_405_000]]);
   assert.deepEqual(categoryAverages(history, "2026-09"), { "Ăn uống": 450_000 });
 });
+
+test("pots: savings fund, spent beyond cash (tiêu lẹm) and account total after each entry", async () => {
+  const { runningPots, potsOf } = await import("../src/lib/money/history.ts");
+  const list = [tx("s5", "2026-09-22", "expense", 4_500_000), tx("s4", "2026-09-18", "expense", 9_200_000), tx("s3", "2026-09-15", "expense", 850_000), tx("s2", "2026-09-05", "saving", 7_000_000), tx("s1", "2026-09-05", "income", 25_000_000)];
+  const pots = runningPots(list, -12_738_470, 112_000_000);
+  assert.deepEqual(pots.get("s1"), { savings: 112_000_000, lem: 0, account: 124_261_530, cash: 12_261_530 });
+  assert.deepEqual(pots.get("s2"), { savings: 119_000_000, lem: 0, account: 124_261_530, cash: 5_261_530 });
+  assert.equal(pots.get("s4")!.lem, 4_788_470);
+  assert.equal(pots.get("s4")!.account, 114_211_530);
+  assert.deepEqual(pots.get("s5"), { savings: 119_000_000, lem: 9_288_470, account: 109_711_530, cash: -9_288_470 });
+  assert.deepEqual(potsOf(3_000_000, 10_000_000), { savings: 10_000_000, lem: 0, account: 13_000_000, cash: 3_000_000 });
+});

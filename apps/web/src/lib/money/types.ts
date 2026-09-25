@@ -87,7 +87,7 @@ export interface MoneyBundle {
 }
 
 /** Ledger entries for any date range (the Sổ filter), with the cash balance just before `from`. */
-export interface MoneyRange { from: string; to: string; transactions: MoneyTransaction[]; openingCash: number }
+export interface MoneyRange { from: string; to: string; transactions: MoneyTransaction[]; openingCash: number; openingSavings: number }
 
 /** Category set from the product owner's household sheet (plan §6.2); users can rename/archive/add. */
 export const DEFAULT_CATEGORIES: MoneyCategory[] = [

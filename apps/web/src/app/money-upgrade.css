@@ -297,3 +297,31 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 @media(max-width:860px){.month-grid,.chart-grid{grid-template-columns:1fr}.cat-row{grid-template-columns:92px minmax(0,1fr) 104px 72px}.cat-row .chg{display:none}.bud-edit{grid-column:1/-1}}
 
 .banner.warn-banner{background:var(--warn-bg);color:var(--warn)}
+
+/* Savings fund, spent beyond cash, account total (25/09) */
+.pots-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px}
+.pot{padding:12px 14px;border-radius:16px;background:#fff;border:1px solid var(--line)}
+.pot small{display:block;color:var(--muted);font-size:12.5px}
+.pot b{font-size:22px;letter-spacing:-.02em}
+.pot b.neg{color:var(--danger)}
+.pot em{display:block;font-style:normal;font-size:12px;color:var(--muted);margin-top:2px}
+.pot.main{background:linear-gradient(180deg,#f7f5ff,#fff);border-color:#dcd5ff}
+.pot.debt b{color:var(--danger)}
+.ledger td.pot-save{color:var(--ok)}
+.ledger td.pot-lem{color:var(--danger)}
+.ledger td.pot-acc{color:var(--ink);font-weight:700}
+.ledger td.pot-acc.negative{color:var(--danger)}
+@media(max-width:760px){.pots-row{grid-template-columns:1fr 1fr}.pot.main{grid-column:1/-1}}
+
+.backfill-cta{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;border-radius:16px;background:var(--glass-strong);border:1px solid var(--glass-border);font-size:13.5px}
+.backfill-cta .done{color:var(--ok)}
+.backfill{display:grid;gap:12px}
+.bf-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.bf-form label{display:grid;gap:4px;font-size:12px;color:var(--muted)}
+.bf-form input{border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:600 14px var(--font-sans),inherit;color:var(--ink);background:#fff;min-width:0}
+.bf-list{max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:14px}
+.bf-list div{display:flex;justify-content:space-between;padding:8px 12px;border-top:1px solid var(--line);font-size:13.5px}
+.bf-list div:first-child{border-top:0}
+.bf-list div.skip{color:var(--muted)}
+.bf-keep{display:flex;gap:8px;align-items:center;font-size:13.5px}
+@media(max-width:760px){.bf-form{grid-template-columns:1fr 1fr}}

@@ -47,7 +47,7 @@ export async function loadRange(from: string, to: string): Promise<MoneyRange> {
   const settings = withPosition({ month: from.slice(0, 7), settings: { ...empty().settings, ...data.settings }, transactions: [], totals: { income: 0, expense: 0, saving: 0 }, budgets: [], recurring: [], goals: [] }, data.transactions).settings;
   const before = sumUntil(data.transactions, from);
   const transactions = data.transactions.filter((item) => item.occurredOn >= from && item.occurredOn <= to).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
-  return { from, to, transactions, openingCash: settings.openingCash + before.income - before.expense - before.saving };
+  return { from, to, transactions, openingCash: settings.openingCash + before.income - before.expense - before.saving, openingSavings: settings.openingSavings + before.saving };
 }
 
 type Resource = "transactions" | "budgets" | "recurring" | "goals";
