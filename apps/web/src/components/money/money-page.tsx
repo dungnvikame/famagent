@@ -10,7 +10,7 @@ import type { FrameworkId } from "@/lib/money/frameworks";
 import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
 import { categoryAverages, runningBalances } from "@/lib/money/history";
 import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
-import { todayLocal } from "@/lib/money/parse";
+import { formatVnDate, todayLocal } from "@/lib/money/parse";
 import { syncDebtRecurring } from "@/lib/money/position";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
 import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
@@ -90,6 +90,9 @@ export function MoneyPage() {
   const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
   const monthlyIds = new Set((bundle?.recurring ?? []).filter((item) => item.active).map((item) => item.id));
   const shown = applyFilter(source, filter, monthlyIds);
+  // The running balance only reads right when no entry between two rows is hidden (a date range alone is fine).
+  const showBalance = !filter.kinds.length && !filter.categories.length && !filter.text.trim() && !filter.forChild && !filter.monthly && filter.min === undefined && filter.max === undefined;
+  const firstNegative = showBalance ? [...shown].reverse().find((tx) => (balances.get(tx.id) ?? 0) < 0) : undefined;
   const filterInsight = (() => {
     // One comparison when a single expense category is viewed over the whole month.
     if (!bundle?.history || filter.categories.length !== 1 || outsideMonth) return undefined;
@@ -187,8 +190,9 @@ export function MoneyPage() {
       {tab === "ledger" && <>
         {!bundle.settings.position && <div className="banner"><span>Nhập tình hình hiện tại để FamAgent tính đúng số dư, nợ và khoản cố định.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Nhập ngay</button></div>}
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
-        <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} />
-        <LedgerTable transactions={shown} balances={balances} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
+        <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} balanceHidden={!showBalance} />
+        {firstNegative && <div className="banner warn-banner"><span>Số dư âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
+        <LedgerTable transactions={shown} balances={balances} showBalance={showBalance} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.net} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: [category], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}

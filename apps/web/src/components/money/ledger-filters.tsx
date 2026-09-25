@@ -22,6 +22,8 @@ interface Props {
   loading?: boolean;
   /** One comparison sentence from the parent (e.g. vs. the 3-month average), shown in the summary strip. */
   insight?: string;
+  /** The Số dư column is hidden while these filters are on. */
+  balanceHidden?: boolean;
 }
 
 const short = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -97,7 +99,7 @@ function MoreFilters({ filter, onChange, close }: { filter: LedgerFilter; onChan
  * Sổ filter bar: a smart box that turns a sentence into filters, then Loại · Nhóm · Khoảng ngày · Lọc khác, and a
  * summary of what is shown. Filters only read the entries on this device; nothing is sent anywhere.
  */
-export function LedgerFilters({ filter, onChange, month, today, categories, inRange, shown, loading, insight }: Props) {
+export function LedgerFilters({ filter, onChange, month, today, categories, inRange, shown, loading, insight, balanceHidden }: Props) {
   const [open, setOpen] = useState<"cat" | "range" | "more" | null>(null);
   const [query, setQuery] = useState("");
   const range = monthRange(month);
@@ -149,7 +151,7 @@ export function LedgerFilters({ filter, onChange, month, today, categories, inRa
     </div>
     <div className="fsum" role="status">
       <span>{loading ? "Đang tải các khoản…" : <><b>{shown.length} khoản</b>{parts.length ? ` · ${parts.join(" · ")}` : ""}{filtering && shownExpense && rangeExpense && shownExpense !== rangeExpense ? ` · ${Math.round(shownExpense / rangeExpense * 100)}% tổng chi trong khoảng này` : ""}</>}</span>
-      <span className="hint">{insight}{insight && filtering ? " · " : ""}{filtering && <button type="button" className="ledger-link" onClick={() => onChange({ kinds: [], categories: [], ...range, text: "" })}>Xóa lọc</button>}</span>
+      <span className="hint">{balanceHidden ? "Cột Số dư ẩn khi đang lọc · " : ""}{insight}{insight && filtering ? " · " : ""}{filtering && <button type="button" className="ledger-link" onClick={() => onChange({ kinds: [], categories: [], ...range, text: "" })}>Xóa lọc</button>}</span>
     </div>
   </section>;
 }

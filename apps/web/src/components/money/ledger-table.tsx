@@ -15,6 +15,8 @@ interface Props {
   month: string;
   /** Cash (tiền tiêu) after each entry, computed on the whole range so filtering never changes it. */
   balances: Map<string, number>;
+  /** Hidden while filters hide some entries: the running balance would not add up with the rows shown. */
+  showBalance?: boolean;
   /** Shown when filters hide every entry. */
   emptyText?: string;
   recurring: MoneyRecurring[];
@@ -31,7 +33,7 @@ const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occu
 const dayOf = (iso: string) => String(Number(iso.slice(8, 10)) || 1);
 
 /** Ledger like the household Excel: one row per entry; the top row is the quick-add form, any row edits in place. */
-export function LedgerTable({ transactions, categories, familyChildren, month, balances, emptyText, recurring, debtRecurringIds, onSave, onDelete }: Props) {
+export function LedgerTable({ transactions, categories, familyChildren, month, balances, showBalance = true, emptyText, recurring, debtRecurringIds, onSave, onDelete }: Props) {
   const [draft, setDraft] = useState<Draft>(blank(month));
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -66,7 +68,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
     <td data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
     <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
-    <td data-label="Số tiền" colSpan={2}><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td data-label="Số tiền" colSpan={showBalance ? 2 : 1}><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td className="ledger-child"><div className="ledger-options">
       <label><input type="checkbox" checked={draft.forChild} onChange={(event) => setDraft({ ...draft, forChild: event.target.checked })} /> <span>Cho con</span></label>
       {existing?.recurringId && debtRecurringIds.has(existing.recurringId) ? <small className="repeat-locked">↻ Từ khoản nợ</small>
@@ -78,7 +80,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
 
   return <div className="ledger-wrap">
     <table className="ledger" aria-label="Sổ thu chi">
-      <thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num"><button type="button" className="th-sort" aria-pressed={byAmount} title={byAmount ? "Đang xếp theo số tiền · bấm để xếp theo ngày" : "Xếp theo số tiền, lớn nhất trước"} onClick={() => setByAmount(!byAmount)}>Số tiền {byAmount ? "▾" : "↕"}</button></th><th className="num">Số dư</th><th>Tùy chọn</th><th></th></tr></thead>
+      <thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num"><button type="button" className="th-sort" aria-pressed={byAmount} title={byAmount ? "Đang xếp theo số tiền · bấm để xếp theo ngày" : "Xếp theo số tiền, lớn nhất trước"} onClick={() => setByAmount(!byAmount)}>Số tiền {byAmount ? "▾" : "↕"}</button></th>{showBalance && <th className="num" title="Số dư tiền tiêu (tiền mặt + tài khoản) ngay sau khoản này">Số dư</th>}<th>Tùy chọn</th><th></th></tr></thead>
       <tbody>
         {!editing && <tr className="ledger-new">{fields()}</tr>}
         {rows.map((item) => editing === item.id ? <tr className="ledger-new" key={item.id}>{fields(item)}</tr> : <tr key={item.id} className={`ledger-row kind-${item.kind}`}>
@@ -87,11 +89,11 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
           <td data-label="Loại"><span className={`ledger-kind ${item.kind}`}>{MONEY_KIND_LABELS[item.kind]}</span></td>
           <td data-label="Nhóm">{item.category}</td>
           <td className="num" data-label="Số tiền">{item.kind === "expense" ? "−" : item.kind === "saving" && item.amount < 0 ? "+" : item.kind === "saving" ? "→" : "+"}{vnd(Math.abs(item.amount))}</td>
-          <td className={`num ledger-balance${(balanceAfter.get(item.id) ?? 0) < 0 ? " negative" : ""}`} data-label="Số dư">{vnd(balanceAfter.get(item.id) ?? 0)}</td>
+          {showBalance && <td className={`num ledger-balance${(balanceAfter.get(item.id) ?? 0) < 0 ? " negative" : ""}`} data-label="Số dư">{vnd(balanceAfter.get(item.id) ?? 0)}</td>}
           <td className="ledger-child" data-label="Cho con">{item.forChild ? "Cho con" : ""}</td>
           <td className="ledger-actions"><button type="button" className="ledger-link" onClick={() => { setEditing(item.id); setDraft(toDraft(item, recurringOf(item))); setError(""); setNotice(""); }}>Sửa</button><button type="button" className="ledger-link danger" onClick={() => { if (window.confirm(`Xóa “${item.content}”?`)) void onDelete(item.id); }}>Xóa</button></td>
         </tr>)}
-        {!transactions.length && <tr><td colSpan={8} className="ledger-empty">{emptyText ?? "Chưa có khoản nào trong tháng này. Gõ vào dòng trên rồi Enter — như Excel."}</td></tr>}
+        {!transactions.length && <tr><td colSpan={showBalance ? 8 : 7} className="ledger-empty">{emptyText ?? "Chưa có khoản nào trong tháng này. Gõ vào dòng trên rồi Enter — như Excel."}</td></tr>}
       </tbody>
     </table>
     {error && <p className="form-error" role="alert">{error}</p>}
