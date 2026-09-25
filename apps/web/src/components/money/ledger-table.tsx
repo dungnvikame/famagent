@@ -2,9 +2,10 @@
 
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
-import { parseVnd, todayLocal } from "@/lib/money/parse";
+import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
 import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyRecurring, type MoneyTransaction } from "@/lib/money/types";
 import type { ChildProfile } from "@/lib/experience/types";
+import { AmountInput } from "./amount-input";
 
 interface Props {
   transactions: MoneyTransaction[];
@@ -21,7 +22,7 @@ interface Props {
 
 type Draft = { occurredOn: string; content: string; category: string; kind: MoneyKind; amount: string; forChild: boolean; note: string; repeat: boolean; repeatDay: string };
 const blank = (month: string): Draft => ({ occurredOn: todayLocal().startsWith(month) ? todayLocal() : `${month}-01`, content: "", category: "", kind: "expense", amount: "", forChild: false, note: "", repeat: false, repeatDay: "" });
-const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: String(item.amount), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "" });
+const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: groupAmountTyping(String(item.amount)), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "" });
 const dayOf = (iso: string) => String(Number(iso.slice(8, 10)) || 1);
 const dayLabel = (iso: string) => { const [, m, d] = iso.split("-"); return `${d}/${m}`; };
 
@@ -58,7 +59,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, r
     <td data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
     <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
-    <td data-label="Số tiền"><input aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td data-label="Số tiền"><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td className="ledger-child"><div className="ledger-options">
       <label><input type="checkbox" checked={draft.forChild} onChange={(event) => setDraft({ ...draft, forChild: event.target.checked })} /> <span>Cho con</span></label>
       {existing?.recurringId && debtRecurringIds.has(existing.recurringId) ? <small className="repeat-locked">↻ Từ khoản nợ</small>

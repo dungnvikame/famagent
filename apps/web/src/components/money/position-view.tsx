@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
-import { parseVnd, todayLocal } from "@/lib/money/parse";
+import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeft, monthsToPayOff, positionSummary } from "@/lib/money/position";
 import { parsePosition } from "@/lib/money/position-parse";
-import { shortVnd, type MonthSummary } from "@/lib/money/summary";
+import { type MonthSummary } from "@/lib/money/summary";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, MONEY_KIND_LABELS, type AccountType, type MoneyBundle, type MoneyDebt, type MoneyPosition, type MoneyRecurring } from "@/lib/money/types";
+import { AmountInput } from "./amount-input";
 
 type AccountRow = { id: string; type: AccountType; name: string; amount: string };
 type DebtRow = { id: string; name: string; balance: string; monthly: string; day: string; rate: string; recurringId?: string; asOf?: string; /** Shown remaining amount and the stored balance behind it (unchanged row = keep both). */ shown?: number; stored?: number };
@@ -26,13 +27,13 @@ const uid = () => crypto.randomUUID();
 const toAmount = (text: string) => text.trim() ? parseVnd(text) : null;
 const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 const accountRows = (position?: MoneyPosition, fallback?: { cash: number; savings: number }): AccountRow[] => position?.accounts.length
-  ? position.accounts.map((item) => ({ id: item.id, type: item.type, name: item.name, amount: String(item.amount) }))
+  ? position.accounts.map((item) => ({ id: item.id, type: item.type, name: item.name, amount: groupAmountTyping(String(item.amount)) }))
   : [
-    { id: uid(), type: "bank", name: "", amount: fallback?.cash ? String(fallback.cash) : "" },
+    { id: uid(), type: "bank", name: "", amount: fallback?.cash ? groupAmountTyping(String(fallback.cash)) : "" },
     { id: uid(), type: "cash", name: "Tiền mặt", amount: "" },
-    ...(fallback?.savings ? [{ id: uid(), type: "saving" as const, name: "Tiết kiệm", amount: String(fallback.savings) }] : []),
+    ...(fallback?.savings ? [{ id: uid(), type: "saving" as const, name: "Tiết kiệm", amount: groupAmountTyping(String(fallback.savings)) }] : []),
   ];
-const debtRows = (debts: MoneyDebt[], paid: Record<string, number> = {}): DebtRow[] => debts.map((debt) => ({ id: debt.id, name: debt.name, balance: String(debtLeft(debt, paid)), monthly: debt.monthlyPayment ? String(debt.monthlyPayment) : "", day: debt.dueDay ? String(debt.dueDay) : "", rate: debt.ratePct !== undefined ? String(debt.ratePct) : "", recurringId: debt.recurringId, asOf: debt.asOf, shown: debtLeft(debt, paid), stored: debt.balance }));
+const debtRows = (debts: MoneyDebt[], paid: Record<string, number> = {}): DebtRow[] => debts.map((debt) => ({ id: debt.id, name: debt.name, balance: groupAmountTyping(String(debtLeft(debt, paid))), monthly: debt.monthlyPayment ? groupAmountTyping(String(debt.monthlyPayment)) : "", day: debt.dueDay ? String(debt.dueDay) : "", rate: debt.ratePct !== undefined ? String(debt.ratePct) : "", recurringId: debt.recurringId, asOf: debt.asOf, shown: debtLeft(debt, paid), stored: debt.balance }));
 
 /** Accounts → validated list, or an error message. */
 function readAccounts(rows: AccountRow[]): MoneyPosition["accounts"] | string {
@@ -70,7 +71,7 @@ function AccountsForm({ rows, setRows }: { rows: AccountRow[]; setRows: (rows: A
     {rows.map((row) => <div className="line" key={row.id}>
       <select aria-label="Loại" value={row.type} onChange={(event) => patch(row.id, { type: event.target.value as AccountType })}>{ACCOUNT_TYPES.map((type) => <option key={type} value={type}>{ACCOUNT_TYPE_LABELS[type]}</option>)}</select>
       <input aria-label="Tên" placeholder={row.type === "bank" ? "Vietcombank, Techcombank…" : row.type === "ewallet" ? "MoMo, ZaloPay…" : row.type === "saving" ? "Sổ tiết kiệm 12 tháng" : "Tiền mặt ở nhà"} value={row.name} maxLength={60} onChange={(event) => patch(row.id, { name: event.target.value })} />
-      <input aria-label="Số dư" inputMode="decimal" placeholder="28,5tr" value={row.amount} onChange={(event) => patch(row.id, { amount: event.target.value })} />
+      <AmountInput aria-label="Số dư" inputMode="decimal" placeholder="28,5tr" value={row.amount} onChange={(event) => patch(row.id, { amount: event.target.value })} />
       <button type="button" className="ledger-link danger" aria-label="Bỏ dòng này" onClick={() => setRows(rows.filter((item) => item.id !== row.id))}>×</button>
     </div>)}
     <div><button type="button" className="app-btn ghost" onClick={() => setRows([...rows, { id: uid(), type: "bank", name: "", amount: "" }])}>+ Thêm tài khoản</button></div>
@@ -83,8 +84,8 @@ function DebtsForm({ rows, setRows }: { rows: DebtRow[]; setRows: (rows: DebtRow
     {rows.length > 0 && <div className="line debt head" aria-hidden="true"><span>Khoản nợ</span><span>Còn nợ</span><span>Trả mỗi tháng</span><span>Ngày trả</span><span>Lãi %/năm</span><span /></div>}
     {rows.map((row) => <div className="line debt" key={row.id}>
       <input aria-label="Tên khoản nợ" placeholder="Vay mua xe, thẻ tín dụng…" value={row.name} maxLength={60} onChange={(event) => patch(row.id, { name: event.target.value })} />
-      <input aria-label="Còn nợ" inputMode="decimal" placeholder="380tr" value={row.balance} onChange={(event) => patch(row.id, { balance: event.target.value })} />
-      <input aria-label="Trả mỗi tháng" inputMode="decimal" placeholder="8,2tr (nếu có)" value={row.monthly} onChange={(event) => patch(row.id, { monthly: event.target.value })} />
+      <AmountInput aria-label="Còn nợ" inputMode="decimal" placeholder="380tr" value={row.balance} onChange={(event) => patch(row.id, { balance: event.target.value })} />
+      <AmountInput aria-label="Trả mỗi tháng" inputMode="decimal" placeholder="8,2tr (nếu có)" value={row.monthly} onChange={(event) => patch(row.id, { monthly: event.target.value })} />
       <input aria-label="Ngày trả" type="number" min={1} max={31} placeholder="15" value={row.day} onChange={(event) => patch(row.id, { day: event.target.value })} />
       <input aria-label="Lãi suất %/năm" inputMode="decimal" placeholder="8,5" value={row.rate} onChange={(event) => patch(row.id, { rate: event.target.value })} />
       <button type="button" className="ledger-link danger" aria-label="Bỏ khoản nợ này" onClick={() => setRows(rows.filter((item) => item.id !== row.id))}>×</button>
@@ -123,11 +124,11 @@ function FixedList({ recurring, debts, onRecurring, onDeleteRecurring, pending, 
       <input aria-label="Tên khoản" placeholder="Tiền nhà, học phí, lương…" value={row.name} maxLength={80} onChange={(event) => setRow({ ...row, name: event.target.value })} />
       <select aria-label="Loại" value={row.kind} onChange={(event) => { setRow({ ...row, kind: event.target.value as FixedRow["kind"] }); setCategory(""); }}><option value="expense">Chi</option><option value="income">Thu</option></select>
       {!setPending && <select aria-label="Nhóm" value={category} onChange={(event) => setCategory(event.target.value)}>{options(row.kind).map((name) => <option key={name}>{name}</option>)}</select>}
-      <input aria-label="Số tiền" inputMode="decimal" placeholder="6tr" value={row.amount} onChange={(event) => setRow({ ...row, amount: event.target.value })} />
+      <AmountInput aria-label="Số tiền" inputMode="decimal" placeholder="6tr" value={row.amount} onChange={(event) => setRow({ ...row, amount: event.target.value })} />
       <label className="day-field">Ngày <input type="number" min={1} max={31} aria-label="Ngày trong tháng" value={row.day} onChange={(event) => setRow({ ...row, day: event.target.value })} /></label>
       <button type="button" className="app-btn" onClick={add}>Thêm</button>
     </div>
-    {(income > 0 || expense > 0) && <div className="totals-line"><span>Thu cố định {shortVnd(income)} · Chi cố định {shortVnd(expense)}</span><b>{income >= expense ? `Còn ~${shortVnd(income - expense)}/tháng` : `Thiếu ~${shortVnd(expense - income)}/tháng`}</b></div>}
+    {(income > 0 || expense > 0) && <div className="totals-line"><span>Thu cố định {vnd(income)} · Chi cố định {vnd(expense)}</span><b>{income >= expense ? `Còn ~${vnd(income - expense)}/tháng` : `Thiếu ~${vnd(expense - income)}/tháng`}</b></div>}
     {error && <p className="form-error" role="alert">{error}</p>}
   </div>;
 }
@@ -154,7 +155,7 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     const parsed = parsePosition(story);
     if (!parsed.accounts.length && !parsed.debts.length && !parsed.fixed.length) { setError("Chưa đọc được con số nào. Thử kể theo kiểu: “VCB còn 28tr, tiền mặt 3tr, vay mua xe còn 380tr trả 8tr ngày 15”."); return; }
     setError("");
-    if (parsed.accounts.length) setAccounts(parsed.accounts.map((item) => ({ id: uid(), type: item.type, name: item.name, amount: String(item.amount) })));
+    if (parsed.accounts.length) setAccounts(parsed.accounts.map((item) => ({ id: uid(), type: item.type, name: item.name, amount: groupAmountTyping(String(item.amount)) })));
     if (parsed.debts.length) setDebts(parsed.debts.map((item) => ({ id: uid(), name: item.name, balance: String(item.balance), monthly: item.monthlyPayment ? String(item.monthlyPayment) : "", day: item.dueDay ? String(item.dueDay) : "", rate: item.ratePct !== undefined ? String(item.ratePct) : "" })));
     if (parsed.fixed.length) setPendingFixed(parsed.fixed.map((item) => ({ key: uid(), name: item.name, kind: item.kind, amount: String(item.amount), day: String(item.dayOfMonth ?? 1) })));
     setFilled(`Trợ lý đã điền ${parsed.accounts.length} tài khoản, ${parsed.debts.length} khoản nợ, ${parsed.fixed.length} khoản cố định. Xem lại từng bước rồi bấm Xong.${parsed.skipped.length ? ` Chưa hiểu: “${parsed.skipped.slice(0, 3).join("”, “")}”.` : ""}`);
@@ -203,9 +204,9 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
   const view = positionSummary(bundle, summary.balances, summary.income, estimatedIncome);
   return <div className="situ">
     <div className="situ-kpis">
-      <div><small>Đang có</small><b>{shortVnd(view.has)}</b><em>tiền tiêu {shortVnd(view.cash)} · tiết kiệm {shortVnd(view.savings)}</em></div>
-      <div><small>Đang nợ</small><b>{view.owes ? shortVnd(view.owes) : "—"}</b><em>{view.debtMonthly ? `trả ${shortVnd(view.debtMonthly)}/tháng` : position.debts.length ? "chưa có lịch trả" : "không có khoản nợ"}</em></div>
-      <div><small>Chi cố định</small><b>{view.fixedExpense ? shortVnd(view.fixedExpense) : "—"}</b><em>{view.fixedRatio !== undefined ? `/tháng · ${Math.round(view.fixedRatio * 100)}% thu nhập` : "/tháng"}</em></div>
+      <div><small>Đang có</small><b>{vnd(view.has)}</b><em>tiền tiêu {vnd(view.cash)} · tiết kiệm {vnd(view.savings)}</em></div>
+      <div><small>Đang nợ</small><b>{view.owes ? vnd(view.owes) : "—"}</b><em>{view.debtMonthly ? `trả ${vnd(view.debtMonthly)}/tháng` : position.debts.length ? "chưa có lịch trả" : "không có khoản nợ"}</em></div>
+      <div><small>Chi cố định</small><b>{view.fixedExpense ? vnd(view.fixedExpense) : "—"}</b><em>{view.fixedRatio !== undefined ? `/tháng · ${Math.round(view.fixedRatio * 100)}% thu nhập` : "/tháng"}</em></div>
       <div><small>Quỹ dự phòng</small><b>{view.emergencyMonths !== undefined ? `~${view.emergencyMonths.toLocaleString("vi-VN")} tháng` : "—"}</b><em>tiết kiệm ÷ chi cố định</em></div>
     </div>
     {view.notes.map((note) => <p key={note.text} className={`health ${note.tone}`}>{note.tone === "ok" ? "✓" : "!"} {note.text}</p>)}
@@ -216,17 +217,17 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
       {editing === "accounts" ? <div className="app-card"><p className="app-sub">Nhập số dư <b>hôm nay</b> của từng nơi; FamAgent lấy hôm nay làm mốc mới.</p><AccountsForm rows={accounts} setRows={setAccounts} /><div className="setup-actions"><button type="button" className="app-btn ghost" onClick={() => setEditing(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy} onClick={() => void save({ accounts }).then((ok) => { if (ok) setEditing(null); })}>Lưu số dư</button></div></div>
         : <div className="app-card app-rows">
           {position.accounts.map((item) => <div key={item.id}><span><span className="acc-type">{ACCOUNT_TYPE_LABELS[item.type]}</span><b>{item.name}</b></span><span className="row-actions"><b>{vnd(item.amount)}</b></span></div>)}
-          <div className="totals-line"><span>Tổng hiện tại<small>mốc {shortVnd(position.accounts.reduce((sum, item) => sum + item.amount, 0))} ngày {dayLabel(position.asOf)}, cộng trừ các khoản ghi sau đó</small></span><b>{vnd(view.has)}</b></div>
+          <div className="totals-line"><span>Tổng hiện tại<small>mốc {vnd(position.accounts.reduce((sum, item) => sum + item.amount, 0))} ngày {dayLabel(position.asOf)}, cộng trừ các khoản ghi sau đó</small></span><b>{vnd(view.has)}</b></div>
         </div>}
     </section>
 
     <section className="situ-sec">
-      <header><h2>Khoản nợ</h2><small>{view.owes ? `Tổng ${shortVnd(view.owes)} · ` : ""}<button type="button" className="ledger-link" onClick={() => { setDebts(debtRows(position.debts, bundle.debtPaid)); setEditing("debts"); }}>{position.debts.length ? "Sửa" : "Thêm khoản nợ"}</button></small></header>
+      <header><h2>Khoản nợ</h2><small>{view.owes ? `Tổng ${vnd(view.owes)} · ` : ""}<button type="button" className="ledger-link" onClick={() => { setDebts(debtRows(position.debts, bundle.debtPaid)); setEditing("debts"); }}>{position.debts.length ? "Sửa" : "Thêm khoản nợ"}</button></small></header>
       {editing === "debts" ? <div className="app-card"><DebtsForm rows={debts} setRows={setDebts} /><div className="setup-actions"><button type="button" className="app-btn ghost" onClick={() => setEditing(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy} onClick={() => void save({ debts }).then((ok) => { if (ok) setEditing(null); })}>Lưu khoản nợ</button></div></div>
         : position.debts.length ? <div className="app-card app-rows">{position.debts.map((debt) => {
           const left = debtLeft(debt, bundle.debtPaid); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct);
-          const parts = [debt.monthlyPayment ? `Trả ${shortVnd(debt.monthlyPayment)} ngày ${debt.dueDay} hằng tháng` : "Chưa có lịch trả", debt.ratePct !== undefined ? `lãi ${debt.ratePct.toLocaleString("vi-VN")}%/năm` : "", months ? `còn khoảng ${months} tháng` : debt.monthlyPayment && left > 0 && months === undefined ? "số trả chưa đủ lãi" : ""].filter(Boolean);
-          return <div key={debt.id}><span><b>{debt.name}</b><small>{parts.join(" · ")}{bundle.debtPaid?.[debt.id] ? ` · đã trả ${shortVnd(bundle.debtPaid[debt.id])} từ ${dayLabel(debt.asOf ?? position.asOf)}` : ""}</small></span><span className="row-actions"><b>{vnd(left)}</b></span></div>;
+          const parts = [debt.monthlyPayment ? `Trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay} hằng tháng` : "Chưa có lịch trả", debt.ratePct !== undefined ? `lãi ${debt.ratePct.toLocaleString("vi-VN")}%/năm` : "", months ? `còn khoảng ${months} tháng` : debt.monthlyPayment && left > 0 && months === undefined ? "số trả chưa đủ lãi" : ""].filter(Boolean);
+          return <div key={debt.id}><span><b>{debt.name}</b><small>{parts.join(" · ")}{bundle.debtPaid?.[debt.id] ? ` · đã trả ${vnd(bundle.debtPaid[debt.id])} từ ${dayLabel(debt.asOf ?? position.asOf)}` : ""}</small></span><span className="row-actions"><b>{vnd(left)}</b></span></div>;
         })}</div> : <p className="app-sub">Không có khoản nợ nào.</p>}
     </section>
 

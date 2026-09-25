@@ -2,7 +2,7 @@
 
 import type { FamilyProfile } from "@/lib/experience/types";
 import { babyStep, FRAMEWORKS, suggestFrameworks, type FrameworkId } from "@/lib/money/frameworks";
-import { money } from "@/lib/onboarding/assessment";
+import { vnd } from "@/lib/catalog/format";
 
 /**
  * Pick a money framework: every card names its author/source, explains the idea in one line and — when income is
@@ -33,7 +33,7 @@ export function FrameworkChooser({ profile, value, onChange, onCustomize }: { pr
         </button>
         {fw.buckets.some((bucket) => bucket.share !== undefined) && <ul className="fw-buckets">{fw.buckets.map((bucket) => <li key={bucket.key}>
           <b>{bucket.label}{bucket.share !== undefined ? ` ${Math.round(bucket.share * 100)}%` : ""}</b>
-          {income && bucket.share !== undefined ? <em>≈ {money(income * bucket.share)}</em> : null}
+          {income && bucket.share !== undefined ? <em>≈ {vnd(income * bucket.share)}</em> : null}
           <small>{bucket.hint}</small>
         </li>)}</ul>}
         {fw.id === "baby-steps" && <p className="fw-note">Nhà mình đang ở {babyStep(profile).text}</p>}

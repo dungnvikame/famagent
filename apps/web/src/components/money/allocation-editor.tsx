@@ -4,7 +4,7 @@ import { useState } from "react";
 import { allocatable, allocationFrom, allocationTotal, BUCKET_COLORS, CUSTOM_NAME, unassigned } from "@/lib/money/allocation";
 import type { FrameworkId } from "@/lib/money/frameworks";
 import { DEFAULT_CATEGORIES, type AllocationBucket, type MoneyAllocation, type MoneyCategory } from "@/lib/money/types";
-import { money } from "@/lib/onboarding/assessment";
+import { vnd } from "@/lib/catalog/format";
 
 interface Props {
   initial: MoneyAllocation;
@@ -67,7 +67,7 @@ export function AllocationEditor({ initial, categories: startCategories, income,
   return <div className="alloc">
     <div className="fw-panel-head"><div><b>{CUSTOM_NAME}</b><small>Chỉnh thoải mái, đổi lại lúc nào cũng được. Số liệu các tháng đã ghi không đổi.</small></div><button type="button" className="ledger-link" onClick={onCancel}>Đóng</button></div>
     <div className="alloc-from" role="group" aria-label="Bắt đầu từ mẫu">Bắt đầu từ:{PRESETS.map((item) => <button type="button" key={item.id} className={`chip${preset === item.id ? " on" : ""}`} onClick={() => { setPreset(item.id); setBuckets(allocationFrom(item.id, categories).buckets); }}>{item.label}</button>)}</div>
-    <p className="alloc-income">{income > 0 ? <>Chia theo thu nhập tháng này ≈ <b>{money(income)}</b></> : "Ghi khoản thu (lương) tháng này để thấy mỗi phần là bao nhiêu tiền."}</p>
+    <p className="alloc-income">{income > 0 ? <>Chia theo thu nhập tháng này ≈ <b>{vnd(income)}</b></> : "Ghi khoản thu (lương) tháng này để thấy mỗi phần là bao nhiêu tiền."}</p>
 
     {buckets.map((bucket, index) => {
       const others = allocatable(categories).filter((name) => !bucket.categories.includes(name));
@@ -76,7 +76,7 @@ export function AllocationEditor({ initial, categories: startCategories, income,
           <span className="dot" style={{ background: colorOf(index) }} aria-hidden="true" />
           <input className="name" aria-label="Tên phần" value={bucket.label} maxLength={40} onChange={(event) => patch(bucket.key, { label: event.target.value })} />
           <span className="pct"><input aria-label={`Tỷ lệ ${bucket.label}`} inputMode="decimal" value={pct(bucket.share)} onChange={(event) => setShare(bucket.key, Number(event.target.value.replace(",", ".")))} /><span>%</span></span>
-          <em>{income > 0 ? `≈ ${money(income * bucket.share)}` : ""}</em>
+          <em>{income > 0 ? `≈ ${vnd(income * bucket.share)}` : ""}</em>
           <button type="button" className="x" aria-label={`Xóa phần ${bucket.label}`} disabled={buckets.length <= 1} onClick={() => setBuckets((current) => current.filter((item) => item.key !== bucket.key))}>×</button>
         </div>
         <input type="range" min={0} max={100} step={1} aria-label={`Kéo tỷ lệ ${bucket.label}`} value={pct(bucket.share)} onChange={(event) => setShare(bucket.key, Number(event.target.value))} />
@@ -93,7 +93,7 @@ export function AllocationEditor({ initial, categories: startCategories, income,
 
     <div className="alloc-total">
       <div className="stack" aria-hidden="true">{buckets.map((bucket, index) => <span key={bucket.key} style={{ width: `${Math.min(100, bucket.share * 100)}%`, background: colorOf(index) }} />)}</div>
-      <div className="row"><span>Tổng: <b>{pct(total)}%</b>{income > 0 ? ` của ${money(income)}` : ""}</span>{Math.abs(total - 1) <= 0.0005 ? <span className="ok-text">✓ Đã chia hết</span> : total < 1 ? <span className="warn-text">Còn {pct(1 - total)}% chưa chia</span> : <span className="warn-text">Vượt {pct(total - 1)}%</span>}</div>
+      <div className="row"><span>Tổng: <b>{pct(total)}%</b>{income > 0 ? ` của ${vnd(income)}` : ""}</span>{Math.abs(total - 1) <= 0.0005 ? <span className="ok-text">✓ Đã chia hết</span> : total < 1 ? <span className="warn-text">Còn {pct(1 - total)}% chưa chia</span> : <span className="warn-text">Vượt {pct(total - 1)}%</span>}</div>
     </div>
     {loose.length > 0 && <div className="alloc-loose">Chưa thuộc phần nào: {loose.map((name) => <span key={name} className="chip cat">{name}</span>)}<small>Chọn “+ Gắn nhóm” ở phần phù hợp.</small></div>}
 

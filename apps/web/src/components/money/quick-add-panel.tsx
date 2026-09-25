@@ -7,8 +7,9 @@ import { trackEvent } from "@/lib/experience/storage";
 import { shrinkImage } from "@/lib/image/shrink";
 import { parseVnd, todayLocal } from "@/lib/money/parse";
 import { draftsFromImage, parseQuickList, type ImageLine, type QuickContext, type QuickDraft } from "@/lib/money/quick-add";
-import { shortVnd } from "@/lib/money/summary";
 import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind } from "@/lib/money/types";
+import { AmountInput } from "./amount-input";
+import { vnd } from "@/lib/catalog/format";
 
 interface Props {
   context: Omit<QuickContext, "today">;
@@ -100,7 +101,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
 
   const chosen = drafts?.filter((draft) => draft.selected) ?? [];
   const sum = (kind: MoneyKind) => chosen.filter((draft) => draft.kind === kind).reduce((total, draft) => total + draft.amount, 0);
-  const totals = ([["expense", "Chi"], ["income", "Thu"], ["saving", "Tiết kiệm"]] as const).filter(([kind]) => sum(kind)).map(([kind, label]) => `${label} ${shortVnd(sum(kind))}`).join(" · ");
+  const totals = ([["expense", "Chi"], ["income", "Thu"], ["saving", "Tiết kiệm"]] as const).filter(([kind]) => sum(kind)).map(([kind, label]) => `${label} ${vnd(sum(kind))}`).join(" · ");
 
   return <section className="app-card quick-add" aria-label="Thêm nhanh bằng Trợ lý">
     <div className="quick-head"><span className="app-orb" aria-hidden="true" /><div>
@@ -133,7 +134,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
           <td><select className="cat" aria-label="Nhóm" value={draft.category} onChange={(event) => update(draft.key, { category: event.target.value, unsure: false })}>{[...new Set([draft.category, ...options(draft.kind)])].map((name) => <option key={name}>{name}</option>)}</select>
             {draft.aiPicked && <span className="flag ai">Trợ lý AI xếp · kiểm tra lại</span>}
             {draft.unsure && <span className="flag">Chưa chắc{draft.suggestNew ? <> · <button type="button" className="ledger-link" onClick={() => void createCategory(draft)}>tạo nhóm “{draft.suggestNew}”?</button></> : ""}</span>}</td>
-          <td className="num"><input aria-label="Số tiền" inputMode="decimal" defaultValue={draft.amount.toLocaleString("vi-VN")} onBlur={(event) => { const value = parseVnd(event.target.value); if (value !== null && (value > 0 || draft.kind === "saving")) update(draft.key, { amount: value }); else event.target.value = draft.amount.toLocaleString("vi-VN"); }} />
+          <td className="num"><AmountInput aria-label="Số tiền" inputMode="decimal" defaultValue={draft.amount.toLocaleString("vi-VN")} onBlur={(event) => { const value = parseVnd(event.target.value); if (value !== null && (value > 0 || draft.kind === "saving")) update(draft.key, { amount: value }); else event.target.value = draft.amount.toLocaleString("vi-VN"); }} />
             {draft.dupeOf && <span className="flag">Có thể trùng {draft.dupeOf}</span>}</td>
           <td className="repeat-cell"><label className="repeat"><input type="checkbox" aria-label={`Lặp lại “${draft.content}” hằng tháng`} disabled={draft.amount < 0} checked={draft.repeat} onChange={(event) => update(draft.key, { repeat: event.target.checked })} /> <span>ngày {Number(draft.occurredOn.slice(8, 10))}</span></label>
             {draft.repeatHint && !draft.repeat && <span className="flag ai">có vẻ là khoản hằng tháng</span>}</td>

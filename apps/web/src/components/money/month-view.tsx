@@ -3,8 +3,9 @@
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { parseVnd } from "@/lib/money/parse";
-import { shortVnd, type MonthSummary } from "@/lib/money/summary";
+import { type MonthSummary } from "@/lib/money/summary";
 import type { MoneyBudget, MoneyCategory } from "@/lib/money/types";
+import { AmountInput } from "./amount-input";
 
 interface Props { summary: MonthSummary; categories: MoneyCategory[]; budgets: MoneyBudget[]; onBudget: (item: MoneyBudget) => Promise<void>; onDeleteBudget: (id: string) => Promise<void> }
 
@@ -31,8 +32,8 @@ export function MonthView({ summary, categories, budgets, onBudget, onDeleteBudg
     <section className="app-section"><h2>Tiền đang đi đâu</h2>
       <div className="app-card app-rows budget-rows">
         {lines.map((line) => <div key={line.category}>
-          <div className="budget-name"><b>{line.category}</b><small>{line.spent ? `Đã chi ${shortVnd(line.spent)}` : "Chưa chi"}{line.limit ? ` / ngân sách ${shortVnd(line.limit)}` : ""}{line.forChild ? ` · cho con ${shortVnd(line.forChild)}` : ""}</small>{line.limit ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round((line.ratio ?? 0) * 100))}%` }} className={line.ratio && line.ratio > 1 ? "over" : undefined} /></span> : null}</div>
-          {editing === line.category ? <span className="budget-edit"><input autoFocus inputMode="decimal" placeholder="5tr" aria-label={`Ngân sách ${line.category}`} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void save(line.category); if (event.key === "Escape") setEditing(null); }} /><button type="button" className="app-btn" onClick={() => void save(line.category)}>Lưu</button></span>
+          <div className="budget-name"><b>{line.category}</b><small>{line.spent ? `Đã chi ${vnd(line.spent)}` : "Chưa chi"}{line.limit ? ` / ngân sách ${vnd(line.limit)}` : ""}{line.forChild ? ` · cho con ${vnd(line.forChild)}` : ""}</small>{line.limit ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round((line.ratio ?? 0) * 100))}%` }} className={line.ratio && line.ratio > 1 ? "over" : undefined} /></span> : null}</div>
+          {editing === line.category ? <span className="budget-edit"><AmountInput autoFocus inputMode="decimal" placeholder="5tr" aria-label={`Ngân sách ${line.category}`} value={value} onChange={(event) => setValue(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void save(line.category); if (event.key === "Escape") setEditing(null); }} /><button type="button" className="app-btn" onClick={() => void save(line.category)}>Lưu</button></span>
             : <button type="button" className={`app-pill${line.ratio && line.ratio > 1 ? " warn" : line.limit ? " ok" : ""} budget-pill`} onClick={() => { setEditing(line.category); setValue(line.limit ? String(line.limit) : ""); }}>{line.limit ? `${Math.round((line.ratio ?? 0) * 100)}%` : "Đặt ngân sách"}</button>}
         </div>)}
       </div>

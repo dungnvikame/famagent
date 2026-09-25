@@ -9,3 +9,17 @@ test("parseVnd hiểu cách gõ tiền phổ biến", () => {
   ];
   for (const [input, expected] of cases) assert.equal(parseVnd(input), expected, input);
 });
+
+test("thousand separators while typing; shorthand and decimals untouched", async () => {
+  const { groupAmountTyping } = await import("../src/lib/money/parse.ts");
+  assert.equal(groupAmountTyping("35000"), "35.000");
+  assert.equal(groupAmountTyping("1.5000"), "15.000");
+  assert.equal(groupAmountTyping("1.500.0000"), "15.000.000");
+  assert.equal(groupAmountTyping("-698000"), "-698.000");
+  assert.equal(groupAmountTyping("1.5"), "1.5");
+  assert.equal(groupAmountTyping("35k"), "35k");
+  assert.equal(groupAmountTyping("1,5tr"), "1,5tr");
+  assert.equal(groupAmountTyping("2tr5"), "2tr5");
+  assert.equal(groupAmountTyping(""), "");
+  assert.equal(groupAmountTyping("15."), "15");
+});

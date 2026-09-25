@@ -26,3 +26,14 @@ export function parseVnd(input: string): number | null {
 
 /** Local YYYY-MM-DD for today (Vietnam is UTC+7; toISOString alone would roll the date before 07:00). */
 export const todayLocal = (now = new Date()) => new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+
+/**
+ * Thousand separators while typing an amount: "1500000" → "1.500.000". Only plain numbers are touched; shorthand
+ * ("35k", "2tr5", "1,5tr") and a decimal in progress ("1.5", "2.25" before a unit) are left exactly as typed.
+ */
+export function groupAmountTyping(text: string): string {
+  if (!/^[-−]?[\d.]*\d[\d.]*$/.test(text) || /^[-−]?\d+\.\d{1,2}$/.test(text)) return text;
+  const sign = /^[-−]/.test(text) ? "-" : "";
+  const digits = text.replace(/[^\d]/g, "").replace(/^0+(?=\d)/, "");
+  return sign + digits.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}

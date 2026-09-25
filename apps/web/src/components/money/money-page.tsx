@@ -11,7 +11,7 @@ import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/
 import { todayLocal } from "@/lib/money/parse";
 import { syncDebtRecurring } from "@/lib/money/position";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
-import { monthKey, recurringFor, shortVnd, summarizeMonth } from "@/lib/money/summary";
+import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { FrameworkPanel } from "./framework-panel";
@@ -140,11 +140,11 @@ export function MoneyPage() {
     {error && <p className="form-error" role="alert">{error}{!cloudEnabled ? "" : " "}<Link href="/sign-in">{error.includes("đăng nhập") ? "Đăng nhập" : ""}</Link></p>}
     {!bundle || !summary || !quickContext ? <div className="app-card" aria-busy="true"><p className="app-sub">Đang tải sổ thu chi…</p></div> : <>
       <div className="app-card money-kpis">
-        <div className="brief-kpi"><small>Thu</small><b>{summary.income ? shortVnd(summary.income) : "—"}</b></div>
-        <div className="brief-kpi"><small>Đã chi</small><b>{summary.expense ? shortVnd(summary.expense) : "—"}</b></div>
-        <div className="brief-kpi"><small>Tiết kiệm</small><b>{summary.saving ? shortVnd(summary.saving) : "—"}</b></div>
-        <div className="brief-kpi"><small>{summary.plan ? "Còn lại trong kế hoạch" : "Còn lại (thu − chi − tiết kiệm)"}</small><b>{summary.plan ? shortVnd(summary.remainingOfPlan!) : summary.income || summary.expense ? shortVnd(summary.net) : "—"}</b></div>
-        {summary.plan ? <div className="money-plan"><span className="bar"><span style={{ width: `${Math.min(100, Math.round(summary.expense / summary.plan * 100))}%` }} className={summary.expense > summary.plan ? "over" : undefined} /></span><small>{shortVnd(summary.expense)} / kế hoạch {shortVnd(summary.plan)}{summary.expectedExpense ? ` · dự kiến cuối tháng ${shortVnd(summary.expectedExpense)}` : ""}{summary.paceRatio && summary.paceRatio > 1.05 ? <span className="app-pill warn">Cao hơn kế hoạch</span> : summary.paceRatio ? <span className="app-pill ok">Đúng nhịp</span> : null}</small></div>
+        <div className="brief-kpi"><small>Thu</small><b>{summary.income ? vnd(summary.income) : "—"}</b></div>
+        <div className="brief-kpi"><small>Đã chi</small><b>{summary.expense ? vnd(summary.expense) : "—"}</b></div>
+        <div className="brief-kpi"><small>Tiết kiệm</small><b>{summary.saving ? vnd(summary.saving) : "—"}</b></div>
+        <div className="brief-kpi"><small>{summary.plan ? "Còn lại trong kế hoạch" : "Còn lại (thu − chi − tiết kiệm)"}</small><b>{summary.plan ? vnd(summary.remainingOfPlan!) : summary.income || summary.expense ? vnd(summary.net) : "—"}</b></div>
+        {summary.plan ? <div className="money-plan"><span className="bar"><span style={{ width: `${Math.min(100, Math.round(summary.expense / summary.plan * 100))}%` }} className={summary.expense > summary.plan ? "over" : undefined} /></span><small>{vnd(summary.expense)} / kế hoạch {vnd(summary.plan)}{summary.expectedExpense ? ` · dự kiến cuối tháng ${vnd(summary.expectedExpense)}` : ""}{summary.paceRatio && summary.paceRatio > 1.05 ? <span className="app-pill warn">Cao hơn kế hoạch</span> : summary.paceRatio ? <span className="app-pill ok">Đúng nhịp</span> : null}</small></div>
           : <div className="money-plan"><small>Chưa đặt kế hoạch chi tháng. <button type="button" className="ledger-link" onClick={() => setTab("plan")}>Đặt kế hoạch</button> để FamAgent so nhịp chi cho bạn.</small></div>}
       </div>
       {profile && <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} onSaveCustom={saveCustom} />}
