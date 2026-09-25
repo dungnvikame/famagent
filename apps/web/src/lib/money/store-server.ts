@@ -2,7 +2,7 @@
 // so API routes stay thin; the same shapes are used by the local (browser-only) store.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthlyHistory } from "./history.ts";
-import { loanTotals } from "./loans.ts";
+import { BORROW_IN, isLoanEntry, LEND_OUT, loanTotals, REPAID_IN, REPAY_OUT } from "./loans.ts";
 import { sumUntil, withPosition } from "./position.ts";
 import { dueRecurring, postingFor } from "./summary.ts";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
@@ -88,4 +88,13 @@ export async function loadRange(client: SupabaseClient, userId: string, from: st
   const anchored = withPosition({ month: from.slice(0, 7), settings: settingsFromRow(settings.data), transactions: [], totals: { income: 0, expense: 0, saving: 0 }, budgets: [], recurring: [], goals: [] }, all).settings;
   const before = sumUntil(all, from);
   return { from, to, transactions: (transactions.data ?? []).map(transactionFromRow), openingCash: anchored.openingCash + before.income - before.expense - before.saving, openingSavings: anchored.openingSavings + before.saving };
+}
+
+/** Every borrowing / lending entry (all months, newest first) for the Nợ tab. */
+export async function loadLoans(client: SupabaseClient, userId: string): Promise<MoneyTransaction[] | null> {
+  // Current and short-lived v2 names, so older entries are found too (currentCategory renames them on read).
+  const names = [...BORROW_IN, ...REPAY_OUT, ...LEND_OUT, ...REPAID_IN, "Tiền trả nợ cá nhân", "Tiền trả nợ"];
+  const { data, error } = await client.from(TABLES.transactions).select("*").eq("user_id", userId).in("category", [...new Set(names)]).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
+  if (error) return null;
+  return (data ?? []).map(transactionFromRow).filter((tx) => isLoanEntry(tx));
 }

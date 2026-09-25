@@ -16,7 +16,10 @@ export const accountTotals = (position: MoneyPosition) => ({
 /** Opening balances such that `opening + totals up to asOf` equals what the family said it had on `asOf`. */
 export function anchorFromPosition(position: MoneyPosition, untilAsOf: Totals): { openingCash: number; openingSavings: number } {
   const { cash, savings } = accountTotals(position);
-  return { openingCash: cash - (untilAsOf.income - untilAsOf.expense - untilAsOf.saving), openingSavings: savings - untilAsOf.saving };
+  if (savings > 0) return { openingCash: cash - (untilAsOf.income - untilAsOf.expense - untilAsOf.saving), openingSavings: savings - untilAsOf.saving };
+  // No separate savings account: the fund lives inside the bank account. It is what was transferred to savings
+  // (from zero), and the balances typed in Tình hình are the account total = cash + fund on asOf.
+  return { openingCash: cash - (untilAsOf.income - untilAsOf.expense), openingSavings: 0 };
 }
 
 /** Paid toward each debt through its linked recurring item after `asOf` (by debt id). */

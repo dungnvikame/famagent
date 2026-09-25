@@ -4,7 +4,7 @@
 // Both paths return the same MoneyBundle so the UI and the Family Brief do not care where data lives.
 import { cloudEnabled } from "@/lib/experience/cloud";
 import { monthlyHistory } from "./history";
-import { loanTotals } from "./loans";
+import { isLoanEntry, loanTotals } from "./loans";
 import { sumUntil, withPosition } from "./position";
 import { dueRecurring, postingFor } from "./summary";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
@@ -50,6 +50,12 @@ export async function loadRange(from: string, to: string): Promise<MoneyRange> {
   const before = sumUntil(data.transactions, from);
   const transactions = data.transactions.filter((item) => item.occurredOn >= from && item.occurredOn <= to).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
   return { from, to, transactions, openingCash: settings.openingCash + before.income - before.expense - before.saving, openingSavings: settings.openingSavings + before.saving };
+}
+
+/** Every borrowing / lending entry, newest first (Nợ tab). */
+export async function loadLoans(): Promise<MoneyTransaction[]> {
+  if (cloudEnabled) return (await api<{ loans: MoneyTransaction[] }>("/api/money/loans")).loans;
+  return readLocal().transactions.filter((tx) => isLoanEntry(tx)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
 }
 
 type Resource = "transactions" | "budgets" | "recurring" | "goals";

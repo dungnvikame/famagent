@@ -85,3 +85,15 @@ test("debt payments become recurring items; removing a debt or its payment drops
   assert.deepEqual(dropped.deletes, [id(100), id(101)]);
   assert.equal(debtCategory("Vay em gái", active), "Tiền trả nợ");
 });
+
+test("savings kept inside the bank account: the typed balance is the account total, the fund is the transfers", async () => {
+  const { withPosition, sumUntil } = await import("../src/lib/money/position.ts");
+  const { runningPots } = await import("../src/lib/money/history.ts");
+  const entries = [tx(1, "2026-05-05", "saving", 7_000_000), tx(2, "2026-06-05", "saving", 7_000_000), tx(3, "2026-06-01", "income", 20_000_000), tx(4, "2026-06-10", "expense", 3_000_000)];
+  const pos = { asOf: "2026-09-24", accounts: [{ id: id(1), name: "VCB", type: "bank" as const, amount: 30_000_000 }], debts: [] };
+  const bundle = withPosition({ month: "2026-06", settings: { openingCash: 0, openingSavings: -99, categories: DEFAULT_CATEGORIES, position: pos }, transactions: [], totals: sumUntil(entries, "2026-07-01"), budgets: [], recurring: [], goals: [] }, entries);
+  assert.equal(bundle.settings.openingSavings, 0);
+  const pots = runningPots(entries, bundle.settings.openingCash, bundle.settings.openingSavings);
+  assert.deepEqual(pots.get(id(4)), { savings: 14_000_000, lem: 0, account: 30_000_000, cash: 16_000_000 });
+  assert.equal(pots.get(id(1))!.account, 13_000_000);
+});
