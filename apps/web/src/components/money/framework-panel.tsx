@@ -61,7 +61,7 @@ export function FrameworkPanel({ profile, summary, bundle, onChoose, onSaveCusto
       const isSaving = bucket.atLeast ?? SAVING_KEYS.includes(bucket.key);
       const over = ratio !== undefined && !isSaving && ratio > 1;
       return <div key={bucket.key} className="fw-row">
-        <div className="fw-row-top"><b>{bucket.label}{bucket.share !== undefined ? ` · ${Math.round(bucket.share * 1000) / 10}%` : ""}</b><span>{vnd(bucket.actual)}{bucket.target !== undefined && bucket.target > 0 ? ` / ${vnd(bucket.target)}` : ""}</span></div>
+        <div className="fw-row-top"><b>{bucket.label}{bucket.amount ? ` · ${vnd(bucket.amount)}/tháng` : bucket.share !== undefined ? ` · ${Math.round(bucket.share * 1000) / 10}%` : ""}</b><span>{vnd(bucket.actual)}{bucket.target !== undefined && bucket.target > 0 ? ` / ${vnd(bucket.target)}` : ""}</span></div>
         {bucket.target ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round((ratio ?? 0) * 100))}%` }} className={over ? "over" : undefined} /></span> : null}
         <small>{bucket.hint}{over ? " · đã vượt mức" : isSaving && ratio !== undefined && ratio < 1 ? ` · còn thiếu ${vnd(bucket.target! - bucket.actual)}` : ""}</small>
       </div>;

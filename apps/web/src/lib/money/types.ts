@@ -55,7 +55,8 @@ export interface MoneyDebt { id: string; name: string; balance: number; asOf?: s
 export interface MoneyPosition { asOf: string; accounts: MoneyAccount[]; debts: MoneyDebt[] }
 
 /** One part of the family's own money split: a share of income and the ledger categories that count toward it. */
-export interface AllocationBucket { key: string; label: string; share: number; categories: string[] }
+/** `amount` set = a fixed monthly amount (the share then follows income); otherwise the target is share × income. */
+export interface AllocationBucket { key: string; label: string; share: number; categories: string[]; amount?: number }
 export interface MoneyAllocation { buckets: AllocationBucket[] }
 
 export interface MoneySettings {

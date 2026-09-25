@@ -94,7 +94,9 @@ export function validAllocation(input: unknown): MoneyAllocation | null {
     if (!label || !key || typeof item.share !== "number" || !(item.share >= 0 && item.share <= 1) || !Array.isArray(item.categories) || item.categories.length > 60) return null;
     const categories = item.categories.map((name) => text(name, 40));
     if (categories.some((name) => !name)) return null;
-    buckets.push({ key, label, share: Math.round(item.share * 1000) / 1000, categories: [...new Set(categories as string[])] });
+    const amount = item.amount === undefined || item.amount === null ? undefined : typeof item.amount === "number" && Number.isInteger(item.amount) && item.amount > 0 && item.amount <= MAX_VND ? item.amount : null;
+    if (amount === null) return null;
+    buckets.push({ key, label, amount, share: Math.round(item.share * 1000) / 1000, categories: [...new Set(categories as string[])] });
   }
   return { buckets };
 }

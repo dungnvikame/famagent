@@ -15,7 +15,7 @@ button.chip.cat{cursor:pointer;padding:4px 10px}
 select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding-right:12px}
 .alloc-income{margin:0;padding:10px 14px;border-radius:14px;background:#f4f2fb;font-size:13.5px}
 .bucket{display:grid;gap:10px;padding:14px;border:1px solid var(--line);border-radius:16px;background:#fff}
-.bucket-top{display:grid;grid-template-columns:14px 1fr 92px 110px 28px;gap:10px;align-items:center}
+.bucket-top{display:grid;grid-template-columns:14px 1fr 92px 190px 28px;gap:10px;align-items:center}
 .bucket-top .dot{width:12px;height:12px;border-radius:50%}
 .bucket-top input.name{border:0;border-bottom:1px dashed #cfc9e6;font:700 15px var(--font-sans),inherit;padding:2px 0;background:transparent;color:var(--ink);min-width:0}
 .pct{display:flex;align-items:center;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
@@ -374,3 +374,10 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .paid-from button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:3px 10px;font:600 11.5px var(--font-sans),inherit;color:#4a4468;cursor:pointer}
 .paid-from button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
 .src-pill{display:inline-block;margin-left:6px;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--ok-bg);color:var(--ok);vertical-align:middle}
+
+.amt-field{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 8px;position:relative}
+.amt-field input{width:100%;min-width:0;border:0;padding:6px 0;text-align:right;font:700 14px var(--font-sans),inherit;background:transparent;color:var(--ink)}
+.amt-field>span{color:var(--muted);font-weight:700}
+.amt-field.fixed{border-color:#b9adff;background:#f7f5ff}
+.amt-field small{position:absolute;right:6px;top:-9px;background:#ece8ff;color:var(--primary-ink);border-radius:999px;padding:0 6px;font-size:10px;font-weight:800}
+@media(max-width:760px){.bucket-top{grid-template-columns:12px 1fr 84px 28px}.bucket-top .amt-field{grid-column:2/4}}
