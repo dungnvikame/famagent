@@ -3,9 +3,10 @@
 // Browser-side Money store: Supabase via /api/money when configured, otherwise localStorage (demo mode).
 // Both paths return the same MoneyBundle so the UI and the Family Brief do not care where data lives.
 import { cloudEnabled } from "@/lib/experience/cloud";
+import { monthlyHistory } from "./history";
 import { sumUntil, withPosition } from "./position";
 import { dueRecurring, postingFor } from "./summary";
-import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
+import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
 
 const KEY = "family-ai:money:v1";
 interface LocalMoney { settings: MoneySettings; transactions: MoneyTransaction[]; budgets: MoneyBudget[]; recurring: MoneyRecurring[]; goals: MoneyGoal[] }
@@ -36,7 +37,17 @@ export async function loadMoney(month: string, now = new Date()): Promise<MoneyB
     writeLocal(data);
   }
   // "YYYY-MM-99" sorts after every day of the month, so it works as an exclusive upper bound for string dates.
-  return withPosition({ month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals }, data.transactions);
+  return withPosition({ history: monthlyHistory(data.transactions, month, 12), month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals }, data.transactions);
+}
+
+/** Sổ filter over any date range: entries from..to (newest first) and the cash balance just before `from`. */
+export async function loadRange(from: string, to: string): Promise<MoneyRange> {
+  if (cloudEnabled) return (await api<{ range: MoneyRange }>(`/api/money/range?from=${from}&to=${to}`)).range;
+  const data = readLocal();
+  const settings = withPosition({ month: from.slice(0, 7), settings: { ...empty().settings, ...data.settings }, transactions: [], totals: { income: 0, expense: 0, saving: 0 }, budgets: [], recurring: [], goals: [] }, data.transactions).settings;
+  const before = sumUntil(data.transactions, from);
+  const transactions = data.transactions.filter((item) => item.occurredOn >= from && item.occurredOn <= to).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn));
+  return { from, to, transactions, openingCash: settings.openingCash + before.income - before.expense - before.saving };
 }
 
 type Resource = "transactions" | "budgets" | "recurring" | "goals";

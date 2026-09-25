@@ -82,7 +82,12 @@ export interface MoneyBundle {
   goals: MoneyGoal[];
   /** Paid toward each debt (by debt id) through its recurring item since `position.asOf`. */
   debtPaid?: Record<string, number>;
+  /** The 12 months ending with `month` (oldest first): totals and expense per category, for trends. */
+  history?: Array<{ month: string; income: number; expense: number; saving: number; byCategory: Record<string, number> }>;
 }
+
+/** Ledger entries for any date range (the Sổ filter), with the cash balance just before `from`. */
+export interface MoneyRange { from: string; to: string; transactions: MoneyTransaction[]; openingCash: number }
 
 /** Category set from the product owner's household sheet (plan §6.2); users can rename/archive/add. */
 export const DEFAULT_CATEGORIES: MoneyCategory[] = [

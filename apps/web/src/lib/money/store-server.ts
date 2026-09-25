@@ -1,9 +1,10 @@
 // Supabase persistence for the Money module (tables in migration 202609240007). Row ↔ type mapping lives here
 // so API routes stay thin; the same shapes are used by the local (browser-only) store.
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { monthlyHistory } from "./history.ts";
 import { sumUntil, withPosition } from "./position.ts";
 import { dueRecurring, postingFor } from "./summary.ts";
-import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
+import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
 
 type Row = Record<string, unknown>;
 const str = (value: unknown) => typeof value === "string" ? value : undefined;
@@ -50,8 +51,8 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
     client.from(TABLES.goals).select("*").eq("user_id", userId).order("created_at"),
   ]);
   if (settings.error || transactions.error || totals.error || budgets.error || goals.error) return null;
-  const all = (totals.data ?? []).map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id) }));
-  return withPosition({ month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
+  const all = entriesFromRows(totals.data ?? []);
+  return withPosition({ history: monthlyHistory(all, month, 12), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
 }
 
 
@@ -61,10 +62,27 @@ const PAGE = 1000; // PostgREST returns at most this many rows per request by de
 async function allEntries(client: SupabaseClient, userId: string): Promise<{ data: Row[] | null; error: unknown }> {
   const rows: Row[] = [];
   for (let from = 0; from < 200_000; from += PAGE) {
-    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
+    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
     if (error) return { data: null, error };
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;
   }
   return { data: rows, error: null };
+}
+
+const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]) }));
+
+/** Entries dated from..to (inclusive, newest first) and the cash balance just before `from` (position anchor applied). */
+export async function loadRange(client: SupabaseClient, userId: string, from: string, to: string): Promise<MoneyRange | null> {
+  const [settings, transactions, entries] = await Promise.all([
+    client.from("money_settings").select("*").eq("user_id", userId).maybeSingle(),
+    client.from(TABLES.transactions).select("*").eq("user_id", userId).gte("occurred_on", from).lte("occurred_on", to).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(3000),
+    allEntries(client, userId),
+  ]);
+  if (settings.error || transactions.error || entries.error) return null;
+  const all = entriesFromRows(entries.data ?? []);
+  // Opening balances as of the position anchor (same rule as the month bundle), then everything before `from`.
+  const anchored = withPosition({ month: from.slice(0, 7), settings: settingsFromRow(settings.data), transactions: [], totals: { income: 0, expense: 0, saving: 0 }, budgets: [], recurring: [], goals: [] }, all).settings;
+  const before = sumUntil(all, from);
+  return { from, to, transactions: (transactions.data ?? []).map(transactionFromRow), openingCash: anchored.openingCash + before.income - before.expense - before.saving };
 }

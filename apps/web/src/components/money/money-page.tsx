@@ -7,15 +7,18 @@ import { cloudEnabled, loadCloudProfile, saveCloudProfile } from "@/lib/experien
 import { getProfile, saveProfile, trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile, FamilyProfile } from "@/lib/experience/types";
 import type { FrameworkId } from "@/lib/money/frameworks";
-import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
+import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
+import { categoryAverages, runningBalances } from "@/lib/money/history";
+import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { todayLocal } from "@/lib/money/parse";
 import { syncDebtRecurring } from "@/lib/money/position";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
 import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
-import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
+import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRange, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { FrameworkPanel } from "./framework-panel";
 import { GoalsPlan } from "./goals-plan";
+import { LedgerFilters } from "./ledger-filters";
 import { LedgerTable } from "./ledger-table";
 import { MonthView } from "./month-view";
 import { PositionView } from "./position-view";
@@ -35,11 +38,25 @@ export function MoneyPage() {
   // Deep links from Home (/money#month, /money#plan, /money#situ) open the matching tab.
   useEffect(() => { const hash = window.location.hash.slice(1); if (TABS.some((item) => item.id === hash)) setTab(hash as Tab); }, []);
   const [error, setError] = useState("");
+  // Sổ filter: defaults to the month being viewed; a range outside it loads those entries separately.
+  const [filter, setFilter] = useState<LedgerFilter>(() => ({ kinds: [], categories: [], ...monthRange(monthKey(new Date())), text: "" }));
+  const [range, setRange] = useState<MoneyRange | null>(null);
+  const [rangeLoading, setRangeLoading] = useState(false);
+  useEffect(() => { setFilter({ kinds: [], categories: [], ...monthRange(month), text: "" }); }, [month]);
+  const outsideMonth = !filter.from.startsWith(month) || !filter.to.startsWith(month);
+  const loadFilterRange = useCallback(async () => {
+    if (!outsideMonth) { setRange(null); return; }
+    setRangeLoading(true);
+    try { setRange(await loadRange(filter.from, filter.to)); } catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải các khoản."); }
+    finally { setRangeLoading(false); }
+  }, [outsideMonth, filter.from, filter.to]);
+  useEffect(() => { void loadFilterRange(); }, [loadFilterRange]);
 
   const reload = useCallback(async (target = month) => {
     try { setBundle(await loadMoney(target)); setError(""); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Không thể tải sổ thu chi."); }
-  }, [month]);
+    void loadFilterRange();
+  }, [month, loadFilterRange]);
   useEffect(() => { void reload(month); }, [month, reload]);
   const [suggested, setSuggested] = useState<Assessment["plan"] | null>(null);
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
@@ -65,6 +82,23 @@ export function MoneyPage() {
   const summary = bundle ? summarizeMonth(bundle) : null;
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };
   const quickContext = bundle ? { categories: bundle.settings.categories, memory: bundle.settings.categoryMemory, existing: bundle.transactions, children: children.map((child) => child.name).filter((name): name is string => Boolean(name?.trim())) } : null;
+
+  // Entries in the filter's date range, their running cash, and what the filters leave.
+  const source = outsideMonth ? range?.transactions ?? [] : bundle?.transactions ?? [];
+  const opening = outsideMonth ? range?.openingCash ?? 0 : summary ? summary.balances.cash - summary.net : 0;
+  const balances = runningBalances(source, opening);
+  const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
+  const monthlyIds = new Set((bundle?.recurring ?? []).filter((item) => item.active).map((item) => item.id));
+  const shown = applyFilter(source, filter, monthlyIds);
+  const filterInsight = (() => {
+    // One comparison when a single expense category is viewed over the whole month.
+    if (!bundle?.history || filter.categories.length !== 1 || outsideMonth) return undefined;
+    const name = filter.categories[0]; const average = categoryAverages(bundle.history, month)[name];
+    const spent = inRange.filter((tx) => tx.kind === "expense" && tx.category === name).reduce((total, tx) => total + tx.amount, 0);
+    if (!average || !spent || filter.from !== monthRange(month).from || filter.to !== monthRange(month).to) return undefined;
+    const change = Math.round((spent / average - 1) * 100);
+    return Math.abs(change) < 5 ? `${name} tháng này gần bằng trung bình 3 tháng` : `${name} tháng này ${change > 0 ? "cao" : "thấp"} hơn trung bình 3 tháng ${Math.abs(change)}%`;
+  })();
 
   const debtRecurringIds = new Set((bundle?.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
 
@@ -153,7 +187,8 @@ export function MoneyPage() {
       {tab === "ledger" && <>
         {!bundle.settings.position && <div className="banner"><span>Nhập tình hình hiện tại để FamAgent tính đúng số dư, nợ và khoản cố định.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Nhập ngay</button></div>}
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
-        <LedgerTable transactions={bundle.transactions} categories={bundle.settings.categories} familyChildren={children} month={month} openingCash={summary.balances.cash - summary.net} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
+        <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} />
+        <LedgerTable transactions={shown} balances={balances} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} categories={bundle.settings.categories} budgets={bundle.budgets} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} />}
       {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}

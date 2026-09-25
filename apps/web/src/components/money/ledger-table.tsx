@@ -13,8 +13,10 @@ interface Props {
   categories: MoneyCategory[];
   familyChildren: ChildProfile[];
   month: string;
-  /** Cash (tiền tiêu) at the start of the month, for the running "Số dư" column. */
-  openingCash: number;
+  /** Cash (tiền tiêu) after each entry, computed on the whole range so filtering never changes it. */
+  balances: Map<string, number>;
+  /** Shown when filters hide every entry. */
+  emptyText?: string;
   recurring: MoneyRecurring[];
   /** Recurring items owned by a debt (managed in Tình hình → Khoản nợ, not toggled here). */
   debtRecurringIds: Set<string>;
@@ -29,16 +31,15 @@ const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occu
 const dayOf = (iso: string) => String(Number(iso.slice(8, 10)) || 1);
 
 /** Ledger like the household Excel: one row per entry; the top row is the quick-add form, any row edits in place. */
-export function LedgerTable({ transactions, categories, familyChildren, month, openingCash, recurring, debtRecurringIds, onSave, onDelete }: Props) {
+export function LedgerTable({ transactions, categories, familyChildren, month, balances, emptyText, recurring, debtRecurringIds, onSave, onDelete }: Props) {
   const [draft, setDraft] = useState<Draft>(blank(month));
   const [editing, setEditing] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState("");
-  // Running cash after each entry: oldest first from the month's opening cash (entries arrive newest first).
-  const balanceAfter = new Map<string, number>();
-  let running = openingCash;
-  for (const item of [...transactions].reverse()) { running += item.kind === "income" ? item.amount : -item.amount; balanceAfter.set(item.id, running); }
+  const [byAmount, setByAmount] = useState(false);
+  const balanceAfter = balances;
+  const rows = byAmount ? [...transactions].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)) : transactions;
   const recurringOf = (item: MoneyTransaction) => item.recurringId ? recurring.find((rec) => rec.id === item.recurringId) : undefined;
   const options = (kind: MoneyKind) => kind === "saving" ? SAVING_CATEGORIES : categories.filter((item) => item.kind === kind && !item.archived).map((item) => item.name);
 
@@ -77,10 +78,10 @@ export function LedgerTable({ transactions, categories, familyChildren, month, o
 
   return <div className="ledger-wrap">
     <table className="ledger" aria-label="Sổ thu chi">
-      <thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num">Số tiền</th><th className="num">Số dư</th><th>Tùy chọn</th><th></th></tr></thead>
+      <thead><tr><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num"><button type="button" className="th-sort" aria-pressed={byAmount} title={byAmount ? "Đang xếp theo số tiền · bấm để xếp theo ngày" : "Xếp theo số tiền, lớn nhất trước"} onClick={() => setByAmount(!byAmount)}>Số tiền {byAmount ? "▾" : "↕"}</button></th><th className="num">Số dư</th><th>Tùy chọn</th><th></th></tr></thead>
       <tbody>
         {!editing && <tr className="ledger-new">{fields()}</tr>}
-        {transactions.map((item) => editing === item.id ? <tr className="ledger-new" key={item.id}>{fields(item)}</tr> : <tr key={item.id} className={`ledger-row kind-${item.kind}`}>
+        {rows.map((item) => editing === item.id ? <tr className="ledger-new" key={item.id}>{fields(item)}</tr> : <tr key={item.id} className={`ledger-row kind-${item.kind}`}>
           <td data-label="Ngày">{formatVnDate(item.occurredOn)}</td>
           <td data-label="Nội dung"><span className="ledger-content">{item.content}</span>{recurringOf(item)?.active ? <span className="rec-pill">↻ Hằng tháng · ngày {recurringOf(item)!.dayOfMonth}</span> : item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
           <td data-label="Loại"><span className={`ledger-kind ${item.kind}`}>{MONEY_KIND_LABELS[item.kind]}</span></td>
@@ -90,7 +91,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, o
           <td className="ledger-child" data-label="Cho con">{item.forChild ? "Cho con" : ""}</td>
           <td className="ledger-actions"><button type="button" className="ledger-link" onClick={() => { setEditing(item.id); setDraft(toDraft(item, recurringOf(item))); setError(""); setNotice(""); }}>Sửa</button><button type="button" className="ledger-link danger" onClick={() => { if (window.confirm(`Xóa “${item.content}”?`)) void onDelete(item.id); }}>Xóa</button></td>
         </tr>)}
-        {!transactions.length && <tr><td colSpan={8} className="ledger-empty">Chưa có khoản nào trong tháng này. Gõ vào dòng trên rồi Enter — như Excel.</td></tr>}
+        {!transactions.length && <tr><td colSpan={8} className="ledger-empty">{emptyText ?? "Chưa có khoản nào trong tháng này. Gõ vào dòng trên rồi Enter — như Excel."}</td></tr>}
       </tbody>
     </table>
     {error && <p className="form-error" role="alert">{error}</p>}
