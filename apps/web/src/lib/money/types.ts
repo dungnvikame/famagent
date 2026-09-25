@@ -18,6 +18,8 @@ export interface MoneyTransaction {
   note?: string;
   source: "manual" | "recurring" | "purchase";
   recurringId?: string;
+  /** Expense only: paid out of the savings fund instead of cash (so it does not add to "tiêu lẹm"). */
+  paidFrom?: "savings";
 }
 
 export interface MoneyBudget { id: string; category: string; /** YYYY-MM */ month: string; limitAmount: number }
@@ -76,7 +78,7 @@ export interface MoneyBundle {
   settings: MoneySettings;
   transactions: MoneyTransaction[];
   /** All-time totals up to the end of the requested month, for running balances. */
-  totals: { income: number; expense: number; saving: number };
+  totals: { income: number; expense: number; saving: number; /** expenses paid from the savings fund */ fromSavings?: number };
   budgets: MoneyBudget[];
   recurring: MoneyRecurring[];
   goals: MoneyGoal[];

@@ -6,7 +6,7 @@ import type { MoneyBundle, MoneyDebt, MoneyPosition, MoneyRecurring, MoneyTransa
  * screen (summary, agent answers) keeps working unchanged.
  */
 
-type Totals = { income: number; expense: number; saving: number };
+type Totals = { income: number; expense: number; saving: number; fromSavings?: number };
 
 export const accountTotals = (position: MoneyPosition) => ({
   cash: position.accounts.filter((item) => item.type !== "saving").reduce((sum, item) => sum + item.amount, 0),
@@ -16,7 +16,8 @@ export const accountTotals = (position: MoneyPosition) => ({
 /** Opening balances such that `opening + totals before asOf` equals what the family had at the start of `asOf` (cash-like accounts = tiền tiêu, "Tiết kiệm" accounts = the savings fund). */
 export function anchorFromPosition(position: MoneyPosition, untilAsOf: Totals): { openingCash: number; openingSavings: number } {
   const { cash, savings } = accountTotals(position);
-  return { openingCash: cash - (untilAsOf.income - untilAsOf.expense - untilAsOf.saving), openingSavings: savings - untilAsOf.saving };
+  const fromSavings = untilAsOf.fromSavings ?? 0;
+  return { openingCash: cash - (untilAsOf.income - (untilAsOf.expense - fromSavings) - untilAsOf.saving), openingSavings: savings - (untilAsOf.saving - fromSavings) };
 }
 
 /** Paid toward each debt through its linked recurring item after `asOf` (by debt id). */
@@ -88,12 +89,12 @@ export function positionSummary(bundle: Pick<MoneyBundle, "settings" | "recurrin
   return summary;
 }
 
-type Entry = Pick<MoneyTransaction, "kind" | "amount" | "occurredOn" | "recurringId">;
+type Entry = Pick<MoneyTransaction, "kind" | "amount" | "occurredOn" | "recurringId" | "paidFrom">;
 
-/** Totals of entries dated before `before` (exclusive, YYYY-MM-DD). */
+/** Totals of entries dated before `before` (exclusive, YYYY-MM-DD); fromSavings = expenses paid out of the fund. */
 export function sumUntil(entries: Entry[], before: string) {
-  const sums = { income: 0, expense: 0, saving: 0 };
-  for (const entry of entries) if (entry.occurredOn < before) sums[entry.kind] += entry.amount;
+  const sums = { income: 0, expense: 0, saving: 0, fromSavings: 0 };
+  for (const entry of entries) if (entry.occurredOn < before) { sums[entry.kind] += entry.amount; if (entry.kind === "expense" && entry.paidFrom === "savings") sums.fromSavings += entry.amount; }
   return sums;
 }
 

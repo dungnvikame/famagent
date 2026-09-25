@@ -62,3 +62,21 @@ test("pots: savings fund, spent beyond cash (tiêu lẹm) and account total afte
   assert.deepEqual(pots.get("s5"), { savings: 119_000_000, lem: 9_288_470, account: 109_711_530, cash: -9_288_470 });
   assert.deepEqual(potsOf(3_000_000, 10_000_000), { savings: 10_000_000, lem: 0, account: 13_000_000, cash: 3_000_000 });
 });
+
+test("an expense paid from savings comes out of the fund, not cash (no tiêu lẹm)", async () => {
+  const { runningPots } = await import("../src/lib/money/history.ts");
+  const { sumUntil } = await import("../src/lib/money/position.ts");
+  const { summarizeMonth } = await import("../src/lib/money/summary.ts");
+  const { DEFAULT_CATEGORIES } = await import("../src/lib/money/types.ts");
+  const list = [tx("p1", "2026-09-05", "income", 10_000_000), tx("p2", "2026-09-10", "expense", 12_000_000, { category: "Khám, thuốc", paidFrom: "savings" }), tx("p3", "2026-09-12", "expense", 11_000_000)];
+  const pots = runningPots(list, 0, 50_000_000);
+  assert.deepEqual(pots.get("p2"), { savings: 38_000_000, lem: 0, account: 48_000_000, cash: 10_000_000 });
+  assert.deepEqual(pots.get("p3"), { savings: 38_000_000, lem: 1_000_000, account: 37_000_000, cash: -1_000_000 });
+  const totals = sumUntil(list, "2026-10-01");
+  assert.equal(totals.fromSavings, 12_000_000);
+  const summary = summarizeMonth({ month: "2026-09", settings: { openingCash: 0, openingSavings: 50_000_000, categories: DEFAULT_CATEGORIES }, transactions: list, totals, budgets: [], recurring: [], goals: [] }, new Date(2026, 8, 25));
+  assert.equal(summary.expense, 23_000_000);
+  assert.deepEqual(summary.balances, { cash: -1_000_000, savings: 38_000_000 });
+  assert.equal(summary.cashChange, -1_000_000);
+  assert.equal(summary.savingsChange, -12_000_000);
+});

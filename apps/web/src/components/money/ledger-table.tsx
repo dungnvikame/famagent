@@ -28,9 +28,9 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
 }
 
-type Draft = { occurredOn: string; content: string; category: string; kind: MoneyKind; amount: string; forChild: boolean; note: string; repeat: boolean; repeatDay: string };
-const blank = (month: string): Draft => ({ occurredOn: todayLocal().startsWith(month) ? todayLocal() : `${month}-01`, content: "", category: "", kind: "expense", amount: "", forChild: false, note: "", repeat: false, repeatDay: "" });
-const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: groupAmountTyping(String(item.amount)), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "" });
+type Draft = { occurredOn: string; content: string; category: string; kind: MoneyKind; amount: string; forChild: boolean; note: string; repeat: boolean; repeatDay: string; fromSavings: boolean };
+const blank = (month: string): Draft => ({ occurredOn: todayLocal().startsWith(month) ? todayLocal() : `${month}-01`, content: "", category: "", kind: "expense", amount: "", forChild: false, note: "", repeat: false, repeatDay: "", fromSavings: false });
+const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: groupAmountTyping(String(item.amount)), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "", fromSavings: item.paidFrom === "savings" });
 const dayOf = (iso: string) => String(Number(iso.slice(8, 10)) || 1);
 
 /** Ledger like the household Excel: one row per entry; the top row is the quick-add form, any row edits in place. */
@@ -43,6 +43,8 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
   const [byAmount, setByAmount] = useState(false);
   const balanceAfter = balances;
   const rows = byAmount ? [...transactions].sort((a, b) => Math.abs(b.amount) - Math.abs(a.amount)) : transactions;
+  // The source the family used last time for this category (e.g. Bảo hiểm nhân thọ → Tiết kiệm).
+  const lastFromSavings = (category: string, kind: MoneyKind) => kind === "expense" && transactions.find((tx) => tx.kind === "expense" && tx.category === (category || options(kind)[0]))?.paidFrom === "savings";
   const recurringOf = (item: MoneyTransaction) => item.recurringId ? recurring.find((rec) => rec.id === item.recurringId) : undefined;
   const options = (kind: MoneyKind) => kind === "saving" ? SAVING_CATEGORIES : categories.filter((item) => item.kind === kind && !item.archived).map((item) => item.name);
 
@@ -55,7 +57,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
     if (draft.repeat && (amount <= 0 || !(Number.isInteger(day) && day >= 1 && day <= 31))) { setError(amount <= 0 ? "Khoản rút tiết kiệm không đặt lặp lại được." : "Ngày lặp lại cần từ 1 đến 31."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      await onSave({ id: existing?.id ?? crypto.randomUUID(), occurredOn: draft.occurredOn, content: draft.content.trim(), category, kind: draft.kind, amount, forChild: draft.forChild, childId: draft.forChild ? familyChildren[0]?.id : undefined, note: draft.note.trim() || undefined, source: existing?.source ?? "manual", recurringId: existing?.recurringId }, { on: draft.repeat, day });
+      await onSave({ id: existing?.id ?? crypto.randomUUID(), occurredOn: draft.occurredOn, content: draft.content.trim(), category, kind: draft.kind, amount, paidFrom: draft.kind === "expense" && draft.fromSavings ? "savings" : undefined, forChild: draft.forChild, childId: draft.forChild ? familyChildren[0]?.id : undefined, note: draft.note.trim() || undefined, source: existing?.source ?? "manual", recurringId: existing?.recurringId }, { on: draft.repeat, day });
       const wasOn = existing ? Boolean(recurringOf(existing)?.active) : false;
       if (draft.repeat && !wasOn) setNotice(`✓ Đã đặt “${draft.content.trim()}” lặp lại ngày ${day} hằng tháng. Xem ở Tình hình → Thu & chi cố định.`);
       if (!draft.repeat && wasOn) setNotice(`Đã tắt lặp lại “${draft.content.trim()}”: các tháng sau không tự ghi nữa.`);
@@ -68,8 +70,8 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
     <td data-label="Ngày"><DateInput aria-label="Ngày" value={draft.occurredOn} onChange={(occurredOn) => setDraft({ ...draft, occurredOn })} /></td>
     <td data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
-    <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
-    <td data-label="Số tiền" colSpan={showBalance ? 4 : 1}><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value, fromSavings: lastFromSavings(event.target.value, draft.kind) })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
+    <td data-label="Số tiền" colSpan={showBalance ? 4 : 1}><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} />{draft.kind === "expense" && <div className="paid-from" role="group" aria-label="Trả từ"><span>Trả từ</span><button type="button" className={!draft.fromSavings ? "on" : undefined} onClick={() => setDraft({ ...draft, fromSavings: false })}>Tiền tiêu</button><button type="button" className={draft.fromSavings ? "on" : undefined} onClick={() => setDraft({ ...draft, fromSavings: true })}>Tiết kiệm</button></div>}</td>
     <td className="ledger-actions"><div className="ledger-options">
       {existing?.recurringId && debtRecurringIds.has(existing.recurringId) ? <small className="repeat-locked">↻ Từ khoản nợ</small>
         : <label className="repeat"><input type="checkbox" checked={draft.repeat} onChange={(event) => setDraft({ ...draft, repeat: event.target.checked, repeatDay: draft.repeatDay || dayOf(draft.occurredOn) })} /> <span>Hằng tháng</span></label>}
@@ -84,7 +86,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
         {!editing && <tr className="ledger-new">{fields()}</tr>}
         {rows.map((item) => editing === item.id ? <tr className="ledger-new" key={item.id}>{fields(item)}</tr> : <tr key={item.id} className={`ledger-row kind-${item.kind}`}>
           <td data-label="Ngày">{formatVnDate(item.occurredOn)}</td>
-          <td data-label="Nội dung"><span className="ledger-content">{item.content}</span>{recurringOf(item)?.active ? <span className="rec-pill">↻ Hằng tháng · ngày {recurringOf(item)!.dayOfMonth}</span> : item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
+          <td data-label="Nội dung"><span className="ledger-content">{item.content}</span>{item.paidFrom === "savings" && <span className="src-pill">từ tiết kiệm</span>}{recurringOf(item)?.active ? <span className="rec-pill">↻ Hằng tháng · ngày {recurringOf(item)!.dayOfMonth}</span> : item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
           <td data-label="Loại"><span className={`ledger-kind ${item.kind}`}>{MONEY_KIND_LABELS[item.kind]}</span></td>
           <td data-label="Nhóm">{item.category}</td>
           <td className="num" data-label="Số tiền">{item.kind === "expense" ? "−" : item.kind === "saving" && item.amount < 0 ? "+" : item.kind === "saving" ? "→" : "+"}{vnd(Math.abs(item.amount))}</td>

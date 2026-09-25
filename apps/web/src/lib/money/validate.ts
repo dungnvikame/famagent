@@ -16,7 +16,7 @@ export function validTransaction(input: unknown, id = crypto.randomUUID()): Mone
   if (!content || !category || !k || amount === null || amount === 0 || Math.abs(amount) > MAX_VND || (k !== "saving" && amount < 0) || !isDate(input.occurredOn)) return null;
   const note = input.note === undefined || input.note === "" ? undefined : text(input.note, 200) ?? undefined;
   if (input.note && !note) return null;
-  return { id: uuid(input.id) ? input.id : id, occurredOn: input.occurredOn, content, category, kind: k, amount, forChild: input.forChild === true, childId: uuid(input.childId) ? input.childId : undefined, note, source: input.source === "recurring" || input.source === "purchase" ? input.source : "manual", recurringId: uuid(input.recurringId) ? input.recurringId : undefined };
+  return { id: uuid(input.id) ? input.id : id, occurredOn: input.occurredOn, content, category, kind: k, amount, forChild: input.forChild === true, childId: uuid(input.childId) ? input.childId : undefined, note, source: input.source === "recurring" || input.source === "purchase" ? input.source : "manual", recurringId: uuid(input.recurringId) ? input.recurringId : undefined, paidFrom: k === "expense" && input.paidFrom === "savings" ? "savings" : undefined };
 }
 
 export function validBudget(input: unknown, id = crypto.randomUUID()): MoneyBudget | null {

@@ -47,13 +47,13 @@ export interface PotBalance { savings: number; lem: number; account: number; cas
  * saving transfers (withdrawals are negative). When cash drops below zero, that part was spent out of the fund:
  * tiêu lẹm = max(0, −cash). The account holds both: account = savings + cash (= savings − tiêu lẹm when cash < 0).
  */
-export function runningPots(entries: Array<Pick<MoneyTransaction, "id" | "kind" | "amount" | "occurredOn">>, openingCash: number, openingSavings: number): Map<string, PotBalance> {
+export function runningPots(entries: Array<Pick<MoneyTransaction, "id" | "kind" | "amount" | "occurredOn" | "paidFrom">>, openingCash: number, openingSavings: number): Map<string, PotBalance> {
   const ordered = entries.map((entry, index) => ({ entry, index })).sort((a, b) => a.entry.occurredOn.localeCompare(b.entry.occurredOn) || b.index - a.index);
   const out = new Map<string, PotBalance>();
   let cash = openingCash; let savings = openingSavings;
   for (const { entry } of ordered) {
     if (entry.kind === "income") cash += entry.amount;
-    else if (entry.kind === "expense") cash -= entry.amount;
+    else if (entry.kind === "expense") { if (entry.paidFrom === "savings") savings -= entry.amount; else cash -= entry.amount; }
     else { cash -= entry.amount; savings += entry.amount; }
     out.set(entry.id, { savings, lem: Math.max(0, -cash), account: savings + cash, cash });
   }

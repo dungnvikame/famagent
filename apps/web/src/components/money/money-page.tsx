@@ -89,7 +89,7 @@ export function MoneyPage() {
   // Entries in the filter's date range, their running cash, and what the filters leave.
   const source = outsideMonth ? range?.transactions ?? [] : bundle?.transactions ?? [];
   const opening = outsideMonth ? range?.openingCash ?? 0 : summary ? summary.balances.cash - summary.cashChange : 0;
-  const openingSavings = outsideMonth ? range?.openingSavings ?? 0 : summary ? summary.balances.savings - summary.saving : 0;
+  const openingSavings = outsideMonth ? range?.openingSavings ?? 0 : summary ? summary.balances.savings - summary.savingsChange : 0;
   const balances = runningPots(source, opening, openingSavings);
   const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
   const monthlyIds = new Set((bundle?.recurring ?? []).filter((item) => item.active).map((item) => item.id));

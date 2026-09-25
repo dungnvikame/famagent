@@ -19,6 +19,8 @@ export interface MonthSummary {
   net: number;
   /** Cash change over the month including loans (for the month's opening balance). */
   cashChange: number;
+  /** Savings fund change over the month (transfers in − withdrawals − expenses paid from the fund). */
+  savingsChange: number;
   /** Planned spend (settings.monthlyPlan) or the sum of category budgets, if any. */
   plan?: number;
   remainingOfPlan?: number;
@@ -86,7 +88,9 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   const paceRatio = plan && expectedExpense ? expectedExpense / plan : undefined;
   const childSpend = inMonth.filter((item) => item.kind === "expense" && item.forChild).reduce((acc, item) => acc + item.amount, 0);
   const upcoming = current ? upcomingRecurring(recurring, now) : [];
-  const balances = { cash: settings.openingCash + totals.income - totals.expense - totals.saving, savings: settings.openingSavings + totals.saving };
+  const fromSavings = totals.fromSavings ?? 0;
+  const balances = { cash: settings.openingCash + totals.income - (totals.expense - fromSavings) - totals.saving, savings: settings.openingSavings + totals.saving - fromSavings };
+  const monthFromSavings = allInMonth.filter((item) => item.kind === "expense" && item.paidFrom === "savings").reduce((sum, item) => sum + item.amount, 0);
 
   const insights: MoneyInsight[] = [];
   if (plan && paceRatio !== undefined && paceRatio > 1.05) {
@@ -99,7 +103,7 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${vnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
   if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${vnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
 
-  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: moved.income - moved.expense - moved.saving, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
+  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: moved.income - (moved.expense - monthFromSavings) - moved.saving, savingsChange: moved.saving - monthFromSavings, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
 }
 
 /** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */

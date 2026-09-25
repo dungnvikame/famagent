@@ -82,7 +82,7 @@ export function cumulativeSpend(transactions: MoneyTransaction[], month: string,
 /** Closing cash per day of the month (up to `lastDay`), from the month's opening cash. */
 export function dailyCash(transactions: MoneyTransaction[], month: string, opening: number, lastDay: number): number[] {
   const perDay = new Array(lastDay).fill(0);
-  for (const tx of transactions) if (tx.occurredOn.startsWith(month)) { const day = Number(tx.occurredOn.slice(8, 10)); if (day <= lastDay) perDay[day - 1] += tx.kind === "income" ? tx.amount : -tx.amount; }
+  for (const tx of transactions) if (tx.occurredOn.startsWith(month)) { const day = Number(tx.occurredOn.slice(8, 10)); if (day <= lastDay && !(tx.kind === "expense" && tx.paidFrom === "savings")) perDay[day - 1] += tx.kind === "income" ? tx.amount : -tx.amount; }
   let cash = opening;
   return perDay.map((change) => (cash += change));
 }
