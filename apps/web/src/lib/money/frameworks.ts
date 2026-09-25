@@ -135,7 +135,7 @@ export function frameworkProgress(fw: Framework, income: number, transactions: M
     const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? null) : bucketOf(fw.id, tx);
     if (key && !(tx.kind === "saving" && tx.amount < 0)) actual.set(key, (actual.get(key) ?? 0) + tx.amount);
   }
-  return fw.buckets.map((bucket) => ({ ...bucket, target: fw.base ? (bucket.share !== undefined ? Math.round(fw.base * bucket.share) : undefined) : bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
+  return fw.buckets.map((bucket) => ({ ...bucket, target: fw.base ? bucket.amount ?? (bucket.share !== undefined ? Math.round(fw.base * bucket.share) : undefined) : bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
 }
 
 /** Dave Ramsey step the family is on, from onboarding answers (1-based). */
