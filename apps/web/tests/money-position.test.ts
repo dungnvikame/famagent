@@ -114,3 +114,10 @@ test("a split with a monthly budget keeps the same targets whatever the month's 
   assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, allocation: own })?.allocation?.base, 40_000_000);
   assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: [], allocation: { ...own, base: 1.5 } }), null);
 });
+
+test("reading settings back from the database keeps the split's monthly budget", async () => {
+  const { settingsFromRow } = await import("../src/lib/money/store-server.ts");
+  const read = settingsFromRow({ opening_cash: 0, opening_savings: 0, categories: DEFAULT_CATEGORIES, allocation: { base: 30_600_000, buckets: [{ key: "a", label: "Tiêu dùng", share: 1, categories: ["Ăn uống"] }] } });
+  assert.equal(read.allocation?.base, 30_600_000);
+  assert.equal(read.allocation?.buckets[0].share, 1);
+});
