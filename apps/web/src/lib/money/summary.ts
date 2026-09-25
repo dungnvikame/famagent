@@ -1,4 +1,5 @@
 import type { MoneyBundle, MoneyRecurring, MoneyTransaction } from "./types.ts";
+import { isLoanEntry } from "./loans.ts";
 import { vnd } from "../catalog/format.ts";
 
 /**
@@ -16,6 +17,8 @@ export interface MonthSummary {
   saving: number;
   /** income − expense − saving for the month. */
   net: number;
+  /** Cash change over the month including loans (for the month's opening balance). */
+  cashChange: number;
   /** Planned spend (settings.monthlyPlan) or the sum of category budgets, if any. */
   plan?: number;
   remainingOfPlan?: number;
@@ -59,8 +62,11 @@ export function upcomingRecurring(recurring: MoneyRecurring[], now: Date, horizo
 
 export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSummary {
   const { month, transactions, budgets, settings, recurring, totals } = bundle;
-  const inMonth = transactions.filter((item) => item.occurredOn.startsWith(month));
+  const allInMonth = transactions.filter((item) => item.occurredOn.startsWith(month));
+  // Borrowing and lending are not income or spending (Nợ tab); they still move cash (cashChange).
+  const inMonth = allInMonth.filter((item) => !isLoanEntry(item));
   const sums = sumByKind(inMonth);
+  const moved = sumByKind(allInMonth);
   const byMap = new Map<string, CategoryLine>();
   for (const item of inMonth) {
     if (item.kind !== "expense") continue;
@@ -93,7 +99,7 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${vnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
   if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${vnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
 
-  return { month, ...sums, net: sums.income - sums.expense - sums.saving, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
+  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: moved.income - moved.expense - moved.saving, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
 }
 
 /** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */

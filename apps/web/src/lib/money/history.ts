@@ -1,3 +1,4 @@
+import { isLoanEntry } from "./loans.ts";
 import type { MoneyKind, MoneyTransaction } from "./types.ts";
 
 /** One month of totals for trend charts and "vs. earlier months" comparisons. */
@@ -13,7 +14,7 @@ export function monthlyHistory(entries: Entry[], endMonth: string, count = 12): 
   const byMonth = new Map(months.map((month) => [month, { month, income: 0, expense: 0, saving: 0, byCategory: {} as Record<string, number> }]));
   for (const entry of entries) {
     const row = byMonth.get(entry.occurredOn.slice(0, 7));
-    if (!row) continue;
+    if (!row || isLoanEntry(entry)) continue;
     row[entry.kind as MoneyKind] += entry.amount;
     if (entry.kind === "expense") row.byCategory[entry.category] = (row.byCategory[entry.category] ?? 0) + entry.amount;
   }

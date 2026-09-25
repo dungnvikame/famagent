@@ -82,6 +82,8 @@ export interface MoneyBundle {
   goals: MoneyGoal[];
   /** Paid toward each debt (by debt id) through its recurring item since `position.asOf`. */
   debtPaid?: Record<string, number>;
+  /** Borrowed / repaid / lent / collected over all entries (payments of Tình hình debts excluded). */
+  loans?: { borrowed: number; repaid: number; lent: number; collected: number };
   /** The 12 months ending with `month` (oldest first): totals and expense per category, for trends. */
   history?: Array<{ month: string; income: number; expense: number; saving: number; byCategory: Record<string, number> }>;
 }

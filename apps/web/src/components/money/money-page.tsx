@@ -11,7 +11,8 @@ import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings
 import { categoryAverages, potsOf, runningPots } from "@/lib/money/history";
 import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
-import { syncDebtRecurring } from "@/lib/money/position";
+import { debtLeft, syncDebtRecurring } from "@/lib/money/position";
+import { debtOverview } from "@/lib/money/loans";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
 import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRange, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
@@ -86,7 +87,7 @@ export function MoneyPage() {
 
   // Entries in the filter's date range, their running cash, and what the filters leave.
   const source = outsideMonth ? range?.transactions ?? [] : bundle?.transactions ?? [];
-  const opening = outsideMonth ? range?.openingCash ?? 0 : summary ? summary.balances.cash - summary.net : 0;
+  const opening = outsideMonth ? range?.openingCash ?? 0 : summary ? summary.balances.cash - summary.cashChange : 0;
   const openingSavings = outsideMonth ? range?.openingSavings ?? 0 : summary ? summary.balances.savings - summary.saving : 0;
   const balances = runningPots(source, opening, openingSavings);
   const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
@@ -97,7 +98,9 @@ export function MoneyPage() {
   const firstNegative = showBalance ? [...shown].reverse().find((tx) => (balances.get(tx.id)?.account ?? 0) < 0) : undefined;
   // "Tiền đang có" at the end of the month viewed, and how much more was spent out of savings during that month.
   const pots = summary ? potsOf(summary.balances.cash, summary.balances.savings) : undefined;
-  const lemAdded = summary && pots ? pots.lem - Math.max(0, -(summary.balances.cash - summary.net)) : 0;
+  // What the family owes (ledger loans + Tình hình debts) and what others owe it.
+  const debts = bundle ? debtOverview(bundle.loans ?? { borrowed: 0, repaid: 0, lent: 0, collected: 0 }, bundle.settings.position?.debts ?? [], (debt) => debtLeft(debt, bundle.debtPaid)) : undefined;
+  const lemAdded = summary && pots ? pots.lem - Math.max(0, -(summary.balances.cash - summary.cashChange)) : 0;
   const filterInsight = (() => {
     // One comparison when a single expense category is viewed over the whole month.
     if (!bundle?.history || filter.categories.length !== 1 || outsideMonth) return undefined;
@@ -185,6 +188,8 @@ export function MoneyPage() {
         <div className="pot main"><small>Hiện có</small><b className={pots.account < 0 ? "neg" : undefined}>{vnd(pots.account)}</b><em>số dư tài khoản</em></div>
         <div className="pot"><small>Quỹ tiết kiệm</small><b>{vnd(pots.savings)}</b></div>
         <div className={`pot${pots.lem > 0 ? " debt" : ""}`}><small>Tiêu lẹm (nợ quỹ tiết kiệm)</small><b>{vnd(pots.lem)}</b>{lemAdded !== 0 && <em>tháng này {lemAdded > 0 ? "+" : "−"}{vnd(Math.abs(lemAdded))}</em>}</div>
+        {debts && <div className={`pot${debts.owed > 0 ? " debt" : ""}`}><small>Tổng nợ</small><b>{vnd(debts.owed)}</b></div>}
+        {debts && <div className="pot"><small>Tổng cho vay</small><b className={debts.lent > 0 ? "pos" : undefined}>{vnd(debts.lent)}</b></div>}
       </div>}
       {tab !== "month" && <div className="app-card money-kpis">
         <div className="brief-kpi"><small>Thu</small><b>{summary.income ? vnd(summary.income) : "—"}</b></div>
@@ -205,7 +210,7 @@ export function MoneyPage() {
         {firstNegative && <div className="banner warn-banner"><span>Số dư tài khoản âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
         <LedgerTable transactions={shown} balances={balances} showBalance={showBalance} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
-      {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.net} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
+      {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}
       <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}. <Link className="brief-link" href="/agent">Hỏi FamAgent về tiền →</Link></p>
     </>}

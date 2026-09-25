@@ -1,5 +1,6 @@
 import { categoryAverages, type MonthTotals } from "./history.ts";
 import { daysInMonth, monthKey, type MonthSummary } from "./summary.ts";
+import { isLoanEntry } from "./loans.ts";
 import type { MoneyBudget, MoneyTransaction } from "./types.ts";
 
 /**
@@ -31,7 +32,7 @@ export function categoryRows(transactions: MoneyTransaction[], budgets: MoneyBud
   const averages = history ? categoryAverages(history, month) : {};
   const rows = new Map<string, CategoryRow>();
   for (const tx of transactions) {
-    if (tx.kind !== "expense" || !tx.occurredOn.startsWith(month)) continue;
+    if (tx.kind !== "expense" || !tx.occurredOn.startsWith(month) || isLoanEntry(tx)) continue;
     const row = rows.get(tx.category) ?? { name: tx.category, spent: 0, count: 0 };
     row.spent += tx.amount; row.count += 1; rows.set(tx.category, row);
   }
@@ -73,7 +74,7 @@ export function versusLastMonth(history: MonthTotals[] | undefined, month: strin
 /** Cumulative expense per day of the month (up to `lastDay`). */
 export function cumulativeSpend(transactions: MoneyTransaction[], month: string, lastDay: number): number[] {
   const perDay = new Array(lastDay).fill(0);
-  for (const tx of transactions) if (tx.kind === "expense" && tx.occurredOn.startsWith(month)) { const day = Number(tx.occurredOn.slice(8, 10)); if (day <= lastDay) perDay[day - 1] += tx.amount; }
+  for (const tx of transactions) if (tx.kind === "expense" && tx.occurredOn.startsWith(month) && !isLoanEntry(tx)) { const day = Number(tx.occurredOn.slice(8, 10)); if (day <= lastDay) perDay[day - 1] += tx.amount; }
   let total = 0;
   return perDay.map((amount) => (total += amount));
 }
@@ -87,4 +88,4 @@ export function dailyCash(transactions: MoneyTransaction[], month: string, openi
 }
 
 /** The largest expenses of the month. */
-export const topExpenses = (transactions: MoneyTransaction[], month: string, count = 5) => transactions.filter((tx) => tx.kind === "expense" && tx.occurredOn.startsWith(month)).sort((a, b) => b.amount - a.amount).slice(0, count);
+export const topExpenses = (transactions: MoneyTransaction[], month: string, count = 5) => transactions.filter((tx) => tx.kind === "expense" && tx.occurredOn.startsWith(month) && !isLoanEntry(tx)).sort((a, b) => b.amount - a.amount).slice(0, count);

@@ -2,6 +2,7 @@
 // so API routes stay thin; the same shapes are used by the local (browser-only) store.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthlyHistory } from "./history.ts";
+import { loanTotals } from "./loans.ts";
 import { sumUntil, withPosition } from "./position.ts";
 import { dueRecurring, postingFor } from "./summary.ts";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
@@ -52,7 +53,9 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
   ]);
   if (settings.error || transactions.error || totals.error || budgets.error || goals.error) return null;
   const all = entriesFromRows(totals.data ?? []);
-  return withPosition({ history: monthlyHistory(all, month, 12), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
+  const loadedSettings = settingsFromRow(settings.data);
+  const debtRecurring = new Set((loadedSettings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
+  return withPosition({ history: monthlyHistory(all, month, 12), loans: loanTotals(all, debtRecurring), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
 }
 
 

@@ -299,7 +299,9 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .banner.warn-banner{background:var(--warn-bg);color:var(--warn)}
 
 /* Savings fund, spent beyond cash, account total (25/09) */
-.pots-row{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px}
+.pots-row{display:grid;grid-template-columns:1.25fr repeat(4,minmax(0,1fr));gap:12px}
+.pot b.pos{color:var(--ok)}
+@media(max-width:1100px){.pots-row{grid-template-columns:repeat(3,minmax(0,1fr))}}
 .pot{padding:12px 14px;border-radius:16px;background:#fff;border:1px solid var(--line)}
 .pot small{display:block;color:var(--muted);font-size:12.5px}
 .pot b{font-size:22px;letter-spacing:-.02em}

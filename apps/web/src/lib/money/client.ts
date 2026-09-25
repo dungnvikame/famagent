@@ -4,6 +4,7 @@
 // Both paths return the same MoneyBundle so the UI and the Family Brief do not care where data lives.
 import { cloudEnabled } from "@/lib/experience/cloud";
 import { monthlyHistory } from "./history";
+import { loanTotals } from "./loans";
 import { sumUntil, withPosition } from "./position";
 import { dueRecurring, postingFor } from "./summary";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
@@ -37,7 +38,8 @@ export async function loadMoney(month: string, now = new Date()): Promise<MoneyB
     writeLocal(data);
   }
   // "YYYY-MM-99" sorts after every day of the month, so it works as an exclusive upper bound for string dates.
-  return withPosition({ history: monthlyHistory(data.transactions, month, 12), month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals }, data.transactions);
+  const debtRecurring = new Set((data.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
+  return withPosition({ history: monthlyHistory(data.transactions, month, 12), loans: loanTotals(data.transactions, debtRecurring), month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals }, data.transactions);
 }
 
 /** Sổ filter over any date range: entries from..to (newest first) and the cash balance just before `from`. */
