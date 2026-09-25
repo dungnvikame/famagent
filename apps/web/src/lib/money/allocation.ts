@@ -45,7 +45,7 @@ export function allocationFrom(preset: FrameworkId | "blank", categories: MoneyC
 /** The split as a Framework, so the Money page panel shows it like any other method. */
 export function customFramework(allocation: MoneyAllocation): Framework {
   return {
-    id: "custom", name: CUSTOM_NAME, origin: `Tự thiết kế · ${allocation.buckets.length} phần`,
+    id: "custom", name: CUSTOM_NAME, origin: `Tự thiết kế · ${allocation.buckets.length} phần`, base: allocation.base,
     idea: "Các phần, tỷ lệ và nhóm chi do nhà mình tự đặt.", howTo: [], bestFor: "",
     buckets: allocation.buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, share: bucket.share, amount: bucket.amount, hint: bucket.categories.join(", ").toLowerCase() || "chưa gắn nhóm chi nào", categories: bucket.categories, atLeast: isSavingBucket(bucket) })),
   };
