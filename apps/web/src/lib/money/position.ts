@@ -108,8 +108,8 @@ export function withPosition(bundle: MoneyBundle, entries: Entry[]): MoneyBundle
 /** Ledger category for a debt's monthly payment, among the family's active expense categories. */
 export function debtCategory(name: string, active: string[]): string {
   const norm = name.toLowerCase();
-  const wanted = /thẻ|the tin dung|credit/.test(norm) ? "Tiền thẻ tín dụng" : /góp|gop|mua xe|mua nhà|mua nha|ngân hàng|ngan hang|bank/.test(norm) ? "Tiền trả góp" : /quỹ|quy |hụi|hui|họ /.test(norm) ? "Tiền trả nợ quỹ" : "Tiền trả nợ cá nhân";
-  return active.includes(wanted) ? wanted : active.includes("Tiền trả nợ cá nhân") ? "Tiền trả nợ cá nhân" : active.includes("Others") ? "Others" : active[0] ?? "Others";
+  const wanted = /thẻ|the tin dung|credit/.test(norm) ? "Tiền thẻ tín dụng" : /góp|gop|mua xe|mua nhà|mua nha|ngân hàng|ngan hang|bank/.test(norm) ? "Tiền trả góp" : "Tiền trả nợ";
+  return active.includes(wanted) ? wanted : active.includes("Tiền trả nợ") ? "Tiền trả nợ" : active.includes("Khác") ? "Khác" : active[0] ?? "Khác";
 }
 
 export interface DebtSync { debts: MoneyDebt[]; upserts: MoneyRecurring[]; deletes: string[] }

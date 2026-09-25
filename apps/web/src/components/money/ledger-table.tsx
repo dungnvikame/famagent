@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { parseVnd, todayLocal } from "@/lib/money/parse";
-import { MONEY_KIND_LABELS, OTHER_CATEGORY, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyRecurring, type MoneyTransaction } from "@/lib/money/types";
+import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyRecurring, type MoneyTransaction } from "@/lib/money/types";
 import type { ChildProfile } from "@/lib/experience/types";
 
 interface Props {
@@ -39,7 +39,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, r
     const amount = parseVnd(draft.amount);
     if (!draft.content.trim()) { setError("Nhập nội dung khoản (ví dụ: Ăn sáng)."); return; }
     if (amount === null || (draft.kind !== "saving" && amount < 0)) { setError(draft.kind === "saving" ? "Số tiền không hợp lệ. Rút tiết kiệm thì nhập số âm, ví dụ -698k." : "Số tiền không hợp lệ. Ví dụ: 350k, 1,5tr hoặc 350000."); return; }
-    const category = draft.category || options(draft.kind)[0] || OTHER_CATEGORY;
+    const category = draft.category || options(draft.kind)[0] || "Khác";
     const day = Number(draft.repeatDay || dayOf(draft.occurredOn));
     if (draft.repeat && (amount <= 0 || !(Number.isInteger(day) && day >= 1 && day <= 31))) { setError(amount <= 0 ? "Khoản rút tiết kiệm không đặt lặp lại được." : "Ngày lặp lại cần từ 1 đến 31."); return; }
     setBusy(true); setError(""); setNotice("");
@@ -57,7 +57,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, r
     <td data-label="Ngày"><input type="date" aria-label="Ngày" value={draft.occurredOn} onChange={(event) => setDraft({ ...draft, occurredOn: event.target.value })} /></td>
     <td data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus onChange={(event) => setDraft({ ...draft, content: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft({ ...draft, kind: event.target.value as MoneyKind, category: "" })}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
-    <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? OTHER_CATEGORY}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
+    <td data-label="Nhóm"><select aria-label="Nhóm" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
     <td data-label="Số tiền"><input aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     <td className="ledger-child"><div className="ledger-options">
       <label><input type="checkbox" checked={draft.forChild} onChange={(event) => setDraft({ ...draft, forChild: event.target.checked })} /> <span>Cho con</span></label>

@@ -6,7 +6,7 @@ import { parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeft, monthsToPayOff, positionSummary } from "@/lib/money/position";
 import { parsePosition } from "@/lib/money/position-parse";
 import { shortVnd, type MonthSummary } from "@/lib/money/summary";
-import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, MONEY_KIND_LABELS, OTHER_CATEGORY, type AccountType, type MoneyBundle, type MoneyDebt, type MoneyPosition, type MoneyRecurring } from "@/lib/money/types";
+import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, MONEY_KIND_LABELS, type AccountType, type MoneyBundle, type MoneyDebt, type MoneyPosition, type MoneyRecurring } from "@/lib/money/types";
 
 type AccountRow = { id: string; type: AccountType; name: string; amount: string };
 type DebtRow = { id: string; name: string; balance: string; monthly: string; day: string; rate: string; recurringId?: string; asOf?: string; /** Shown remaining amount and the stored balance behind it (unchanged row = keep both). */ shown?: number; stored?: number };
@@ -30,7 +30,7 @@ const accountRows = (position?: MoneyPosition, fallback?: { cash: number; saving
   : [
     { id: uid(), type: "bank", name: "", amount: fallback?.cash ? String(fallback.cash) : "" },
     { id: uid(), type: "cash", name: "Tiền mặt", amount: "" },
-    ...(fallback?.savings ? [{ id: uid(), type: "saving" as const, name: "Sổ tiết kiệm", amount: String(fallback.savings) }] : []),
+    ...(fallback?.savings ? [{ id: uid(), type: "saving" as const, name: "Tiết kiệm", amount: String(fallback.savings) }] : []),
   ];
 const debtRows = (debts: MoneyDebt[], paid: Record<string, number> = {}): DebtRow[] => debts.map((debt) => ({ id: debt.id, name: debt.name, balance: String(debtLeft(debt, paid)), monthly: debt.monthlyPayment ? String(debt.monthlyPayment) : "", day: debt.dueDay ? String(debt.dueDay) : "", rate: debt.ratePct !== undefined ? String(debt.ratePct) : "", recurringId: debt.recurringId, asOf: debt.asOf, shown: debtLeft(debt, paid), stored: debt.balance }));
 
@@ -108,7 +108,7 @@ function FixedList({ recurring, debts, onRecurring, onDeleteRecurring, pending, 
     const amount = toAmount(row.amount); const day = Number(row.day);
     if (!row.name.trim() || amount === null || amount <= 0 || !(day >= 1 && day <= 31)) { setError("Điền tên, số tiền (ví dụ 6tr) và ngày 1–31."); return; }
     if (setPending && pending) { setPending([...pending, { ...row, key: uid(), name: row.name.trim() }]); setRow({ key: "", name: "", kind: row.kind, amount: "", day: "1" }); return; }
-    void run(async () => { await onRecurring({ id: uid(), name: row.name.trim(), kind: row.kind, category: category || options(row.kind)[0] || OTHER_CATEGORY, amount, dayOfMonth: day, active: true }); setRow({ key: "", name: "", kind: row.kind, amount: "", day: "1" }); setCategory(""); });
+    void run(async () => { await onRecurring({ id: uid(), name: row.name.trim(), kind: row.kind, category: category || options(row.kind)[0] || "Khác", amount, dayOfMonth: day, active: true }); setRow({ key: "", name: "", kind: row.kind, amount: "", day: "1" }); setCategory(""); });
   }
 
   return <div className="app-card app-rows fixed-list">

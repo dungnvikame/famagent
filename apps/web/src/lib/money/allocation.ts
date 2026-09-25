@@ -1,5 +1,5 @@
 import { bucketOf, frameworkById, type Framework, type FrameworkId } from "./frameworks.ts";
-import { SAVING_CATEGORIES, SAVING_WITHDRAW, type AllocationBucket, type MoneyAllocation, type MoneyCategory } from "./types.ts";
+import { SAVING_CATEGORIES, type AllocationBucket, type MoneyAllocation, type MoneyCategory } from "./types.ts";
 
 /**
  * The family's own money split (money method "custom"): named parts, each a share of income and the ledger
@@ -10,7 +10,7 @@ export const CUSTOM_NAME = "Cách chia của nhà mình";
 export const BUCKET_COLORS = ["#7a5cff", "#ff9f7a", "#3fb68b", "#f2c14e", "#5aa9e6", "#e06c9f", "#8d7b68", "#4bb3a8", "#b58cf2", "#f08a5d", "#6c8ebf", "#9bbf5a"];
 
 /** Every category a part can hold: active expense categories plus the saving ones. */
-export const allocatable = (categories: MoneyCategory[]) => [...categories.filter((item) => item.kind === "expense" && !item.archived).map((item) => item.name), ...SAVING_CATEGORIES.filter((name) => name !== SAVING_WITHDRAW)];
+export const allocatable = (categories: MoneyCategory[]) => [...categories.filter((item) => item.kind === "expense" && !item.archived).map((item) => item.name), ...SAVING_CATEGORIES.filter((name) => name !== "Rút tiết kiệm")];
 
 /** A part counts as "at least" (a saving target) when it holds a saving category; others are "at most". */
 export const isSavingBucket = (bucket: Pick<AllocationBucket, "categories">) => bucket.categories.some((name) => SAVING_CATEGORIES.includes(name));
@@ -29,7 +29,7 @@ export function allocationFrom(preset: FrameworkId | "blank", categories: MoneyC
   if (!fw || fw.buckets.some((bucket) => bucket.share === undefined)) {
     return { buckets: [
       { key: "b1", label: "Thiết yếu", share: 0.5, categories: [] },
-      { key: "b2", label: "Để dành", share: 0.2, categories: SAVING_CATEGORIES.filter((name) => name !== SAVING_WITHDRAW) },
+      { key: "b2", label: "Để dành", share: 0.2, categories: ["Tiết kiệm", "Tiết kiệm cho con"] },
       { key: "b3", label: "Hưởng thụ", share: 0.3, categories: [] },
     ] };
   }

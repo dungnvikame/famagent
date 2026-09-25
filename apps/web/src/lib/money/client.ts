@@ -5,18 +5,12 @@
 import { cloudEnabled } from "@/lib/experience/cloud";
 import { sumUntil, withPosition } from "./position";
 import { dueRecurring, postingFor } from "./summary";
-import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
+import { DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
 
 const KEY = "family-ai:money:v1";
 interface LocalMoney { settings: MoneySettings; transactions: MoneyTransaction[]; budgets: MoneyBudget[]; recurring: MoneyRecurring[]; goals: MoneyGoal[] }
 const empty = (): LocalMoney => ({ settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES }, transactions: [], budgets: [], recurring: [], goals: [] });
-function readLocal(): LocalMoney {
-  try {
-    const data: LocalMoney = { ...empty(), ...(JSON.parse(localStorage.getItem(KEY) || "null") ?? {}) };
-    // v2 category names (25/09): entries saved under an old name read under the new one.
-    return { ...data, settings: { ...data.settings, categories: currentCategories(data.settings.categories ?? DEFAULT_CATEGORIES) }, transactions: data.transactions.map((item) => ({ ...item, category: currentCategory(item.category, item.kind) })), budgets: data.budgets.map((item) => ({ ...item, category: currentCategory(item.category, "expense") })), recurring: data.recurring.map((item) => ({ ...item, category: currentCategory(item.category, item.kind) })) };
-  } catch { return empty(); }
-}
+function readLocal(): LocalMoney { try { return { ...empty(), ...(JSON.parse(localStorage.getItem(KEY) || "null") ?? {}) }; } catch { return empty(); } }
 function writeLocal(data: LocalMoney) { localStorage.setItem(KEY, JSON.stringify(data)); }
 export function clearLocalMoney() { localStorage.removeItem(KEY); }
 

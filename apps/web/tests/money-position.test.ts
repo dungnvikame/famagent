@@ -8,7 +8,7 @@ import { DEFAULT_CATEGORIES, type MoneyBundle, type MoneyPosition, type MoneyTra
 import { validSettings } from "../src/lib/money/validate.ts";
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
-const tx = (n: number, occurredOn: string, kind: MoneyTransaction["kind"], amount: number, extra: Partial<MoneyTransaction> = {}): MoneyTransaction => ({ id: id(n), occurredOn, content: `k${n}`, category: kind === "income" ? "Lương" : kind === "saving" ? "Tiết kiệm cho gia đình" : "Ăn uống", kind, amount, forChild: false, source: "manual", ...extra });
+const tx = (n: number, occurredOn: string, kind: MoneyTransaction["kind"], amount: number, extra: Partial<MoneyTransaction> = {}): MoneyTransaction => ({ id: id(n), occurredOn, content: `k${n}`, category: kind === "income" ? "Lương" : kind === "saving" ? "Tiết kiệm" : "Ăn uống", kind, amount, forChild: false, source: "manual", ...extra });
 const position: MoneyPosition = {
   asOf: "2026-09-24",
   accounts: [{ id: id(1), name: "VCB", type: "bank", amount: 28_500_000 }, { id: id(2), name: "Tiền mặt", type: "cash", amount: 3_000_000 }, { id: id(3), name: "Sổ 12 tháng", type: "saving", amount: 150_000_000 }],
@@ -49,10 +49,10 @@ test("custom allocation: from a preset, totals, unassigned, progress by category
   const split = allocationFrom("50-30-20", categories);
   assert.deepEqual(split.buckets.map((b) => [b.label, b.share]), [["Thiết yếu", 0.5], ["Mong muốn", 0.3], ["Để dành & trả nợ", 0.2]]);
   assert.ok(split.buckets[0].categories.includes("Ăn uống"));
-  assert.ok(split.buckets[2].categories.includes("Tiết kiệm cho gia đình"));
+  assert.ok(split.buckets[2].categories.includes("Tiết kiệm"));
   assert.equal(allocationTotal(split), 1);
   assert.deepEqual(unassigned(split, categories), []);
-  const own = { buckets: [{ key: "a", label: "Thiết yếu", share: 0.6, categories: ["Ăn uống"] }, { key: "b", label: "Cho con", share: 0.2, categories: ["Sữa & bỉm"] }, { key: "c", label: "Để dành", share: 0.2, categories: ["Tiết kiệm cho gia đình"] }] };
+  const own = { buckets: [{ key: "a", label: "Thiết yếu", share: 0.6, categories: ["Ăn uống"] }, { key: "b", label: "Cho con", share: 0.2, categories: ["Sữa & bỉm"] }, { key: "c", label: "Để dành", share: 0.2, categories: ["Tiết kiệm"] }] };
   const fw = customFramework(own);
   assert.equal(fw.buckets[2].atLeast, true);
   const progress = frameworkProgress(fw, 30_000_000, [tx(1, "2026-09-02", "expense", 1_000_000), tx(2, "2026-09-03", "expense", 500_000, { category: "Sữa & bỉm" }), tx(3, "2026-09-04", "saving", 5_000_000), tx(4, "2026-09-05", "expense", 700_000, { category: "Giải trí" })]);
@@ -83,5 +83,5 @@ test("debt payments become recurring items; removing a debt or its payment drops
   assert.deepEqual([again.upserts.length, again.deletes.length], [0, 0]);
   const dropped = syncDebtRecurring([{ ...first.debts[0], monthlyPayment: undefined }], first.debts, first.upserts, active, "2026-09-25", newId);
   assert.deepEqual(dropped.deletes, [id(100), id(101)]);
-  assert.equal(debtCategory("Vay em gái", active), "Tiền trả nợ cá nhân");
+  assert.equal(debtCategory("Vay em gái", active), "Tiền trả nợ");
 });
