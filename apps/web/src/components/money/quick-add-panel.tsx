@@ -33,6 +33,8 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
+  // Collapsed to one button until the person wants to add; typed text survives closing.
+  const [open, setOpen] = useState(false);
   const [photoReady, setPhotoReady] = useState(false);
   const [aiReady, setAiReady] = useState(false);
   const [refining, setRefining] = useState(0);
@@ -89,7 +91,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
     if (!chosen.length) { setError("Chọn ít nhất một khoản để ghi."); return; }
     if (chosen.some((draft) => !draft.content.trim() || !draft.amount)) { setError("Mỗi khoản cần nội dung và số tiền."); return; }
     setBusy(true); setError("");
-    try { await onSave(drafts); setDone(`✓ Đã ghi ${chosen.length} khoản vào sổ.`); setDrafts(null); setText(""); trackEvent("money_quick_saved", { lines: chosen.length, source: from }); }
+    try { await onSave(drafts); setDone(`✓ Đã ghi ${chosen.length} khoản vào sổ.`); setDrafts(null); setText(""); setOpen(false); trackEvent("money_quick_saved", { lines: chosen.length, source: from }); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa ghi được."); }
     finally { setBusy(false); }
   }
@@ -104,14 +106,19 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
   const sum = (kind: MoneyKind) => chosen.filter((draft) => draft.kind === kind).reduce((total, draft) => total + draft.amount, 0);
   const totals = ([["expense", "Chi"], ["income", "Thu"], ["saving", "Tiết kiệm"]] as const).filter(([kind]) => sum(kind)).map(([kind, label]) => `${label} ${vnd(sum(kind))}`).join(" · ");
 
+  if (!open && !drafts) return <div className="quick-toggle-row">
+    <button type="button" className="quick-toggle" aria-expanded={false} onClick={() => { setOpen(true); setDone(""); setError(""); }}><span className="app-orb" aria-hidden="true" />Thêm nhanh bằng Trợ lý <small>· dán danh sách hoặc gửi ảnh</small></button>
+    {done && <span className="app-sub quick-done" role="status">{done}</span>}
+  </div>;
+
   return <section className="app-card quick-add" aria-label="Thêm nhanh bằng Trợ lý">
     <div className="quick-head"><span className="app-orb" aria-hidden="true" /><div>
       <b>{drafts ? `Trợ lý đọc được ${drafts.length} khoản` : "Thêm nhanh bằng Trợ lý"}</b>
       <small>{drafts ? <>Xem lại từng dòng rồi ghi. Nhóm tô cam là Trợ lý chưa chắc; dòng có thể trùng đã bỏ chọn sẵn. <button type="button" className="ledger-link" onClick={() => setDrafts(null)}>{from === "photo" ? "Đọc ảnh khác" : "Sửa đoạn đã dán"}</button></> : "Dán danh sách hoặc gửi ảnh, mỗi khoản một dòng hoặc cách nhau bằng dấu phẩy. Viết tắt cũng được (35k, 2tr5, t9)."}</small>
-    </div></div>
+    </div>{!drafts && <button type="button" className="ledger-link quick-close" aria-expanded onClick={() => setOpen(false)}>Thu gọn</button>}</div>
 
     {!drafts && <>
-      <textarea aria-label="Danh sách giao dịch" placeholder={EXAMPLE} value={text} maxLength={8000} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) classify(); }} />
+      <textarea autoFocus aria-label="Danh sách giao dịch" placeholder={EXAMPLE} value={text} maxLength={8000} onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) classify(); }} />
       <div className="quick-bar">
         <div className="left">
           {photoReady && <><input ref={input} type="file" accept="image/*" hidden onChange={(event) => { const file = event.target.files?.[0]; if (file) void readPhoto(file); }} />
