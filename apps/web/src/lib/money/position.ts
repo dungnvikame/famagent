@@ -13,13 +13,10 @@ export const accountTotals = (position: MoneyPosition) => ({
   savings: position.accounts.filter((item) => item.type === "saving").reduce((sum, item) => sum + item.amount, 0),
 });
 
-/** Opening balances such that `opening + totals up to asOf` equals what the family said it had on `asOf`. */
+/** Opening balances such that `opening + totals before asOf` equals what the family had at the start of `asOf` (cash-like accounts = tiền tiêu, "Tiết kiệm" accounts = the savings fund). */
 export function anchorFromPosition(position: MoneyPosition, untilAsOf: Totals): { openingCash: number; openingSavings: number } {
   const { cash, savings } = accountTotals(position);
-  if (savings > 0) return { openingCash: cash - (untilAsOf.income - untilAsOf.expense - untilAsOf.saving), openingSavings: savings - untilAsOf.saving };
-  // No separate savings account: the fund lives inside the bank account. It is what was transferred to savings
-  // (from zero), and the balances typed in Tình hình are the account total = cash + fund on asOf.
-  return { openingCash: cash - (untilAsOf.income - untilAsOf.expense), openingSavings: 0 };
+  return { openingCash: cash - (untilAsOf.income - untilAsOf.expense - untilAsOf.saving), openingSavings: savings - untilAsOf.saving };
 }
 
 /** Paid toward each debt through its linked recurring item after `asOf` (by debt id). */
@@ -104,8 +101,8 @@ export function sumUntil(entries: Entry[], before: string) {
 export function withPosition(bundle: MoneyBundle, entries: Entry[]): MoneyBundle {
   const position = bundle.settings.position;
   if (!position) return bundle;
-  const dayAfter = new Date(Date.parse(`${position.asOf}T00:00:00Z`) + 86_400_000).toISOString().slice(0, 10);
-  return { ...bundle, settings: { ...bundle.settings, ...anchorFromPosition(position, sumUntil(entries, dayAfter)) }, debtPaid: debtPayments(position.debts, position.asOf, entries) };
+  // The typed balances are what the family had at the start of asOf, before any entry dated asOf or later.
+  return { ...bundle, settings: { ...bundle.settings, ...anchorFromPosition(position, sumUntil(entries, position.asOf)) }, debtPaid: debtPayments(position.debts, position.asOf, entries) };
 }
 
 /** Ledger category for a debt's monthly payment, among the family's active expense categories. */

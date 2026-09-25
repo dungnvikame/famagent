@@ -152,7 +152,7 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .ledger td.ledger-balance.negative{color:var(--danger)}
 .ledger-new td:nth-child(1){width:166px}
 .ledger-new td:nth-child(3){width:86px;min-width:78px}
-.ledger-new td:nth-child(4){width:140px;min-width:128px}
+.ledger-new td:nth-child(4){width:130px;min-width:118px}
 .ledger-new input:not([type=checkbox]){min-width:0}
 .ledger td:nth-child(2){min-width:120px}
 @media(max-width:760px){.ledger-new td:nth-child(n){width:auto;min-width:0}}
@@ -358,3 +358,12 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .big-loan small{display:block;color:var(--muted);font-size:12px}
 .done-fold{border:1px dashed var(--line);background:none;border-radius:12px;padding:8px;font:600 12.5px var(--font-sans),inherit;color:var(--muted);margin-top:6px;cursor:pointer}
 @media(max-width:860px){.dk,.dgrid{grid-template-columns:1fr}.qform{grid-template-columns:1fr 1fr}.qform .app-btn{grid-column:1/-1}}
+
+.asof-field{display:grid;gap:4px;padding:10px 12px;border-radius:14px;background:#f4f2fb;font-size:13px}
+.asof-field>span{font-weight:700;color:#4a4468}
+.asof-field small{color:var(--muted);font-size:12px}
+.asof-field .date-input{max-width:170px}
+.ledger-new td.ledger-actions{display:flex;gap:8px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+.ledger td.ledger-balance{font-size:12.5px;padding-left:6px;padding-right:6px;white-space:nowrap}
+.ledger th.num{padding-left:6px;padding-right:6px}
+.ledger td.num{padding-left:6px;padding-right:8px}

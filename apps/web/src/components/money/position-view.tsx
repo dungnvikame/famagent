@@ -8,6 +8,7 @@ import { parsePosition } from "@/lib/money/position-parse";
 import { type MonthSummary } from "@/lib/money/summary";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, MONEY_KIND_LABELS, type AccountType, type MoneyBundle, type MoneyDebt, type MoneyPosition, type MoneyRecurring } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
+import { DateInput } from "./date-input";
 
 type AccountRow = { id: string; type: AccountType; name: string; amount: string };
 type DebtRow = { id: string; name: string; balance: string; monthly: string; day: string; rate: string; recurringId?: string; asOf?: string; /** Shown remaining amount and the stored balance behind it (unchanged row = keep both). */ shown?: number; stored?: number };
@@ -150,6 +151,9 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const today = todayLocal();
+  // The date the typed balances belong to (start of that day, before its entries); new families start on 1/1.
+  const [asOfDraft, setAsOfDraft] = useState(position?.asOf ?? `${today.slice(0, 4)}-01-01`);
+  const asOfField = <label className="asof-field"><span>Số dư tại đầu ngày</span><DateInput aria-label="Số dư tại đầu ngày" value={asOfDraft} onChange={setAsOfDraft} /><small>Số tiền mỗi nơi có trước mọi giao dịch từ ngày này; sổ cộng trừ tiếp từ đó. Loại “Tiết kiệm” là quỹ tiết kiệm lúc đó.</small></label>;
 
   function fillFromStory() {
     const parsed = parsePosition(story);
@@ -168,7 +172,7 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     setBusy(true); setError("");
     try {
       // New account balances re-anchor at today; editing only debts keeps the earlier anchor date.
-      const asOf = next.accounts || !position ? today : position.asOf;
+      const asOf = next.accounts || !position ? asOfDraft : position.asOf;
       await onSavePosition({ asOf, accounts: readA, debts: readD }, withFixed.map((item) => ({ name: item.name, kind: item.kind, amount: parseVnd(item.amount) ?? 0, dayOfMonth: Number(item.day) || 1 })).filter((item) => item.amount > 0));
       return true;
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được."); return false; }
@@ -181,7 +185,7 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     <div className="fw-panel-head"><div><b>Cho FamAgent biết tình hình hiện tại của nhà mình</b><small>Khoảng 2 phút. Số ước chừng là được, sửa lại lúc nào cũng được. Chỉ nhà mình thấy.</small></div></div>
     <div className="steps3" role="list">{[["Tiền đang có", "Tiền mặt, tài khoản ngân hàng, ví, sổ tiết kiệm"], ["Khoản nợ", "Vay mua nhà/xe, thẻ tín dụng, trả góp, vay người thân"], ["Thu & chi cố định", "Lương, tiền nhà, học phí, điện nước, bảo hiểm…"]].map(([title, hint], index) => <button type="button" role="listitem" key={title} className={step === index + 1 ? "now" : undefined} onClick={() => setStep(index + 1)}><span>Bước {index + 1}</span><b>{title}</b><small>{hint}</small></button>)}</div>
     {filled && <p className="health ok" role="status">{filled}</p>}
-    {step === 1 && <AccountsForm rows={accounts} setRows={setAccounts} />}
+    {step === 1 && <>{asOfField}<AccountsForm rows={accounts} setRows={setAccounts} /></>}
     {step === 2 && <DebtsForm rows={debts} setRows={setDebts} />}
     {step === 3 && <FixedList recurring={bundle.recurring} debts={[]} categories={bundle.settings.categories} onRecurring={onRecurring} onDeleteRecurring={onDeleteRecurring} pending={pendingFixed} setPending={setPendingFixed} />}
     {step === 1 && !filled && <>
@@ -213,11 +217,11 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     {error && <p className="form-error" role="alert">{error}</p>}
 
     <section className="situ-sec">
-      <header><h2>Tiền đang có</h2><small>Nhập ngày {dayLabel(position.asOf)} · sau đó tự cộng trừ theo sổ · <button type="button" className="ledger-link" onClick={() => { setAccounts(accountRows(position)); setEditing("accounts"); }}>Cập nhật số dư</button></small></header>
-      {editing === "accounts" ? <div className="app-card"><p className="app-sub">Nhập số dư <b>hôm nay</b> của từng nơi; FamAgent lấy hôm nay làm mốc mới.</p><AccountsForm rows={accounts} setRows={setAccounts} /><div className="setup-actions"><button type="button" className="app-btn ghost" onClick={() => setEditing(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy} onClick={() => void save({ accounts }).then((ok) => { if (ok) setEditing(null); })}>Lưu số dư</button></div></div>
+      <header><h2>Số dư đầu kỳ</h2><small>Tính từ đầu ngày {dayLabel(position.asOf)} · sau đó cộng trừ theo sổ · <button type="button" className="ledger-link" onClick={() => { setAccounts(accountRows(position)); setAsOfDraft(position.asOf); setEditing("accounts"); }}>Sửa số dư đầu kỳ</button></small></header>
+      {editing === "accounts" ? <div className="app-card">{asOfField}<AccountsForm rows={accounts} setRows={setAccounts} /><div className="setup-actions"><button type="button" className="app-btn ghost" onClick={() => setEditing(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy} onClick={() => void save({ accounts }).then((ok) => { if (ok) setEditing(null); })}>Lưu số dư</button></div></div>
         : <div className="app-card app-rows">
           {position.accounts.map((item) => <div key={item.id}><span><span className="acc-type">{ACCOUNT_TYPE_LABELS[item.type]}</span><b>{item.name}</b></span><span className="row-actions"><b>{vnd(item.amount)}</b></span></div>)}
-          <div className="totals-line"><span>Tổng hiện tại<small>mốc {vnd(position.accounts.reduce((sum, item) => sum + item.amount, 0))} ngày {dayLabel(position.asOf)}, cộng trừ các khoản ghi sau đó</small></span><b>{vnd(view.has)}</b></div>
+          <div className="totals-line"><span>Hiện có<small>đầu kỳ {vnd(position.accounts.reduce((sum, item) => sum + item.amount, 0))} ngày {dayLabel(position.asOf)} + thu − chi từ ngày đó</small></span><b>{vnd(view.has)}</b></div>
         </div>}
     </section>
 

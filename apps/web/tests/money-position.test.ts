@@ -19,10 +19,10 @@ test("balances are anchored on the position date, then follow the ledger", () =>
   const entries = [tx(10, "2026-09-05", "income", 30_000_000), tx(11, "2026-09-20", "expense", 2_000_000), tx(12, "2026-09-24", "saving", 5_000_000), tx(13, "2026-09-25", "expense", 1_000_000), tx(14, "2026-10-15", "expense", 8_200_000, { recurringId: id(5), category: "Tiền trả góp", source: "recurring" })];
   const base: MoneyBundle = { month: "2026-09", settings: { openingCash: 999, openingSavings: 999, categories: DEFAULT_CATEGORIES, position }, transactions: entries.filter((e) => e.occurredOn.startsWith("2026-09")), totals: sumUntil(entries, "2026-10-01"), budgets: [], recurring: [], goals: [] };
   const september = summarizeMonth(withPosition(base, entries), new Date(2026, 8, 26));
-  // On 24/09 the family had 31.5tr cash + 150tr savings; 25/09 spent 1tr more.
-  assert.deepEqual(september.balances, { cash: 30_500_000, savings: 150_000_000 });
+  // At the start of 24/09 the family had 31.5tr cash + 150tr savings; then 5tr to savings (24/09) and 1tr spent (25/09).
+  assert.deepEqual(september.balances, { cash: 25_500_000, savings: 155_000_000 });
   const october = withPosition({ ...base, month: "2026-10", totals: sumUntil(entries, "2026-11-01") }, entries);
-  assert.equal(summarizeMonth(october, new Date(2026, 9, 20)).balances.cash, 22_300_000);
+  assert.equal(summarizeMonth(october, new Date(2026, 9, 20)).balances.cash, 17_300_000);
   assert.deepEqual(october.debtPaid, { [id(4)]: 8_200_000 });
 });
 
@@ -86,14 +86,13 @@ test("debt payments become recurring items; removing a debt or its payment drops
   assert.equal(debtCategory("Vay em gái", active), "Tiền trả nợ");
 });
 
-test("savings kept inside the bank account: the typed balance is the account total, the fund is the transfers", async () => {
+test("balances typed for the start of 1/1 are opening balances; the ledger adds up from there", async () => {
   const { withPosition, sumUntil } = await import("../src/lib/money/position.ts");
   const { runningPots } = await import("../src/lib/money/history.ts");
-  const entries = [tx(1, "2026-05-05", "saving", 7_000_000), tx(2, "2026-06-05", "saving", 7_000_000), tx(3, "2026-06-01", "income", 20_000_000), tx(4, "2026-06-10", "expense", 3_000_000)];
-  const pos = { asOf: "2026-09-24", accounts: [{ id: id(1), name: "VCB", type: "bank" as const, amount: 30_000_000 }], debts: [] };
-  const bundle = withPosition({ month: "2026-06", settings: { openingCash: 0, openingSavings: -99, categories: DEFAULT_CATEGORIES, position: pos }, transactions: [], totals: sumUntil(entries, "2026-07-01"), budgets: [], recurring: [], goals: [] }, entries);
-  assert.equal(bundle.settings.openingSavings, 0);
+  const entries = [tx(1, "2026-01-05", "income", 20_000_000), tx(2, "2026-01-05", "saving", 7_000_000), tx(3, "2026-02-05", "saving", 7_000_000), tx(4, "2026-02-10", "expense", 3_000_000)];
+  const pos = { asOf: "2026-01-01", accounts: [{ id: id(1), name: "Momo", type: "ewallet" as const, amount: 26_155_499 }, { id: id(2), name: "Tiết kiệm", type: "saving" as const, amount: 50_000_000 }], debts: [] };
+  const bundle = withPosition({ month: "2026-02", settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, position: pos }, transactions: [], totals: sumUntil(entries, "2026-03-01"), budgets: [], recurring: [], goals: [] }, entries);
+  assert.deepEqual([bundle.settings.openingCash, bundle.settings.openingSavings], [26_155_499, 50_000_000]);
   const pots = runningPots(entries, bundle.settings.openingCash, bundle.settings.openingSavings);
-  assert.deepEqual(pots.get(id(4)), { savings: 14_000_000, lem: 0, account: 30_000_000, cash: 16_000_000 });
-  assert.equal(pots.get(id(1))!.account, 13_000_000);
+  assert.deepEqual(pots.get(id(4)), { savings: 64_000_000, lem: 0, account: 93_155_499, cash: 29_155_499 });
 });
