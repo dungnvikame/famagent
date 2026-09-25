@@ -20,15 +20,15 @@ test("trả lời từ tổng hợp tháng bằng template, kèm gợi ý hỏi 
     transactions: [tx("2026-09-06", "income", 25_000_000, "Lương"), tx("2026-09-06", "saving", 5_000_000, "Tiết kiệm cho con", true), tx("2026-09-10", "expense", 7_000_000, "Ăn uống"), tx("2026-09-12", "expense", 3_000_000, "Con", true)],
     budgets: [{ id: "b", category: "Ăn uống", month: "2026-09", limitAmount: 5_000_000 }], recurring: [{ id: "r", name: "Internet", category: "Tiêu dùng", kind: "expense", amount: 450_000, dayOfMonth: 26, active: true }] }, now);
   const overview = answerMoney("overview", summary);
-  assert.match(overview.text, /^Tháng 9: thu 25M, đã chi 10M, chuyển tiết kiệm 5M\. Chi nhiều nhất: Ăn uống 7M \(140% ngân sách\), Con 3M\./);
-  assert.match(overview.text, /Nhịp chi đang trong kế hoạch 12M \(dự kiến 12,5M\)/, "12,5M / 12M = 4% chưa vượt ngưỡng 5%");
+  assert.match(overview.text, /^Tháng 9: thu 25\.000\.000đ, đã chi 10\.000\.000đ, chuyển tiết kiệm 5\.000\.000đ\. Chi nhiều nhất: Ăn uống 7\.000\.000đ \(140% ngân sách\), Con 3\.000\.000đ\./);
+  assert.match(overview.text, /Nhịp chi đang trong kế hoạch 12\.000\.000đ \(dự kiến 12\.500\.000đ\)/, "12.500.000đ / 12.000.000đ = 4% chưa vượt ngưỡng 5%");
   assert.equal(overview.choices.length, 3);
-  assert.match(answerMoney("category", summary, "ăn uống tháng này tiêu bao nhiêu").text, /^Ăn uống tháng 9: đã chi 7M trên ngân sách 5M \(140%\)\./);
-  assert.match(answerMoney("remaining", summary).text, /còn 2M\./);
-  assert.match(answerMoney("upcoming", summary).text, /Internet 450K \(còn 2 ngày\)/);
-  assert.match(answerMoney("child", summary).text, /Chi cho con tháng 9: 3M — 30% tổng chi\. Con 3M\./);
-  assert.match(answerMoney("savings", summary).text, /Tiết kiệm hiện 25M; tháng 9 đã chuyển thêm 5M \(20% thu nhập\)/);
-  assert.match(answerMoney("balance", summary).text, /tiền mặt\/tài khoản 11M, tiết kiệm 25M/);
+  assert.match(answerMoney("category", summary, "ăn uống tháng này tiêu bao nhiêu").text, /^Ăn uống tháng 9: đã chi 7\.000\.000đ trên ngân sách 5\.000\.000đ \(140%\)\./);
+  assert.match(answerMoney("remaining", summary).text, /còn 2\.000\.000đ\./);
+  assert.match(answerMoney("upcoming", summary).text, /Internet 450\.000đ \(còn 2 ngày\)/);
+  assert.match(answerMoney("child", summary).text, /Chi cho con tháng 9: 3\.000\.000đ — 30% tổng chi\. Con 3\.000\.000đ\./);
+  assert.match(answerMoney("savings", summary).text, /Tiết kiệm hiện 25\.000\.000đ; tháng 9 đã chuyển thêm 5\.000\.000đ \(20% thu nhập\)/);
+  assert.match(answerMoney("balance", summary).text, /tiền mặt\/tài khoản 11\.000\.000đ, tiết kiệm 25\.000\.000đ/);
   const empty = answerMoney("overview", { ...summary, transactionCount: 0 });
   assert.match(empty.text, /chưa có khoản nào/);
 });

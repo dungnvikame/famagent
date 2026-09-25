@@ -14,9 +14,9 @@ test("giao dịch Tiền sinh ra từ purchase", () => {
 });
 
 test("gợi ý ngân sách khi mua", () => {
-  assert.match(budgetHint(350_000, { spent: 300_000, limit: 500_000 }, 5_000_000)!, /vượt phần còn lại của ngân sách Con tháng này \(200K\)/);
-  assert.match(budgetHint(150_000, { spent: 300_000, limit: 500_000 }, 5_000_000)!, /còn 200K tháng này, sau khoản này còn 50K/);
-  assert.match(budgetHint(350_000, undefined, 1_000_000)!, /kế hoạch chi tháng còn 650K/);
-  assert.match(budgetHint(350_000, undefined, 100_000)!, /vượt phần còn lại của kế hoạch chi tháng \(100K\)/);
+  assert.match(budgetHint(350_000, { spent: 300_000, limit: 500_000 }, 5_000_000)!, /vượt phần còn lại của ngân sách Con tháng này \(200\.000đ\)/);
+  assert.match(budgetHint(150_000, { spent: 300_000, limit: 500_000 }, 5_000_000)!, /còn 200\.000đ tháng này, sau khoản này còn 50\.000đ/);
+  assert.match(budgetHint(350_000, undefined, 1_000_000)!, /kế hoạch chi tháng còn 650\.000đ/);
+  assert.match(budgetHint(350_000, undefined, 100_000)!, /vượt phần còn lại của kế hoạch chi tháng \(100\.000đ\)/);
   assert.equal(budgetHint(350_000, undefined, undefined), null);
 });

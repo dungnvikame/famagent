@@ -30,7 +30,7 @@ test("vượt nhịp kế hoạch: cảnh báo kèm nhóm vượt ngân sách; c
   assert.equal(summary.byCategory[0].category, "Ăn uống"); assert.equal(summary.byCategory[0].ratio, 2.6);
   assert.equal(summary.expectedExpense, 27_500_000); assert.equal(summary.paceRatio, 1.1);
   const over = summary.insights.find((item) => item.id === "over-pace");
-  assert.ok(over && /cao hơn kế hoạch 25M khoảng 10%/.test(over.text) && /Ăn uống \(\+8M\)/.test(over.text), over?.text);
+  assert.ok(over && /cao hơn kế hoạch 25\.000\.000đ khoảng 10%/.test(over.text) && /Ăn uống \(\+8\.000\.000đ\)/.test(over.text), over?.text);
   assert.ok(summary.insights.some((item) => item.id === "child-share" && /41%/.test(item.text)));
 });
 

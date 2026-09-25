@@ -1,6 +1,7 @@
 // Vietnamese wording for rules mode and for any LLM reply that fails checks.
 // Each question asks one slot group with at most 2 questions (spec v1 §9).
 import { childAgeMonths } from "../../experience/profile-mapper.ts";
+import { vnd } from "../../catalog/format.ts";
 import type { ChildProfile, FamilyProfile } from "../../experience/types.ts";
 import type { ActiveSlot } from "./slots.ts";
 import { formatWeight } from "../../onboarding/questions.ts";
@@ -61,9 +62,9 @@ export function profileSummary(profile: FamilyProfile): string[] {
   const HOUSING: Record<string, string> = { own: "Ở nhà của mình", rent: "Đang thuê nhà", with_parents: "Ở cùng bố mẹ" };
   const GOALS: Record<string, string> = { emergency: "quỹ dự phòng", education: "học hành của các con", home: "nhà", car: "xe", travel: "du lịch", retirement: "về hưu, chăm bố mẹ" };
   if (h?.housing) lines.push(HOUSING[h.housing]);
-  if (h?.monthlyIncome) lines.push(`Thu nhập khoảng ${Math.round(h.monthlyIncome / 1_000_000)} triệu/tháng`);
+  if (h?.monthlyIncome) lines.push(`Thu nhập khoảng ${vnd(h.monthlyIncome)}/tháng`);
   if (h?.savingGoals?.length) lines.push(`Đang để dành: ${h.savingGoals.map((item) => GOALS[item]).join(", ")}`);
-  if (h?.monthlySpend) lines.push(`Chi tiêu tháng khoảng ${Math.round(h.monthlySpend / 1_000_000)} triệu — dùng làm kế hoạch trong mục Tài chính`);
+  if (h?.monthlySpend) lines.push(`Chi tiêu tháng khoảng ${vnd(h.monthlySpend)} — dùng làm kế hoạch trong mục Tài chính`);
   return lines;
 }
 

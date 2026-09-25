@@ -1,6 +1,8 @@
 // Purchase history (SPEC_V2 §13, §38) and the Finance side of PURCHASE_COMPLETED. Stock estimates per household item
 // live in items.ts. Pure functions; persistence lives in purchase-store-server.ts (Supabase) and purchase-client.ts.
 
+import { vnd } from "../catalog/format.ts";
+
 export const PURCHASE_SOURCES = ["catalog", "chat", "quick", "ledger", "photo", "plan"] as const;
 export type PurchaseSource = (typeof PURCHASE_SOURCES)[number];
 
@@ -52,9 +54,9 @@ export function transactionForPurchase(purchase: Purchase, forChild: boolean, id
 export function budgetHint(price: number, category: { spent: number; limit?: number } | undefined, remainingOfPlan: number | undefined, categoryName = "Con"): string | null {
   if (category?.limit) {
     const left = category.limit - category.spent;
-    if (price > left) return `Khoản ${Math.round(price / 1000)}K này vượt phần còn lại của ngân sách ${categoryName} tháng này (${Math.round(Math.max(0, left) / 1000)}K). Cân nhắc gói nhỏ hơn hoặc đợi tháng sau.`;
-    return `Trong ngân sách ${categoryName}: còn ${Math.round(left / 1000)}K tháng này, sau khoản này còn ${Math.round((left - price) / 1000)}K.`;
+    if (price > left) return `Khoản ${vnd(price)} này vượt phần còn lại của ngân sách ${categoryName} tháng này (${vnd(Math.max(0, left))}). Cân nhắc gói nhỏ hơn hoặc đợi tháng sau.`;
+    return `Trong ngân sách ${categoryName}: còn ${vnd(left)} tháng này, sau khoản này còn ${vnd((left - price))}.`;
   }
-  if (remainingOfPlan !== undefined) return price > remainingOfPlan ? `Khoản này vượt phần còn lại của kế hoạch chi tháng (${Math.round(Math.max(0, remainingOfPlan) / 1000)}K).` : `Sau khoản này, kế hoạch chi tháng còn ${Math.round((remainingOfPlan - price) / 1000)}K.`;
+  if (remainingOfPlan !== undefined) return price > remainingOfPlan ? `Khoản này vượt phần còn lại của kế hoạch chi tháng (${vnd(Math.max(0, remainingOfPlan))}).` : `Sau khoản này, kế hoạch chi tháng còn ${vnd((remainingOfPlan - price))}.`;
   return null;
 }

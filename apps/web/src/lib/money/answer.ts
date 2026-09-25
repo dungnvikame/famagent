@@ -1,4 +1,5 @@
-import { shortVnd, type MonthSummary } from "./summary.ts";
+import { vnd } from "../catalog/format.ts";
+import type { MonthSummary } from "./summary.ts";
 
 /**
  * Family Coordinator, money side (SPEC_V2 §18): detect a finance question and answer it from the month
@@ -26,26 +27,26 @@ export function detectMoneyQuestion(message: string): MoneyQuestion | null {
 export function answerMoney(kind: MoneyQuestion, summary: MonthSummary, message = ""): { text: string; choices: string[] } {
   const m = `tháng ${Number(summary.month.slice(5))}`;
   if (summary.transactionCount === 0 && kind !== "upcoming" && kind !== "balance") return { text: `Sổ thu chi ${m} chưa có khoản nào nên mình chưa trả lời được. Ghi vài khoản ở mục Tài chính (như Excel: ngày · nội dung · nhóm · số tiền) rồi hỏi lại nhé.`, choices: ["Mở Tài chính", "Khoản nào sắp đến hạn?"] };
-  const top = summary.byCategory.slice(0, 3).map((line) => `${line.category} ${shortVnd(line.spent)}${line.limit ? ` (${Math.round((line.ratio ?? 0) * 100)}% ngân sách)` : ""}`).join(", ");
-  const pace = summary.plan && summary.expectedExpense ? summary.paceRatio! > 1.05 ? ` Với nhịp này, cuối tháng sẽ chi khoảng ${shortVnd(summary.expectedExpense)} — cao hơn kế hoạch ${shortVnd(summary.plan)} khoảng ${Math.round((summary.paceRatio! - 1) * 100)}%.` : ` Nhịp chi đang trong kế hoạch ${shortVnd(summary.plan)} (dự kiến ${shortVnd(summary.expectedExpense)}).` : "";
+  const top = summary.byCategory.slice(0, 3).map((line) => `${line.category} ${vnd(line.spent)}${line.limit ? ` (${Math.round((line.ratio ?? 0) * 100)}% ngân sách)` : ""}`).join(", ");
+  const pace = summary.plan && summary.expectedExpense ? summary.paceRatio! > 1.05 ? ` Với nhịp này, cuối tháng sẽ chi khoảng ${vnd(summary.expectedExpense)} — cao hơn kế hoạch ${vnd(summary.plan)} khoảng ${Math.round((summary.paceRatio! - 1) * 100)}%.` : ` Nhịp chi đang trong kế hoạch ${vnd(summary.plan)} (dự kiến ${vnd(summary.expectedExpense)}).` : "";
   switch (kind) {
     case "overview":
-      return { text: `${m.charAt(0).toUpperCase()}${m.slice(1)}: thu ${shortVnd(summary.income)}, đã chi ${shortVnd(summary.expense)}${summary.saving ? `, chuyển tiết kiệm ${shortVnd(summary.saving)}` : ""}.${top ? ` Chi nhiều nhất: ${top}.` : ""}${pace}`, choices: ["Tiền đi đâu nhiều nhất?", "Còn bao nhiêu trong kế hoạch?", "Khoản nào sắp đến hạn?"] };
+      return { text: `${m.charAt(0).toUpperCase()}${m.slice(1)}: thu ${vnd(summary.income)}, đã chi ${vnd(summary.expense)}${summary.saving ? `, chuyển tiết kiệm ${vnd(summary.saving)}` : ""}.${top ? ` Chi nhiều nhất: ${top}.` : ""}${pace}`, choices: ["Tiền đi đâu nhiều nhất?", "Còn bao nhiêu trong kế hoạch?", "Khoản nào sắp đến hạn?"] };
     case "remaining":
-      if (!summary.plan) return { text: `Bạn chưa đặt kế hoạch chi tháng nên mình chưa so được. ${m.charAt(0).toUpperCase()}${m.slice(1)} đã chi ${shortVnd(summary.expense)}; đặt kế hoạch ở Tài chính → Định kỳ & mục tiêu để mình theo dõi nhịp chi.`, choices: ["Mở Tài chính", "Tháng này tiêu thế nào?"] };
-      return { text: `Kế hoạch ${shortVnd(summary.plan)}, đã chi ${shortVnd(summary.expense)} → còn ${shortVnd(summary.remainingOfPlan!)}.${pace}${summary.byCategory.some((line) => line.limit && line.spent > line.limit) ? ` Nhóm vượt ngân sách: ${summary.byCategory.filter((line) => line.limit && line.spent > line.limit).map((line) => `${line.category} (+${shortVnd(line.spent - line.limit!)})`).join(", ")}.` : ""}`, choices: ["Tiền đi đâu nhiều nhất?", "Khoản nào sắp đến hạn?"] };
+      if (!summary.plan) return { text: `Bạn chưa đặt kế hoạch chi tháng nên mình chưa so được. ${m.charAt(0).toUpperCase()}${m.slice(1)} đã chi ${vnd(summary.expense)}; đặt kế hoạch ở Tài chính → Định kỳ & mục tiêu để mình theo dõi nhịp chi.`, choices: ["Mở Tài chính", "Tháng này tiêu thế nào?"] };
+      return { text: `Kế hoạch ${vnd(summary.plan)}, đã chi ${vnd(summary.expense)} → còn ${vnd(summary.remainingOfPlan!)}.${pace}${summary.byCategory.some((line) => line.limit && line.spent > line.limit) ? ` Nhóm vượt ngân sách: ${summary.byCategory.filter((line) => line.limit && line.spent > line.limit).map((line) => `${line.category} (+${vnd(line.spent - line.limit!)})`).join(", ")}.` : ""}`, choices: ["Tiền đi đâu nhiều nhất?", "Khoản nào sắp đến hạn?"] };
     case "category": {
       const asked = summary.byCategory.find((line) => fold(message).includes(fold(line.category)));
-      if (asked) return { text: `${asked.category} ${m}: đã chi ${shortVnd(asked.spent)}${asked.limit ? ` trên ngân sách ${shortVnd(asked.limit)} (${Math.round((asked.ratio ?? 0) * 100)}%)` : ", chưa đặt ngân sách"}${asked.forChild ? `, trong đó cho con ${shortVnd(asked.forChild)}` : ""}.`, choices: [`Đặt ngân sách ${asked.category}`, "Tháng này tiêu thế nào?"] };
-      return { text: top ? `Tiền ${m} đi nhiều nhất vào: ${top}.${summary.childSpend ? ` Chi cho con tổng ${shortVnd(summary.childSpend)}.` : ""}` : `${m.charAt(0).toUpperCase()}${m.slice(1)} chưa có khoản chi nào.`, choices: ["Còn bao nhiêu trong kế hoạch?", "Chi cho con bao nhiêu?"] };
+      if (asked) return { text: `${asked.category} ${m}: đã chi ${vnd(asked.spent)}${asked.limit ? ` trên ngân sách ${vnd(asked.limit)} (${Math.round((asked.ratio ?? 0) * 100)}%)` : ", chưa đặt ngân sách"}${asked.forChild ? `, trong đó cho con ${vnd(asked.forChild)}` : ""}.`, choices: [`Đặt ngân sách ${asked.category}`, "Tháng này tiêu thế nào?"] };
+      return { text: top ? `Tiền ${m} đi nhiều nhất vào: ${top}.${summary.childSpend ? ` Chi cho con tổng ${vnd(summary.childSpend)}.` : ""}` : `${m.charAt(0).toUpperCase()}${m.slice(1)} chưa có khoản chi nào.`, choices: ["Còn bao nhiêu trong kế hoạch?", "Chi cho con bao nhiêu?"] };
     }
     case "upcoming":
-      return { text: summary.upcoming.length ? `Sắp đến hạn: ${summary.upcoming.map((item) => `${item.name} ${shortVnd(item.amount)} (${item.daysLeft === 0 ? "hôm nay" : `còn ${item.daysLeft} ngày`})`).join(", ")}. Các khoản này sẽ tự ghi vào sổ khi tới ngày.` : "Không có khoản định kỳ nào đến hạn trong 7 ngày tới. Bạn có thể thêm hóa đơn định kỳ ở Tài chính → Định kỳ & mục tiêu để mình nhắc.", choices: ["Tháng này tiêu thế nào?", "Số dư còn bao nhiêu?"] };
+      return { text: summary.upcoming.length ? `Sắp đến hạn: ${summary.upcoming.map((item) => `${item.name} ${vnd(item.amount)} (${item.daysLeft === 0 ? "hôm nay" : `còn ${item.daysLeft} ngày`})`).join(", ")}. Các khoản này sẽ tự ghi vào sổ khi tới ngày.` : "Không có khoản định kỳ nào đến hạn trong 7 ngày tới. Bạn có thể thêm hóa đơn định kỳ ở Tài chính → Định kỳ & mục tiêu để mình nhắc.", choices: ["Tháng này tiêu thế nào?", "Số dư còn bao nhiêu?"] };
     case "savings":
-      return { text: `Tiết kiệm hiện ${shortVnd(summary.balances.savings)}${summary.saving ? `; ${m} đã chuyển thêm ${shortVnd(summary.saving)}${summary.income ? ` (${Math.round(summary.saving / summary.income * 100)}% thu nhập)` : ""}` : `; ${m} chưa chuyển khoản nào`}.`, choices: ["Tháng này tiêu thế nào?", "Còn bao nhiêu trong kế hoạch?"] };
+      return { text: `Tiết kiệm hiện ${vnd(summary.balances.savings)}${summary.saving ? `; ${m} đã chuyển thêm ${vnd(summary.saving)}${summary.income ? ` (${Math.round(summary.saving / summary.income * 100)}% thu nhập)` : ""}` : `; ${m} chưa chuyển khoản nào`}.`, choices: ["Tháng này tiêu thế nào?", "Còn bao nhiêu trong kế hoạch?"] };
     case "child":
-      return { text: summary.childSpend ? `Chi cho con ${m}: ${shortVnd(summary.childSpend)}${summary.expense ? ` — ${Math.round(summary.childSpend / summary.expense * 100)}% tổng chi` : ""}. ${summary.byCategory.filter((line) => line.forChild).map((line) => `${line.category} ${shortVnd(line.forChild)}`).join(", ")}.` : `${m.charAt(0).toUpperCase()}${m.slice(1)} chưa có khoản nào đánh dấu “cho con”. Tick ô Cho con khi ghi để mình theo dõi riêng.`, choices: ["Tiền đi đâu nhiều nhất?", "Tìm bỉm cho bé"] };
+      return { text: summary.childSpend ? `Chi cho con ${m}: ${vnd(summary.childSpend)}${summary.expense ? ` — ${Math.round(summary.childSpend / summary.expense * 100)}% tổng chi` : ""}. ${summary.byCategory.filter((line) => line.forChild).map((line) => `${line.category} ${vnd(line.forChild)}`).join(", ")}.` : `${m.charAt(0).toUpperCase()}${m.slice(1)} chưa có khoản nào đánh dấu “cho con”. Tick ô Cho con khi ghi để mình theo dõi riêng.`, choices: ["Tiền đi đâu nhiều nhất?", "Tìm bỉm cho bé"] };
     case "balance":
-      return { text: `Số dư ước tính: tiền mặt/tài khoản ${shortVnd(summary.balances.cash)}, tiết kiệm ${shortVnd(summary.balances.savings)} (từ số dư đầu kỳ và các khoản đã ghi).`, choices: ["Tháng này tiêu thế nào?", "Khoản nào sắp đến hạn?"] };
+      return { text: `Số dư ước tính: tiền mặt/tài khoản ${vnd(summary.balances.cash)}, tiết kiệm ${vnd(summary.balances.savings)} (từ số dư đầu kỳ và các khoản đã ghi).`, choices: ["Tháng này tiêu thế nào?", "Khoản nào sắp đến hạn?"] };
   }
 }

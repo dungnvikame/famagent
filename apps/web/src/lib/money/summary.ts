@@ -1,4 +1,5 @@
 import type { MoneyBundle, MoneyRecurring, MoneyTransaction } from "./types.ts";
+import { vnd } from "../catalog/format.ts";
 
 /**
  * Month analytics for the Money home and the Family Brief (SPEC_V2 §10–11): rules + arithmetic, no LLM.
@@ -83,14 +84,14 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
 
   const insights: MoneyInsight[] = [];
   if (plan && paceRatio !== undefined && paceRatio > 1.05) {
-    const top = byCategory.filter((line) => line.limit && line.spent > line.limit).slice(0, 2).map((line) => `${line.category} (+${shortVnd(line.spent - line.limit!)})`);
-    insights.push({ id: "over-pace", tone: "warn", text: `Với nhịp chi hiện tại, tháng này sẽ chi khoảng ${shortVnd(expectedExpense!)} — cao hơn kế hoạch ${shortVnd(plan)} khoảng ${Math.round((paceRatio - 1) * 100)}%${top.length ? `. Vượt ngân sách: ${top.join(", ")}` : ""}.`, source: `Từ ${inMonth.length} giao dịch tháng này và kế hoạch bạn đặt` });
+    const top = byCategory.filter((line) => line.limit && line.spent > line.limit).slice(0, 2).map((line) => `${line.category} (+${vnd(line.spent - line.limit!)})`);
+    insights.push({ id: "over-pace", tone: "warn", text: `Với nhịp chi hiện tại, tháng này sẽ chi khoảng ${vnd(expectedExpense!)} — cao hơn kế hoạch ${vnd(plan)} khoảng ${Math.round((paceRatio - 1) * 100)}%${top.length ? `. Vượt ngân sách: ${top.join(", ")}` : ""}.`, source: `Từ ${inMonth.length} giao dịch tháng này và kế hoạch bạn đặt` });
   } else if (plan && paceRatio !== undefined && paceRatio <= 0.9 && elapsed >= 10) {
-    insights.push({ id: "under-pace", tone: "ok", text: `Đang chi chậm hơn kế hoạch (~${Math.round(paceRatio * 100)}%). Nếu giữ nhịp này, cuối tháng còn dư khoảng ${shortVnd(plan - expectedExpense!)}.`, source: "Từ nhịp chi tháng này so với kế hoạch" });
+    insights.push({ id: "under-pace", tone: "ok", text: `Đang chi chậm hơn kế hoạch (~${Math.round(paceRatio * 100)}%). Nếu giữ nhịp này, cuối tháng còn dư khoảng ${vnd(plan - expectedExpense!)}.`, source: "Từ nhịp chi tháng này so với kế hoạch" });
   }
-  for (const line of byCategory) if (line.limit && line.spent > line.limit && !insights.some((item) => item.id === "over-pace")) { insights.push({ id: `over-${line.category}`, tone: "warn", text: `${line.category} đã vượt ngân sách ${shortVnd(line.limit)} (đã chi ${shortVnd(line.spent)}).`, source: "Từ ngân sách theo nhóm" }); break; }
-  if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${shortVnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
-  if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${shortVnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
+  for (const line of byCategory) if (line.limit && line.spent > line.limit && !insights.some((item) => item.id === "over-pace")) { insights.push({ id: `over-${line.category}`, tone: "warn", text: `${line.category} đã vượt ngân sách ${vnd(line.limit)} (đã chi ${vnd(line.spent)}).`, source: "Từ ngân sách theo nhóm" }); break; }
+  if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${vnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
+  if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${vnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
 
   return { month, ...sums, net: sums.income - sums.expense - sums.saving, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
 }
