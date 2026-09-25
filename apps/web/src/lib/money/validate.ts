@@ -98,7 +98,7 @@ export function validAllocation(input: unknown): MoneyAllocation | null {
     if (categories.some((name) => !name)) return null;
     const amount = item.amount === undefined || item.amount === null ? undefined : typeof item.amount === "number" && Number.isInteger(item.amount) && item.amount > 0 && item.amount <= MAX_VND ? item.amount : null;
     if (amount === null) return null;
-    buckets.push({ key, label, amount, share: Math.round(item.share * 1000) / 1000, categories: [...new Set(categories as string[])] });
+    buckets.push({ key, label, amount, share: Math.round(item.share * 1_000_000) / 1_000_000, categories: [...new Set(categories as string[])] });
   }
   return base ? { buckets, base } : { buckets };
 }

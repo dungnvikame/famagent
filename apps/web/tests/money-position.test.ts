@@ -121,3 +121,10 @@ test("reading settings back from the database keeps the split's monthly budget",
   assert.equal(read.allocation?.base, 30_600_000);
   assert.equal(read.allocation?.buckets[0].share, 1);
 });
+
+test("an amount typed for a part is kept exactly, not rebuilt from a rounded percent", () => {
+  const own = { base: 30_600_000, buckets: [{ key: "a", label: "Tiêu dùng", share: 23_600_000 / 30_600_000, amount: 23_600_000, categories: ["Ăn uống"] }, { key: "c", label: "Tiết kiệm", share: 7_000_000 / 30_600_000, amount: 7_000_000, categories: ["Tiết kiệm"] }] };
+  const saved = validSettings({ openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, allocation: own })!.allocation!;
+  assert.deepEqual(frameworkProgress(customFramework(saved), 51_280_271, []).map((b) => b.target), [23_600_000, 7_000_000]);
+  assert.equal(Math.round(saved.buckets[1].share * 1000) / 10, 22.9);
+});

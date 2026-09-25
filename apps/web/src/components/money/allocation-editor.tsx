@@ -31,7 +31,7 @@ export function AllocationEditor({ initial, categories: startCategories, income,
   const startBase = initial.base ?? (income > 0 ? income : initial.buckets.reduce((sum, bucket) => sum + (bucket.amount ?? 0), 0));
   const [base, setBase] = useState(startBase);
   const [baseText, setBaseText] = useState(startBase ? startBase.toLocaleString("vi-VN") : "");
-  const [buckets, setBuckets] = useState<AllocationBucket[]>(() => initial.buckets.map(({ amount, ...bucket }) => !initial.base && amount && startBase > 0 ? { ...bucket, share: Math.min(1, amount / startBase) } : bucket));
+  const [buckets, setBuckets] = useState<AllocationBucket[]>(() => initial.buckets.map(({ amount, ...bucket }) => initial.base ? { ...bucket, amount } : amount && startBase > 0 ? { ...bucket, share: Math.min(1, amount / startBase) } : bucket));
   const [categories, setCategories] = useState<MoneyCategory[]>(startCategories);
   const [preset, setPreset] = useState<string>("");
   const [draft, setDraft] = useState({ name: "", kind: "expense" as MoneyCategory["kind"], bucket: initial.buckets[0]?.key ?? "" });
@@ -45,11 +45,13 @@ export function AllocationEditor({ initial, categories: startCategories, income,
   const loose = unassigned(allocation, categories);
   const pool = new Set(allocatable(categories));
   const patch = (key: string, change: Partial<AllocationBucket>) => setBuckets((current) => current.map((bucket) => bucket.key === key ? { ...bucket, ...change } : bucket));
-  // Percent and amount are two views of one share of the monthly budget.
-  const setShare = (key: string, value: number) => patch(key, { share: Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0)) / 100 });
-  const setAmount = (key: string, text: string) => { if (!base) return; const value = text.trim() ? parseVnd(text) : 0; if (value === null || value < 0) return; patch(key, { share: Math.min(1, value / base) }); };
-  const amountText = (bucket: AllocationBucket) => base > 0 ? Math.round(base * bucket.share).toLocaleString("vi-VN") : "";
-  const changeBase = (text: string) => { setBaseText(text); const value = text.trim() ? parseVnd(text) : 0; if (value !== null && value >= 0) setBase(value); };
+  // Percent and amount are two views of one share of the monthly budget; a typed amount is kept exactly (7.000.000 stays 7.000.000).
+  const setShare = (key: string, value: number) => patch(key, { share: Math.max(0, Math.min(100, Number.isFinite(value) ? value : 0)) / 100, amount: undefined });
+  const setAmount = (key: string, text: string) => { if (!base) return; const value = text.trim() ? parseVnd(text) : 0; if (value === null || value < 0) return; patch(key, { share: Math.min(1, value / base), amount: Math.min(value, base) }); };
+  const amountOf = (bucket: AllocationBucket) => bucket.amount ?? Math.round(base * bucket.share);
+  const amountText = (bucket: AllocationBucket) => base > 0 ? amountOf(bucket).toLocaleString("vi-VN") : "";
+  // A new budget rescales every part by its percent.
+  const changeBase = (text: string) => { setBaseText(text); const value = text.trim() ? parseVnd(text) : 0; if (value !== null && value >= 0) { setBase(value); setBuckets((current) => current.map((bucket) => ({ ...bucket, amount: undefined }))); } };
   const assign = (key: string, name: string) => setBuckets((current) => current.map((bucket) => ({ ...bucket, categories: bucket.key === key ? [...bucket.categories.filter((item) => item !== name), name] : bucket.categories.filter((item) => item !== name) })));
 
   function addCategory() {
@@ -75,8 +77,11 @@ export function AllocationEditor({ initial, categories: startCategories, income,
     // An amount rarely lands on a round percent: the largest part takes the tiny rounding gap.
     const largest = [...buckets].sort((a, b) => b.share - a.share)[0];
     const shareOf = (bucket: AllocationBucket) => Math.max(0, Math.min(1, bucket.key === largest?.key ? bucket.share + 1 - total : bucket.share));
+    // Amounts add up to the budget exactly: the largest part takes what the others leave.
+    const others = buckets.filter((bucket) => bucket.key !== largest?.key).reduce((sum, bucket) => sum + amountOf(bucket), 0);
+    const exactAmount = (bucket: AllocationBucket) => bucket.key === largest?.key ? Math.max(0, base - others) : amountOf(bucket);
     setBusy(true); setError("");
-    try { await onSave({ base, buckets: buckets.map((bucket) => ({ ...bucket, share: shareOf(bucket), label: bucket.label.trim(), categories: bucket.categories.filter((name) => pool.has(name)) })) }, categories); }
+    try { await onSave({ base, buckets: buckets.map((bucket) => ({ ...bucket, share: shareOf(bucket), amount: exactAmount(bucket) || undefined, label: bucket.label.trim(), categories: bucket.categories.filter((name) => pool.has(name)) })) }, categories); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được."); setBusy(false); }
   }
 
