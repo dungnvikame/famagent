@@ -11,6 +11,7 @@ export interface Bucket {
   key: string; label: string; /** Share of income (0–1); undefined = no fixed share. */ share?: number; hint: string;
   /** Custom split only: the ledger categories that count toward this part. */ categories?: string[];
   /** A saving target ("at least") rather than a spending cap ("at most"). */ atLeast?: boolean;
+  /** Custom split only: a fixed monthly amount instead of a share of income. */ amount?: number;
 }
 export interface Framework {
   id: FrameworkId;
@@ -132,7 +133,7 @@ export function frameworkProgress(fw: Framework, income: number, transactions: M
     const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? null) : bucketOf(fw.id, tx);
     if (key && !(tx.kind === "saving" && tx.amount < 0)) actual.set(key, (actual.get(key) ?? 0) + tx.amount);
   }
-  return fw.buckets.map((bucket) => ({ ...bucket, target: bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined, actual: actual.get(bucket.key) ?? 0 }));
+  return fw.buckets.map((bucket) => ({ ...bucket, target: bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
 }
 
 /** Dave Ramsey step the family is on, from onboarding answers (1-based). */

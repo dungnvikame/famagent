@@ -47,6 +47,6 @@ export function customFramework(allocation: MoneyAllocation): Framework {
   return {
     id: "custom", name: CUSTOM_NAME, origin: `Tự thiết kế · ${allocation.buckets.length} phần`,
     idea: "Các phần, tỷ lệ và nhóm chi do nhà mình tự đặt.", howTo: [], bestFor: "",
-    buckets: allocation.buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, share: bucket.share, hint: bucket.categories.join(", ").toLowerCase() || "chưa gắn nhóm chi nào", categories: bucket.categories, atLeast: isSavingBucket(bucket) })),
+    buckets: allocation.buckets.map((bucket) => ({ key: bucket.key, label: bucket.label, share: bucket.share, amount: bucket.amount, hint: bucket.categories.join(", ").toLowerCase() || "chưa gắn nhóm chi nào", categories: bucket.categories, atLeast: isSavingBucket(bucket) })),
   };
 }

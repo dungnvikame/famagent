@@ -96,3 +96,13 @@ test("balances typed for the start of 1/1 are opening balances; the ledger adds 
   const pots = runningPots(entries, bundle.settings.openingCash, bundle.settings.openingSavings);
   assert.deepEqual(pots.get(id(4)), { savings: 64_000_000, lem: 0, account: 93_155_499, cash: 29_155_499 });
 });
+
+test("a split part can be a fixed monthly amount instead of a percent", () => {
+  const own = { buckets: [{ key: "a", label: "Thiết yếu", share: 0.6, categories: ["Ăn uống"] }, { key: "c", label: "Để dành", share: 0.4, amount: 7_000_000, categories: ["Tiết kiệm"] }] };
+  const progress = frameworkProgress(customFramework(own), 30_000_000, [tx(1, "2026-09-04", "saving", 7_000_000)]);
+  assert.deepEqual(progress.map((b) => [b.key, b.target]), [["a", 18_000_000], ["c", 7_000_000]]);
+  const saved = validSettings({ openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, allocation: own });
+  assert.equal(saved?.allocation?.buckets[1].amount, 7_000_000);
+  assert.equal(saved?.allocation?.buckets[0].amount, undefined);
+  assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: [], allocation: { buckets: [{ key: "a", label: "A", share: 1, amount: -5, categories: [] }] } }), null);
+});
