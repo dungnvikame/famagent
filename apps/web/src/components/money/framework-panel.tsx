@@ -50,18 +50,18 @@ export function FrameworkPanel({ profile, summary, bundle, onChoose, onSaveCusto
 
   const progress = frameworkProgress(fw, income, monthTx, bundle.budgets);
   return <section className="app-card fw-panel">
-    <div className="fw-panel-head"><div><b>{fw.name}</b><small>{custom ? `${fw.origin}${income ? ` · theo thu nhập ${vnd(income)}` : ""}` : fw.origin}</small></div>
+    <div className="fw-panel-head"><div><b>{fw.name}</b><small>{custom ? `${fw.origin}${fw.base ? ` · ngân sách ${vnd(fw.base)}/tháng` : income ? ` · theo thu nhập ${vnd(income)}` : ""}` : fw.origin}</small></div>
       <span className="row-actions">{custom && <button type="button" className="ledger-link" onClick={() => customize("custom")}>Chỉnh</button>}<button type="button" className="ledger-link" onClick={() => setMode("choose")}>Đổi phương pháp</button></span></div>
     {fw.id === "baby-steps" && <p className="fw-note">Nhà mình đang ở {babyStep(profile).text}</p>}
     {fw.id === "kakeibo" && <p className="fw-note">Cuối tháng tự hỏi: Thu bao nhiêu? Muốn để dành bao nhiêu? Đã tiêu bao nhiêu? Tháng sau cải thiện gì?</p>}
-    {!income && fw.buckets.some((bucket) => bucket.share !== undefined) && <p className="fw-note">Ghi khoản thu (lương) tháng này để thấy mức mục tiêu của từng phần.</p>}
+    {!income && !fw.base && fw.buckets.some((bucket) => bucket.share !== undefined) && <p className="fw-note">Ghi khoản thu (lương) tháng này để thấy mức mục tiêu của từng phần.</p>}
     <div className="fw-progress">{progress.map((bucket) => {
       const ratio = bucket.target ? bucket.actual / bucket.target : undefined;
       // Saving parts are "at least" targets; spending parts are "at most".
       const isSaving = bucket.atLeast ?? SAVING_KEYS.includes(bucket.key);
       const over = ratio !== undefined && !isSaving && ratio > 1;
       return <div key={bucket.key} className="fw-row">
-        <div className="fw-row-top"><b>{bucket.label}{bucket.amount ? ` · ${vnd(bucket.amount)}/tháng` : bucket.share !== undefined ? ` · ${Math.round(bucket.share * 1000) / 10}%` : ""}</b><span>{vnd(bucket.actual)}{bucket.target !== undefined && bucket.target > 0 ? ` / ${vnd(bucket.target)}` : ""}</span></div>
+        <div className="fw-row-top"><b>{bucket.label}{!fw.base && bucket.amount ? ` · ${vnd(bucket.amount)}/tháng` : bucket.share !== undefined ? ` · ${Math.round(bucket.share * 1000) / 10}%` : ""}</b><span>{vnd(bucket.actual)}{bucket.target !== undefined && bucket.target > 0 ? ` / ${vnd(bucket.target)}` : ""}</span></div>
         {bucket.target ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round((ratio ?? 0) * 100))}%` }} className={over ? "over" : undefined} /></span> : null}
         <small>{bucket.hint}{over ? " · đã vượt mức" : isSaving && ratio !== undefined && ratio < 1 ? ` · còn thiếu ${vnd(bucket.target! - bucket.actual)}` : ""}</small>
       </div>;

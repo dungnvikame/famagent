@@ -22,6 +22,8 @@ export interface Framework {
   howTo: string[];
   bestFor: string;
   buckets: Bucket[];
+  /** Custom split only: fixed monthly budget the shares apply to (instead of this month's income). */
+  base?: number;
 }
 
 export const FRAMEWORKS: Framework[] = [
@@ -120,7 +122,7 @@ export function bucketOf(id: FrameworkId, tx: Pick<MoneyTransaction, "kind" | "c
 
 export interface BucketProgress extends Bucket { target?: number; actual: number }
 
-/** Target (share × income) vs actual for the month; zero-based compares budgets to income instead. */
+/** Target (share × fixed budget, or × income when there is none) vs actual for the month; zero-based compares budgets to income instead. */
 export function frameworkProgress(fw: Framework, income: number, transactions: MoneyTransaction[], budgets: MoneyBudget[] = []): BucketProgress[] {
   if (fw.id === "zero-based") {
     const saved = transactions.filter((tx) => tx.kind === "saving" && tx.amount > 0).reduce((sum, tx) => sum + tx.amount, 0);
@@ -133,7 +135,7 @@ export function frameworkProgress(fw: Framework, income: number, transactions: M
     const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? null) : bucketOf(fw.id, tx);
     if (key && !(tx.kind === "saving" && tx.amount < 0)) actual.set(key, (actual.get(key) ?? 0) + tx.amount);
   }
-  return fw.buckets.map((bucket) => ({ ...bucket, target: bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
+  return fw.buckets.map((bucket) => ({ ...bucket, target: fw.base ? (bucket.share !== undefined ? Math.round(fw.base * bucket.share) : undefined) : bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
 }
 
 /** Dave Ramsey step the family is on, from onboarding answers (1-based). */

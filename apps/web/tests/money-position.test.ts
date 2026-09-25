@@ -106,3 +106,11 @@ test("a split part can be a fixed monthly amount instead of a percent", () => {
   assert.equal(saved?.allocation?.buckets[0].amount, undefined);
   assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: [], allocation: { buckets: [{ key: "a", label: "A", share: 1, amount: -5, categories: [] }] } }), null);
 });
+
+test("a split with a monthly budget keeps the same targets whatever the month's income", () => {
+  const own = { base: 40_000_000, buckets: [{ key: "a", label: "Tiêu dùng", share: 0.25, categories: ["Ăn uống"] }, { key: "c", label: "Tiết kiệm", share: 0.75, categories: ["Tiết kiệm"] }] };
+  const fw = customFramework(own);
+  for (const income of [0, 30_000_000, 51_280_271]) assert.deepEqual(frameworkProgress(fw, income, []).map((b) => b.target), [10_000_000, 30_000_000]);
+  assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, allocation: own })?.allocation?.base, 40_000_000);
+  assert.equal(validSettings({ openingCash: 0, openingSavings: 0, categories: [], allocation: { ...own, base: 1.5 } }), null);
+});

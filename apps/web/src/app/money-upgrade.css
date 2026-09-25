@@ -389,3 +389,9 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .quick-toggle small{color:var(--muted);font-weight:500}
 .quick-toggle:hover,.quick-toggle:focus-visible{border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff;outline:0}
 .quick-head .quick-close{margin-left:auto;align-self:flex-start}
+
+/* Split: fixed monthly budget (25/09) */
+.alloc-base{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f3f1fc;border-radius:12px;padding:10px 14px}
+.alloc-base label{font-weight:700;font-size:14px}
+.alloc-base .amt-field{width:190px}
+.alloc-base small{color:var(--muted);font-size:12.5px}

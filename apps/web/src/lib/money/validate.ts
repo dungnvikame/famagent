@@ -87,6 +87,8 @@ export function validPosition(input: unknown): MoneyPosition | null {
 
 export function validAllocation(input: unknown): MoneyAllocation | null {
   if (!isRecord(input) || !Array.isArray(input.buckets) || !input.buckets.length || input.buckets.length > 12) return null;
+  const base = input.base === undefined || input.base === null ? undefined : typeof input.base === "number" && Number.isInteger(input.base) && input.base > 0 && input.base <= MAX_VND ? input.base : null;
+  if (base === null) return null;
   const buckets: MoneyAllocation["buckets"] = [];
   for (const item of input.buckets) {
     if (!isRecord(item)) return null;
@@ -98,7 +100,7 @@ export function validAllocation(input: unknown): MoneyAllocation | null {
     if (amount === null) return null;
     buckets.push({ key, label, amount, share: Math.round(item.share * 1000) / 1000, categories: [...new Set(categories as string[])] });
   }
-  return { buckets };
+  return base ? { buckets, base } : { buckets };
 }
 
 function validMemory(input: unknown): Record<string, string> | null {
