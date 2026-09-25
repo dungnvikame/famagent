@@ -381,3 +381,11 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .amt-field.fixed{border-color:#b9adff;background:#f7f5ff}
 .amt-field small{position:absolute;right:6px;top:-9px;background:#ece8ff;color:var(--primary-ink);border-radius:999px;padding:0 6px;font-size:10px;font-weight:800}
 @media(max-width:760px){.bucket-top{grid-template-columns:12px 1fr 84px 28px}.bucket-top .amt-field{grid-column:2/4}}
+
+/* Quick add collapsed to one button (25/09) */
+.quick-toggle-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.quick-toggle{display:inline-flex;align-items:center;gap:10px;border:1.5px solid #dcd5ff;background:linear-gradient(180deg,#fbfaff,#fff);border-radius:999px;padding:6px 16px 6px 6px;font:600 14px var(--font-sans),inherit;color:var(--ink);cursor:pointer}
+.quick-toggle .app-orb{width:26px;height:26px}
+.quick-toggle small{color:var(--muted);font-weight:500}
+.quick-toggle:hover,.quick-toggle:focus-visible{border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff;outline:0}
+.quick-head .quick-close{margin-left:auto;align-self:flex-start}
