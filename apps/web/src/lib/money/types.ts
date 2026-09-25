@@ -84,10 +84,43 @@ export interface MoneyBundle {
   debtPaid?: Record<string, number>;
 }
 
-/** Category set from the product owner's household sheet (plan §6.2); users can rename/archive/add. */
+/** Category set from the product owner's household sheet (v2, 25/09/2026); users can add their own and archive. */
 export const DEFAULT_CATEGORIES: MoneyCategory[] = [
-  ...["Ăn uống", "Tiêu dùng", "Mua sắm", "Con", "Gia đình", "Khám, thuốc", "Giải trí", "Học tập", "Hiếu hỉ", "Du lịch", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Tiền cho vay", "Chi phí đầu tư", "Khác"].map((name) => ({ name, kind: "expense" as const })),
-  ...["Lương", "Thưởng", "Đầu tư", "Dự án ngoài", "Gia đình hỗ trợ", "Tiền trả nợ nhận về", "Vay cá nhân", "Vay ngân hàng", "Khác"].map((name) => ({ name, kind: "income" as const })),
+  ...["Tiêu dùng", "Ăn uống", "Mua sắm", "Giải trí", "Học tập", "Hiếu hỉ", "Khám, thuốc", "Chi phí đầu tư", "Gia đình", "Con", "Du lịch", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ cá nhân", "Tiền trả nợ quỹ", "Tiền cho vay", "Others"].map((name) => ({ name, kind: "expense" as const })),
+  ...["Lương", "Đầu tư", "Thưởng", "Tiền dự án ngoài", "Vay cá nhân", "Vay ngân hàng", "Tiền trả nợ", "Gia đình hỗ trợ", "Others"].map((name) => ({ name, kind: "income" as const })),
 ];
 
-export const SAVING_CATEGORIES = ["Tiết kiệm", "Tiết kiệm cho con", "Rút tiết kiệm"];
+/** Saving categories (fixed list): transfers into savings by purpose, and the withdrawal line (negative amounts). */
+export const SAVING_CATEGORIES = ["Tiết kiệm cho gia đình", "Tiết kiệm cho con", "Tiết kiệm du lịch", "Tiết kiệm mua sắm", "Mua nhà", "Mua xe", "Trả nợ", "Rút tiền tiết kiệm"];
+export const SAVING_DEFAULT = "Tiết kiệm cho gia đình";
+export const SAVING_CHILD = "Tiết kiệm cho con";
+export const SAVING_WITHDRAW = "Rút tiền tiết kiệm";
+/** The catch-all category in both expense and income lists. */
+export const OTHER_CATEGORY = "Others";
+
+/**
+ * Names from the first category set → their v2 names, per kind (the same old name can mean different things:
+ * expense "Tiền trả nợ" is now "Tiền trả nợ cá nhân", while income "Tiền trả nợ" is the new name for money paid back).
+ * Applied when reading, so entries saved under an old name show and group under the new one.
+ */
+const RENAMED: Record<MoneyKind, Record<string, string>> = {
+  expense: { "Khác": "Others", "Tiền trả nợ": "Tiền trả nợ cá nhân" },
+  income: { "Khác": "Others", "Dự án ngoài": "Tiền dự án ngoài", "Tiền trả nợ nhận về": "Tiền trả nợ" },
+  saving: { "Tiết kiệm": "Tiết kiệm cho gia đình", "Rút tiết kiệm": "Rút tiền tiết kiệm" },
+};
+export const currentCategory = (name: string, kind: MoneyKind) => RENAMED[kind][name] ?? name;
+
+/** A family's category list in v2 names: old names renamed, duplicates merged, new defaults added (custom ones kept). */
+export function currentCategories(list: MoneyCategory[]): MoneyCategory[] {
+  const out: MoneyCategory[] = [];
+  for (const item of list) {
+    const name = currentCategory(item.name, item.kind);
+    const existing = out.find((entry) => entry.kind === item.kind && entry.name === name);
+    if (existing) { if (!item.archived) existing.archived = undefined; continue; }
+    out.push({ ...item, name });
+  }
+  for (const item of DEFAULT_CATEGORIES) if (!out.some((entry) => entry.kind === item.kind && entry.name === item.name)) out.push({ ...item });
+  // The sheet's order first (per kind), then the family's own categories in the order they were added.
+  const rank = (item: MoneyCategory) => { const index = DEFAULT_CATEGORIES.findIndex((entry) => entry.kind === item.kind && entry.name === item.name); return index < 0 ? DEFAULT_CATEGORIES.length : index; };
+  return out.map((item, index) => ({ item, index })).sort((a, b) => (a.item.kind === b.item.kind ? 0 : a.item.kind === "expense" ? -1 : 1) || rank(a.item) - rank(b.item) || a.index - b.index).map(({ item }) => item);
+}

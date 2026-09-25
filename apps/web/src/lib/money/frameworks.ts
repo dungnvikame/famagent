@@ -97,8 +97,8 @@ export const FRAMEWORKS: Framework[] = [
 export const frameworkById = (id?: string) => FRAMEWORKS.find((item) => item.id === id);
 
 // Default ledger categories (lib/money/types DEFAULT_CATEGORIES) grouped once, reused by every mapping.
-const ESSENTIAL = new Set(["Ăn uống", "Tiêu dùng", "Con", "Gia đình", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Khám, thuốc"]);
-const DEBT = new Set(["Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ"]);
+const ESSENTIAL = new Set(["Ăn uống", "Tiêu dùng", "Con", "Gia đình", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ cá nhân", "Tiền trả nợ quỹ", "Khám, thuốc"]);
+const DEBT = new Set(["Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ cá nhân", "Tiền trả nợ quỹ"]);
 const INVEST = new Set(["Chi phí đầu tư", "Tiền cho vay"]);
 
 /** Bucket key a ledger entry counts toward in a framework (null = not counted, e.g. income). */

@@ -21,7 +21,7 @@ Nhóm chi được phép: ${request.categories.expense.join(" | ")}.
 Nhóm thu được phép: ${request.categories.income.join(" | ")}.
 ${request.children.length ? `Tên các con trong nhà: ${request.children.join(", ")} — khoản nhắc tên con là chi cho con (nhóm "Con" nếu có).` : ""}
 Quy ước: "<tên người> vay/mượn" = nhà mình cho người đó vay (chi, "Tiền cho vay"); "vay/mượn <ai>" ở đầu câu = nhà mình đi vay (thu, "Vay cá nhân" hoặc "Vay ngân hàng"); "<ai> trả nợ" = được trả lại (thu, "Tiền trả nợ nhận về"); đồ em bé (bỉm, sữa bột, hút mũi, rơ lưỡi, ăn dặm) = "Con"; đồ uống, đi chợ, siêu thị = "Ăn uống"; SIM, cước, internet, đồ dùng nhà = "Tiêu dùng"; quần áo, mỹ phẩm, đồ gia dụng = "Mua sắm".
-Trả về mỗi dòng: i (giữ nguyên), kind ("expense" chi hoặc "income" thu — giữ như đầu vào trừ khi nội dung rõ ràng là ngược lại), category (đúng một tên trong danh sách của kind đó). Không chắc thì chọn "Khác".`;
+Trả về mỗi dòng: i (giữ nguyên), kind ("expense" chi hoặc "income" thu — giữ như đầu vào trừ khi nội dung rõ ràng là ngược lại), category (đúng một tên trong danh sách của kind đó). Không chắc thì chọn "Others".`;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
