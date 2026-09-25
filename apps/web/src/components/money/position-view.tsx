@@ -25,7 +25,7 @@ interface Props {
 
 const uid = () => crypto.randomUUID();
 const toAmount = (text: string) => text.trim() ? parseVnd(text) : null;
-const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 const accountRows = (position?: MoneyPosition, fallback?: { cash: number; savings: number }): AccountRow[] => position?.accounts.length
   ? position.accounts.map((item) => ({ id: item.id, type: item.type, name: item.name, amount: groupAmountTyping(String(item.amount)) }))
   : [

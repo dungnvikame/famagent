@@ -141,3 +141,18 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .rec-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;background:#e6f4ee;color:#1f7a5a;margin-left:6px;vertical-align:middle}
 .ledger-notice{margin:8px 0 0;color:var(--ok);font-weight:600}
 .quick-review td.repeat-cell{white-space:nowrap}
+
+/* dd/mm/yyyy date field and running balance (25/09) */
+.date-input{position:relative;display:flex;align-items:center;gap:4px;min-width:124px}
+.date-input input:not(.date-native){width:100%;min-width:92px;padding-left:8px!important;padding-right:6px!important;font-variant-numeric:tabular-nums}
+.date-input input[aria-invalid]{border-color:#e39a93!important;background:#fff6f5}
+.date-pick{flex:none;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line);border-radius:9px;background:#fff;color:#4a4468;cursor:pointer}
+.date-native{position:absolute;right:0;bottom:0;width:1px;height:1px;opacity:0;pointer-events:none;border:0;padding:0}
+.ledger td.ledger-balance{color:var(--muted);white-space:nowrap}
+.ledger td.ledger-balance.negative{color:var(--danger)}
+.ledger-new td:nth-child(1){width:166px}
+.ledger-new td:nth-child(3){width:86px;min-width:78px}
+.ledger-new td:nth-child(4){width:140px;min-width:128px}
+.ledger-new input:not([type=checkbox]){min-width:0}
+.ledger td:nth-child(2){min-width:120px}
+@media(max-width:760px){.ledger-new td:nth-child(n){width:auto;min-width:0}}

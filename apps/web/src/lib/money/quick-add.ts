@@ -132,8 +132,7 @@ const tidy = (content: string) => {
   return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 };
 
-const shortVnd = (amount: number) => { const abs = Math.abs(amount); return abs >= 1_000_000 ? `${(abs / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}tr` : `${Math.round(abs / 1000)}k`; };
-const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
+const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
 /** Saving category from the purpose in the line (default: "Tiết kiệm"). */
 function savingPurpose(norm: string): string {
@@ -182,7 +181,7 @@ function categorize(content: string, kind: MoneyKind, amount: number, context: Q
 function duplicateOf(draft: Pick<QuickDraft, "kind" | "amount" | "content" | "category">, existing: MoneyTransaction[]): string | undefined {
   const key = memoryKey(draft.content);
   const hit = existing.find((tx) => tx.kind === draft.kind && tx.amount === draft.amount && (memoryKey(tx.content) === key || tx.category === draft.category));
-  return hit ? `“${hit.content}” ${shortVnd(hit.amount)} ngày ${dayLabel(hit.occurredOn)}` : undefined;
+  return hit ? `“${hit.content}” ${Math.abs(hit.amount).toLocaleString("vi-VN")}đ ngày ${dayLabel(hit.occurredOn)}` : undefined;
 }
 
 // Profit / interest words, on the marked text ("lãi" ≠ "lại", "lời" ≠ "lỗi").
