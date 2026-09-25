@@ -32,18 +32,39 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState("");
   const [photoReady, setPhotoReady] = useState(false);
+  const [aiReady, setAiReady] = useState(false);
+  const [refining, setRefining] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => { fetch("/api/money/read-image").then((response) => response.json()).then((data: { available?: boolean }) => setPhotoReady(Boolean(data.available))).catch(() => setPhotoReady(false)); }, []);
+  useEffect(() => { fetch("/api/money/classify").then((response) => response.json()).then((data: { available?: boolean }) => setAiReady(Boolean(data.available))).catch(() => setAiReady(false)); }, []);
 
   const full = (): QuickContext => ({ ...context, today: todayLocal() });
   const options = (kind: MoneyKind) => kind === "saving" ? SAVING_CATEGORIES : context.categories.filter((item) => item.kind === kind && !item.archived).map((item) => item.name);
   const update = (key: string, patch: Partial<QuickDraft>) => setDrafts((current) => current?.map((draft) => draft.key === key ? { ...draft, ...patch } : draft) ?? null);
+
+  /** Second pass: lines the rules were unsure about go to the model (text only); answers must be one of our categories. */
+  async function refine(found: QuickDraft[]) {
+    const unsure = found.map((draft, i) => ({ draft, i })).filter(({ draft }) => draft.unsure && draft.kind !== "saving");
+    if (!aiReady || !aiConsent || !unsure.length) return;
+    setRefining(unsure.length);
+    try {
+      const body = { lines: unsure.slice(0, 80).map(({ draft, i }) => ({ i, content: draft.content, kind: draft.kind })), categories: { expense: options("expense"), income: options("income") }, children: context.children ?? [], aiConsent: cloudEnabled ? undefined : aiConsent };
+      const response = await fetch("/api/money/classify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const data = await response.json().catch(() => ({})) as { items?: Array<{ i: number; kind: "expense" | "income"; category: string }>; error?: string };
+      if (!response.ok || !data.items) throw new Error(data.error || "Trợ lý AI chưa xếp được, bạn chọn nhóm giúp nhé.");
+      const byLine = new Map(data.items.filter((item) => item.category !== "Khác").map((item) => [found[item.i]?.key, item]));
+      setDrafts((current) => current?.map((draft) => { const answer = byLine.get(draft.key); return answer && draft.unsure ? { ...draft, kind: answer.kind, category: answer.category, unsure: false, suggestNew: undefined, aiPicked: true } : draft; }) ?? null);
+      trackEvent("money_quick_ai_refined", { asked: unsure.length, placed: byLine.size });
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Trợ lý AI chưa xếp được."); }
+    finally { setRefining(0); }
+  }
 
   function classify() {
     setError(""); setDone("");
     const found = parseQuickList(text, full());
     if (!found.length) { setError("Chưa thấy khoản nào có số tiền. Mỗi khoản một dòng hoặc cách nhau bằng dấu phẩy, ví dụ: ăn sáng 35k, cf 45k."); return; }
     setFrom("text"); setDrafts(found); trackEvent("money_quick_parsed", { lines: found.length, source: "text" });
+    void refine(found);
   }
 
   async function readPhoto(file: File) {
@@ -55,6 +76,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
       if (!response.ok || !data.lines) throw new Error(data.error || "Chưa đọc được ảnh.");
       const found = draftsFromImage(data.lines, full());
       setFrom("photo"); setDrafts(found); trackEvent("money_quick_parsed", { lines: found.length, source: "photo" });
+      void refine(found);
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa đọc được ảnh."); }
     finally { setBusy(false); if (input.current) input.current.value = ""; }
   }
@@ -99,6 +121,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
     </>}
 
     {drafts && <>
+      {refining > 0 && <p className="app-sub quick-note" role="status">Trợ lý AI đang xếp nhóm cho {refining} dòng chưa chắc…</p>}
       {from === "photo" && <p className="app-sub quick-note">Ảnh chỉ được gửi tới nhà cung cấp AI để đọc, không lưu lại. Đối chiếu số tiền với ảnh trước khi ghi.</p>}
       <div className="quick-scroll"><table className="quick-review">
         <thead><tr><th><span className="sr-only">Chọn</span></th><th>Ngày</th><th>Nội dung</th><th>Loại</th><th>Nhóm</th><th className="num">Số tiền</th></tr></thead>
@@ -108,6 +131,7 @@ export function QuickAddPanel({ context, aiConsent, onSave, onCreateCategory }: 
           <td><input aria-label="Nội dung" value={draft.content} maxLength={120} onChange={(event) => update(draft.key, { content: event.target.value })} />{draft.forChild && <span className="flag ok">Cho con</span>}</td>
           <td><select aria-label="Loại" value={draft.kind} onChange={(event) => { const kind = event.target.value as MoneyKind; const first = options(kind)[0] ?? "Khác"; update(draft.key, { kind, category: first, amount: Math.abs(draft.amount), unsure: false, suggestNew: undefined }); }}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{MONEY_KIND_LABELS[kind]}</option>)}</select></td>
           <td><select className="cat" aria-label="Nhóm" value={draft.category} onChange={(event) => update(draft.key, { category: event.target.value, unsure: false })}>{[...new Set([draft.category, ...options(draft.kind)])].map((name) => <option key={name}>{name}</option>)}</select>
+            {draft.aiPicked && <span className="flag ai">Trợ lý AI xếp · kiểm tra lại</span>}
             {draft.unsure && <span className="flag">Chưa chắc{draft.suggestNew ? <> · <button type="button" className="ledger-link" onClick={() => void createCategory(draft)}>tạo nhóm “{draft.suggestNew}”?</button></> : ""}</span>}</td>
           <td className="num"><input aria-label="Số tiền" inputMode="decimal" defaultValue={draft.amount.toLocaleString("vi-VN")} onBlur={(event) => { const value = parseVnd(event.target.value); if (value !== null && (value > 0 || draft.kind === "saving")) update(draft.key, { amount: value }); else event.target.value = draft.amount.toLocaleString("vi-VN"); }} />
             {draft.dupeOf && <span className="flag">Có thể trùng {draft.dupeOf}</span>}</td>

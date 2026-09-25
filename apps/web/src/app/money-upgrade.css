@@ -65,6 +65,7 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .quick-review tr.dupe{opacity:.62}
 .quick-review .flag{display:block;font-size:11.5px;color:var(--warn);margin-top:3px}
 .quick-review .flag.ok{color:var(--ok)}
+.quick-review .flag.ai{color:var(--primary)}
 .review-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-size:13.5px}
 .review-foot small{color:var(--muted)}
 .quick-note{margin:0;font-size:12.5px}

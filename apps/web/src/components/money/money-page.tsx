@@ -64,7 +64,7 @@ export function MoneyPage() {
 
   const summary = bundle ? summarizeMonth(bundle) : null;
   const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };
-  const quickContext = bundle ? { categories: bundle.settings.categories, memory: bundle.settings.categoryMemory, existing: bundle.transactions } : null;
+  const quickContext = bundle ? { categories: bundle.settings.categories, memory: bundle.settings.categoryMemory, existing: bundle.transactions, children: children.map((child) => child.name).filter((name): name is string => Boolean(name?.trim())) } : null;
 
   /** Quick add: writes the selected lines, then remembers any category the family corrected. */
   async function saveQuick(drafts: QuickDraft[]) {
