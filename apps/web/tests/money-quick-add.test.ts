@@ -77,3 +77,44 @@ test("rememberCorrections keeps only changed, selected lines", () => {
   assert.equal(rememberCorrections({}, drafts.map((d) => ({ ...d, category: d.autoCategory }))), undefined);
   assert.equal(memoryKey("Đổ xăng xe máy 80k"), "do xang");
 });
+
+test("the owner's real lines: loans, baby items, drinks, SIM, cosmetics, a child's name", () => {
+  const text = "1/1 Cọc trang trí sinh nhật Gold 500k\n1/1 Siêu thị 264,7k\n1/1 Tom vay bet 5tr\n1/1 Bỉm + giấy 859k\n1/2 Bún riêu 80k\n1/2 Váy 380k\n1/2 E sim 35k\n1/2 Cacao 50k\n1/3 Kem dưỡng + rơ lưỡi + lì xì 597k\n1/3 Đầu hút mũi 45k\n1/3 A Báu vay 3tr\n1/4 Trang trí sinh nhật Gold 149k\nvay ngân hàng 50tr\nanh Nam trả nợ 2tr\ncho chị Hà mượn 1tr";
+  const drafts = parseQuickList(text, context({ children: ["Gold"] }));
+  assert.deepEqual(drafts.map((d) => [d.content, d.kind, d.category]), [
+    ["Cọc trang trí sinh nhật Gold", "expense", "Con"],
+    ["Siêu thị", "expense", "Ăn uống"],
+    ["Tom vay bet", "expense", "Tiền cho vay"],
+    ["Bỉm + giấy", "expense", "Con"],
+    ["Bún riêu", "expense", "Ăn uống"],
+    ["Váy", "expense", "Mua sắm"],
+    ["E sim", "expense", "Tiêu dùng"],
+    ["Cacao", "expense", "Ăn uống"],
+    ["Kem dưỡng + rơ lưỡi + lì xì", "expense", "Con"],
+    ["Đầu hút mũi", "expense", "Con"],
+    ["A Báu vay", "expense", "Tiền cho vay"],
+    ["Trang trí sinh nhật Gold", "expense", "Con"],
+    ["Vay ngân hàng", "income", "Vay ngân hàng"],
+    ["Anh Nam trả nợ", "income", "Tiền trả nợ nhận về"],
+    ["Cho chị Hà mượn", "expense", "Tiền cho vay"],
+  ]);
+  assert.equal(drafts.filter((d) => d.unsure).length, 0);
+  assert.equal(drafts[0].forChild, true);
+});
+
+test("an instruction line or a header sets the kind of the lines after it", () => {
+  const drafts = parseQuickList("Nhập cho tôi tất cả khoản dưới đây thành khoản Thu\n01/01/2026\tLời\t2,866\n01/01/2026\tBác Thủy trả\t200,000\n02/01/2026\tLời\t2,162\nChi:\nđổ xăng 80k", context());
+  assert.deepEqual(drafts.map((d) => [d.content, d.kind, d.category, d.amount]), [
+    ["Lời", "income", "Đầu tư", 2_866],
+    ["Bác Thủy trả", "income", "Tiền trả nợ nhận về", 200_000],
+    ["Lời", "income", "Đầu tư", 2_162],
+    ["Đổ xăng", "expense", "Tiêu dùng", 80_000],
+  ]);
+  const plain = parseQuickList("Bác Thủy trả 200k\nlãi tiết kiệm tháng 9 1,2tr\nmua lại ốp lưng 90k", context());
+  assert.deepEqual(plain.map((d) => d.kind), ["income", "income", "expense"]);
+});
+
+test("monthly-looking lines are suggested, never ticked", () => {
+  const drafts = parseQuickList("tiền nhà 6tr\nlương t9 25tr\nphở 50k", context());
+  assert.deepEqual(drafts.map((d) => [d.repeatHint, d.repeat]), [[true, false], [true, false], [false, false]]);
+});

@@ -19,6 +19,12 @@ export interface QuickDraft {
   amount: number;
   forChild: boolean;
   unsure: boolean;
+  /** Placed by the model (second pass), shown so the family double-checks. */
+  aiPicked?: boolean;
+  /** Also make it a monthly recurring item (on this line's day). */
+  repeat: boolean;
+  /** Looks like a monthly item (rent, school fee, salary…): suggested, never ticked for the family. */
+  repeatHint: boolean;
   /** Category worth creating for this line (e.g. "Đi lại") when the family has none that fits. */
   suggestNew?: string;
   /** Why the date may be off ("ngày theo dòng trên", "không ghi ngày"). */
@@ -35,6 +41,8 @@ export interface QuickContext {
   memory?: Record<string, string>;
   /** Entries already in the ledger (for duplicates and "same as last time" categories). */
   existing: MoneyTransaction[];
+  /** The children's names ("Gold"): a line naming a child is spending for that child. */
+  children?: string[];
 }
 
 /** One line read from a photo by the vision model. */
@@ -46,40 +54,59 @@ export const normalize = (value: string) => value.normalize("NFD").replace(/[̀-
 /** Memory key: the first two words without numbers ("Đổ xăng xe máy 80k" → "do xang"). */
 export const memoryKey = (content: string) => normalize(content).split(" ").filter((word) => word && !/\d/.test(word)).slice(0, 2).join(" ");
 
-type Rule = { test: RegExp; category: string; child?: boolean; fallback?: string };
-// Order matters: child items before shopping sites ("bỉm shopee" is for the child), bills before food.
+type Rule = { test: RegExp; category: string; child?: boolean; fallback?: string; /** Match on the lowercased text with marks ("váy" ≠ "vay"). */ raw?: boolean };
+// Order matters: child items before shops and food ("bỉm shopee", "kem hăm" are for the child), bills before food.
 const EXPENSE_RULES: Rule[] = [
-  { test: /\b(bim|ta giay|ta dan|ta quan|sua bot|sua cong thuc|do choi|quan ao be|do so sinh|khan uot)\b/, category: "Con", child: true },
-  { test: /\b(hoc phi|mam non|hoc them|nha tre|tien hoc)\b/, category: "Học tập", child: true },
-  { test: /\b(sach|vo viet|but|hoc online|khoa hoc)\b/, category: "Học tập" },
-  { test: /\b(tien dien|hoa don dien|dien t\d{1,2}|dien thang|evn)\b|^dien\b(?! thoai| may)/, category: "Tiền điện" },
-  { test: /\b(tien nuoc|hoa don nuoc|nuoc t\d{1,2}|nuoc thang)\b/, category: "Tiền nước" },
+  { test: /\b(bim|ta giay|ta dan|ta quan|ta vai|sua bot|sua cong thuc|sua non|binh sua|num ti|ti gia|hut mui|dau hut|ro luoi|gac ro|khan sua|khan xo|yem|xe day|ghe an|ghe o to|noi em be|cui|may hut sua|tui tru sua|phan rom|kem ham|sua tam be|dau tram|quan ao be|do so sinh|do choi|khan uot|giay uot|an dam|bot an dam|chao dinh duong|vitamin d3|men vi sinh|cho be|cua be|cho con|cua con|be yeu)\b/, category: "Con", child: true },
+  { test: /\b(hoc phi|mam non|nha tre|hoc them|tien hoc|gia su|nang khieu|hoc boi|hoc ve|hoc dan|dong phuc)\b/, category: "Học tập", child: true },
+  { test: /\b(sach|vo viet|but|dung cu hoc tap|khoa hoc|hoc online|tieng anh|ielts|hoc lai xe)\b/, category: "Học tập" },
+  { test: /\b(tien dien|hoa don dien|dien sinh hoat|dien t\d{1,2}|dien thang|evn)\b|^dien\b(?! thoai| may)/, category: "Tiền điện" },
+  { test: /\b(tien nuoc|hoa don nuoc|nuoc sinh hoat|nuoc t\d{1,2}|nuoc thang)\b/, category: "Tiền nước" },
   { test: /\btra gop\b/, category: "Tiền trả góp" },
-  { test: /\b(the tin dung|tra the|sao ke the)\b/, category: "Tiền thẻ tín dụng" },
-  { test: /\btra no\b/, category: "Tiền trả nợ" },
-  { test: /\b(thuoc|kham|benh vien|nha khoa|xet nghiem|vitamin|tiem)\b/, category: "Khám, thuốc" },
-  { test: /\b(dam cuoi|an cuoi|mung cuoi|phong bi|dam hieu|vieng|dam gio|thoi noi|day thang|mung tho)\b/, category: "Hiếu hỉ" },
-  { test: /\b(bieu|bo me|ong ba|tien nha|thue nha|tien phong)\b/, category: "Gia đình" },
-  { test: /\b(du lich|khach san|ve may bay|homestay|resort|tour|booking|agoda)\b/, category: "Du lịch" },
-  { test: /\b(xang|grab bike|grabbike|grab car|be car|xanh sm|taxi|gui xe|ve xe|sua xe|rua xe|thay dau|cau duong|vetc|epass)\b|^grab\b/, category: "Đi lại", fallback: "Tiêu dùng" },
-  { test: /\b(an sang|an trua|an toi|an vat|an dem|cafe|ca phe|cf|tra sua|tra da|bun|pho|com|banh mi|di cho|nhau|lau|nuong|highlands|starbucks|phuc long|katinat|grabfood|shopeefood|baemin|do an|rau|thit|trai cay|hoa qua|nuoc mia|kem|pizza|kfc|lotteria|bach hoa xanh|winmart)\b/, category: "Ăn uống" },
-  { test: /\b(phim|cgv|lotte cinema|karaoke|game|netflix|spotify|youtube|vui choi|cong vien)\b/, category: "Giải trí" },
-  { test: /\b(internet|wifi|fpt|viettel|vnpt|dien thoai|cuoc|nap the|gas|xa phong|bot giat|nuoc rua|giay ve sinh)\b/, category: "Tiêu dùng" },
-  { test: /\b(shopee|lazada|tiki|tiktok|quan ao|giay dep|my pham|son|nuoc hoa|do gia dung|dien may)\b/, category: "Mua sắm" },
-  { test: /\b(dau tu|chung khoan|co phieu|mua vang|crypto|quy mo)\b/, category: "Chi phí đầu tư" },
-  { test: /\bcho vay\b/, category: "Tiền cho vay" },
+  { test: /\b(the tin dung|tra the|sao ke the|du no the)\b/, category: "Tiền thẻ tín dụng" },
+  { test: /\b(thuoc|kham|benh vien|phong kham|nha thuoc|pharmacity|long chau|an khang|nha khoa|xet nghiem|sieu am|chup x quang|tiem|vac xin|vaccine|vitamin|siro|kinh mat can|bao hiem y te|bhyt|vien phi)\b/, category: "Khám, thuốc" },
+  { test: /\b(dam cuoi|an cuoi|mung cuoi|phong bi|dam hieu|vieng|dam gio|dam ma|chia buon|thoi noi|day thang|mung tho|li xi|mung tuoi|tan gia)\b/, category: "Hiếu hỉ" },
+  { test: /\b(bieu|bo me|ong ba|noi ngoai|tien nha|thue nha|tien phong|sinh nhat|trang tri|bong bay|banh kem|qua tang|mua qua|tet)\b/, category: "Gia đình" },
+  { test: /\b(du lich|khach san|ve may bay|homestay|resort|tour|booking|agoda|traveloka|vinpearl)\b/, category: "Du lịch" },
+  { test: /\b(xang|do xang|xe om|grab bike|grabbike|grab car|be bike|be car|gojek|xanh sm|taxi|gui xe|do xe|ve xe|ve tau|sua xe|rua xe|thay dau|bao duong xe|dang kiem|cau duong|phi duong bo|vetc|epass)\b|^grab\b/, category: "Đi lại", fallback: "Tiêu dùng" },
+  { test: /\b(an sang|an trua|an toi|an vat|an dem|an uong|an ngoai|cafe|ca phe|cf|cacao|ca cao|tra sua|tra chanh|tra da|tra dao|sinh to|nuoc ep|nuoc ngot|coca|pepsi|bia|ruou|banh mi|banh bao|banh ngot|banh|keo|snack|bun|pho|com|xoi|chao|mien|mi tom|hu tieu|lau|nuong|ga ran|ga nuong|thit ga|vit|hai san|sushi|pizza|kfc|lotteria|jollibee|mcdonald|highlands|starbucks|phuc long|katinat|cong ca|grabfood|shopeefood|baemin|do an|thuc an|di cho|cho dem|rau|thit|ca kho|ca hoi|trung ga|trung vit|trai cay|hoa qua|nuoc mia|sieu thi|bach hoa|bach hoa xanh|tap hoa|winmart|coopmart|co op|big c|go mart|aeon|lotte mart|circle k|gs25|family mart|7 eleven|ministop)\b|\bkem\b(?! (duong|chong nang|danh rang|tri|boi|ham|nen|mat|lot|body|mat na))/, category: "Ăn uống" },
+  { test: /\b(phim|cgv|lotte cinema|bhd|galaxy cinema|karaoke|game|steam|netflix|spotify|youtube|vui choi|cong vien|bowling|bida|gym|the thao|san bong|cau long|boi loi)\b/, category: "Giải trí" },
+  { test: /\b(internet|wifi|fpt|viettel|vnpt|mobifone|vinaphone|sim|esim|e sim|4g|5g|data|goi cuoc|cuoc dien thoai|nap the|nap dien thoai|icloud|google one|gas|xa phong|bot giat|nuoc giat|nuoc xa|nuoc rua|giay ve sinh|khan giay|dau goi|sua tam|kem danh rang|ban chai|phi quan ly|phi dich vu|tien rac|giup viec|osin|don nha|sua nha|tho dien|tho nuoc)\b/, category: "Tiêu dùng" },
+  { test: /\b(shopee|lazada|tiki|tiktok|sendo|quan ao|giay dep|my pham|kem duong|sua rua mat|serum|toner|kem chong nang|son moi|nuoc hoa|lam dep|spa|nail|cat toc|lam toc|goi dau|do gia dung|dien may|chan ga|goi om|tui xach|dong ho|trang suc|phu kien|op lung|tai nghe)\b/, category: "Mua sắm" },
+  { test: /(?<!\p{L})(váy|đầm|áo|quần|giày|dép|túi|mũ|nón)(?!\p{L})/u, raw: true, category: "Mua sắm" },
+  { test: /\b(dau tu|chung khoan|co phieu|chung chi quy|mua vang|vang|crypto|bitcoin)\b/, category: "Chi phí đầu tư" },
 ];
 const INCOME_RULES: Rule[] = [
   { test: /\bluong\b/, category: "Lương" },
-  { test: /\b(thuong|bonus)\b/, category: "Thưởng" },
-  { test: /\b(co tuc|lai tiet kiem|lai ngan hang|ban co phieu|loi nhuan)\b/, category: "Đầu tư" },
-  { test: /\b(freelance|du an|lam them|job ngoai)\b/, category: "Dự án ngoài" },
-  { test: /\b(bo me cho|ong ba cho|duoc cho|me cho|bo cho|ho tro)\b/, category: "Gia đình hỗ trợ" },
+  { test: /\b(thuong|bonus|luong thang 13)\b/, category: "Thưởng" },
+  { test: /\b(co tuc|lai tiet kiem|lai ngan hang|ban co phieu|loi nhuan|ban vang)\b/, category: "Đầu tư" },
+  { test: /(?<!\p{L})(lời|lãi|tiền lãi|lãi suất)(?!\p{L})/u, raw: true, category: "Đầu tư" },
+  { test: /\b(freelance|du an|lam them|job ngoai|ban hang|hoa hong)\b/, category: "Dự án ngoài" },
+  { test: /\b(bo me cho|ong ba cho|duoc cho|me cho|bo cho|ho tro|mung tuoi|li xi)\b/, category: "Gia đình hỗ trợ" },
   { test: /\b(tra no|tra lai tien)\b/, category: "Tiền trả nợ nhận về" },
 ];
 const INCOME_WORDS = /\b(luong|thuong|bonus|nhan tien|nhan duoc|duoc cho|duoc tang|thu nhap|hoan tien|co tuc|lai tiet kiem|lai ngan hang|tien ve|freelance|ban duoc|tra lai tien)\b/;
 const SAVING_WORDS = /\b(gui tiet kiem|tiet kiem|gui tk|rut tiet kiem|rut tk|tat toan)\b/;
-const CHILD_WORDS = /\b(bim|ta giay|sua bot|sua cong thuc|mam non|hoc phi|do choi|cho con|cho be|cua con|cua be)\b/;
+const CHILD_WORDS = /\b(bim|ta giay|sua bot|sua cong thuc|mam non|hoc phi|do choi|hut mui|ro luoi|binh sua|an dam|cho con|cho be|cua con|cua be)\b/;
+// Categories that stay as they are when a child's name appears (the rest become "Con").
+const CHILD_KEEP = new Set(["Con", "Học tập", "Khám, thuốc", "Tiết kiệm cho con"]);
+
+/**
+ * Borrowing and lending, read on the text with marks so "váy" (a dress) is never "vay" (a loan):
+ * "vay ngân hàng 50tr" = money in; "Tom vay 5tr", "cho chị Hà mượn" = money lent out; "anh Nam trả nợ" = repaid to us.
+ */
+function loanOf(raw: string): { kind: "income" | "expense"; category: string } | null {
+  const text = raw.toLowerCase().normalize("NFC").trim();
+  const word = (w: string) => new RegExp(`(?<!\\p{L})${w}(?!\\p{L})`, "u");
+  const borrowWord = word("(vay|mượn)");
+  if (/^(đi |đang |mới )?(vay|mượn)(?!\p{L})/u.test(text)) return { kind: "income", category: /ngân hàng|bank|tín chấp|thế chấp|tài chính|fe credit|home credit|vpbank|techcombank|vietcombank|bidv|agribank|tpbank|mb bank/.test(text) ? "Vay ngân hàng" : "Vay cá nhân" };
+  if (word("cho").test(text) && borrowWord.test(text) && /cho(?:\s+\p{L}+){0,3}\s+(vay|mượn)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền cho vay" };
+  if (borrowWord.test(text)) return { kind: "expense", category: "Tiền cho vay" }; // "<ai đó> vay/mượn" — the family lent it
+  if (/^(trả nợ|trả tiền vay|trả lại tiền|trả tiền)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền trả nợ" };
+  // "<ai đó> trả nợ / trả lại / trả" (someone paid us back): "trả" after a name, never "trả góp" or a line starting with "trả".
+  if (!/^trả/u.test(text) && (/(?<!\p{L})trả (nợ|lại|tiền)(?!\p{L})/u.test(text) || /(?<!\p{L})trả\s*$/u.test(text))) return { kind: "income", category: "Tiền trả nợ nhận về" };
+  return null;
+}
 // Words too generic to match a family's own category by ("Tiền đi lại" should match on "đi lại", not "tiền").
 const GENERIC = new Set(["tien", "chi", "phi", "cho", "cua", "va", "cac", "khac", "mua"]);
 const DEFAULT_NAMES = new Set(DEFAULT_CATEGORIES.map((item) => item.name));
@@ -88,7 +115,8 @@ const DEFAULT_NAMES = new Set(DEFAULT_CATEGORIES.map((item) => item.name));
 const DATE = /(?:^|\s)(?:ng[aà]y\s*)?(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?(?=\s|$|[,:;])/i;
 const LEAD_DATE = /^(?:ng[aà]y\s*)?(\d{1,2})[/.-](\d{1,2})(?:[/.-](\d{2,4}))?(?=\s|$|[,:;])/i;
 // An amount token: digits with separators, an optional unit, optionally "2tr5"; a leading sign means out/in.
-const AMOUNT = /(?:^|\s)([-+−]?\d[\d.,]*\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m|đ|d|vnd)?\d?)(?=\s|$|[.,;!)])/gi;
+// A space is allowed only before a unit ("350 k"), so "tháng 9 1,2tr" reads 1,2tr — not "9 1".
+const AMOUNT = /(?:^|\s)([-+−]?\d[\d.,]*(?:\s?(?:k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m|đ|d|vnd)\d?)?)(?=\s|$|[.,;!)])/gi;
 
 function isoFrom(day: number, month: number, year: number | undefined, today: string): string | null {
   const [ty, tm] = today.split("-").map(Number);
@@ -125,11 +153,18 @@ function categorize(content: string, kind: MoneyKind, amount: number, context: Q
     return parts.length > 0 && (parts.every((word) => words.has(word)) || parts.some((word) => word.length >= 3 && words.has(word)));
   });
   if (own) return { category: own, unsure: false, forChild: childWord };
+  const loan = loanOf(content);
+  if (loan && loan.kind === kind && has(loan.category)) return { category: loan.category, unsure: false, forChild: false };
+  // A child's name in the line ("trang trí sinh nhật Gold") means the spend is for that child.
+  const childNamed = (context.children ?? []).some((name) => normalize(name).split(" ").some((part) => part.length >= 2 && words.has(part)));
+  const forChildOf = (category: string) => kind === "expense" && childNamed && !CHILD_KEEP.has(category) && has("Con") ? "Con" : category;
+  const raw = content.toLowerCase().normalize("NFC");
   for (const rule of kind === "income" ? INCOME_RULES : EXPENSE_RULES) {
-    if (!rule.test.test(norm)) continue;
-    if (has(rule.category)) return { category: rule.category, unsure: false, forChild: Boolean(rule.child) || childWord };
-    if (rule.fallback && has(rule.fallback)) return { category: rule.fallback, unsure: true, suggestNew: rule.category, forChild: childWord };
+    if (!rule.test.test(rule.raw ? raw : norm)) continue;
+    if (has(rule.category)) return { category: forChildOf(rule.category), unsure: false, forChild: Boolean(rule.child) || childWord || childNamed };
+    if (rule.fallback && has(rule.fallback)) return { category: rule.fallback, unsure: true, suggestNew: rule.category, forChild: childWord || childNamed };
   }
+  if (childNamed && kind === "expense" && has("Con")) return { category: "Con", unsure: false, forChild: true };
   const fallback = has("Khác") ? "Khác" : active[0] ?? "Khác";
   return { category: fallback, unsure: true, forChild: childWord };
 }
@@ -140,25 +175,51 @@ function duplicateOf(draft: Pick<QuickDraft, "kind" | "amount" | "content" | "ca
   return hit ? `“${hit.content}” ${shortVnd(hit.amount)} ngày ${dayLabel(hit.occurredOn)}` : undefined;
 }
 
-function draftFor(content: string, amount: number, direction: "in" | "out" | undefined, occurredOn: string, dateNote: string | undefined, context: QuickContext): QuickDraft {
+// Profit / interest words, on the marked text ("lãi" ≠ "lại", "lời" ≠ "lỗi").
+const PROFIT_WORDS = /(?<!\p{L})(lời|lãi|tiền lãi|lãi suất)(?!\p{L})/u;
+// Lines that usually repeat every month: suggested (never ticked) for "Hằng tháng" in the review.
+const MONTHLY_HINT = /\b(tien nha|thue nha|tien phong|hoc phi|mam non|nha tre|internet|wifi|cuoc|goi cuoc|luong|tra gop|bao hiem|phi quan ly|gui xe thang|tien dien|tien nuoc|dien thang|nuoc thang|netflix|spotify|youtube premium|icloud|google one|giup viec)\b/;
+
+/**
+ * A line with no amount that tells the kind for the lines after it: a sentence ("Nhập tất cả khoản dưới đây thành
+ * khoản Thu") or a header ("Thu:", "Khoản chi"). Returns the kind, or null when the line is not such an instruction.
+ */
+export function kindDirective(line: string): MoneyKind | null {
+  const norm = normalize(line);
+  const target = (word: string) => /^thu/.test(word) ? "income" : /^chi/.test(word) ? "expense" : "saving";
+  const header = norm.match(/^(?:cac |nhung )?(?:khoan )?(thu nhap|thu|chi tieu|chi|tiet kiem)(?: nhap| vao| thang \d{1,2})?$/);
+  if (header) return target(header[1]);
+  if (!/\b(nhap|ghi|them|chuyen|xep|danh dau|tat ca|toan bo|het|deu|nhung khoan|cac khoan|duoi day)\b/.test(norm)) return null;
+  const sentence = norm.match(/\b(?:khoan|thanh|la|vao|loai|muc|kieu)\s+(thu nhap|thu|chi tieu|chi|tiet kiem)\b/);
+  return sentence ? target(sentence[1]) : null;
+}
+
+function draftFor(content: string, amount: number, direction: "in" | "out" | undefined, occurredOn: string, dateNote: string | undefined, context: QuickContext, forced?: MoneyKind): QuickDraft {
   const norm = normalize(content);
-  const saving = SAVING_WORDS.test(norm);
-  const kind: MoneyKind = saving ? "saving" : direction === "in" || (direction === undefined && INCOME_WORDS.test(norm)) ? "income" : "expense";
+  // "lãi tiết kiệm" is interest earned (income), not a transfer into savings.
+  const saving = SAVING_WORDS.test(norm) && !PROFIT_WORDS.test(content.toLowerCase().normalize("NFC"));
+  const loan = saving ? null : loanOf(content);
+  const income = INCOME_WORDS.test(norm) || PROFIT_WORDS.test(content.toLowerCase().normalize("NFC"));
+  const kind: MoneyKind = forced ?? (saving ? "saving" : direction === "in" ? "income" : direction === "out" ? "expense" : loan ? loan.kind : income ? "income" : "expense");
   const withdraw = saving && /\b(rut|tat toan)\b/.test(norm);
   const signed = kind === "saving" && withdraw ? -Math.abs(amount) : Math.abs(amount);
   const label = tidy(content) || (kind === "income" ? "Khoản thu" : kind === "saving" ? "Tiết kiệm" : "Khoản chi");
   const picked = categorize(label, kind, signed, context);
   const dupeOf = duplicateOf({ kind, amount: signed, content: label, category: picked.category }, context.existing);
-  return { key: crypto.randomUUID(), occurredOn, content: label, kind, amount: signed, autoCategory: picked.category, dateNote, dupeOf, selected: !dupeOf, ...picked };
+  return { key: crypto.randomUUID(), occurredOn, content: label, kind, amount: signed, autoCategory: picked.category, dateNote, dupeOf, selected: !dupeOf, repeat: false, repeatHint: kind !== "saving" && MONTHLY_HINT.test(norm), ...picked };
 }
 
 /** Splits pasted text into drafts. A date at the start of a line applies to the rest of it and to following lines. */
 export function parseQuickList(text: string, context: QuickContext): QuickDraft[] {
   const drafts: QuickDraft[] = [];
   let carried: string | undefined;
-  for (const rawLine of text.split(/\r?\n/).slice(0, 200)) {
+  let forced: MoneyKind | undefined;
+  for (const rawLine of text.split(/\r?\n/).slice(0, 300)) {
     const line = rawLine.trim();
     if (!line) continue;
+    // "Nhập tất cả thành khoản Thu" / "Chi:" set the kind of the lines that follow (no amount on that line).
+    const directive = kindDirective(line);
+    if (directive && ![...line.replace(DATE, " ").matchAll(AMOUNT)].some((match) => Math.abs(parseVnd(match[1].replace(/\s+/g, "")) ?? 0) >= 1000)) { forced = directive; continue; }
     const lead = line.match(LEAD_DATE);
     let lineDate = lead ? isoFrom(Number(lead[1]), Number(lead[2]), lead[3] ? Number(lead[3]) : undefined, context.today) ?? undefined : undefined;
     const items = line.split(/[;]|,(?!\d)|\s[|•]\s/).map((item) => item.trim()).filter(Boolean);
@@ -175,7 +236,7 @@ export function parseQuickList(text: string, context: QuickContext): QuickDraft[
       const content = scan.replace(token, " ");
       const date = ownDate ?? lineDate ?? carried;
       const dateNote = ownDate || lineDate ? undefined : carried ? "ngày theo dòng trên" : "không ghi ngày, lấy hôm nay";
-      drafts.push(draftFor(content, Math.abs(amount), direction, date ?? context.today, dateNote, context));
+      drafts.push(draftFor(content, Math.abs(amount), direction, date ?? context.today, dateNote, context, forced));
       if (ownDate) lineDate = lineDate ?? ownDate;
     }
     if (lineDate) carried = lineDate;
