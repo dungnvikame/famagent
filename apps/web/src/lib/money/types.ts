@@ -86,8 +86,38 @@ export interface MoneyBundle {
 
 /** Category set from the product owner's household sheet (plan §6.2); users can rename/archive/add. */
 export const DEFAULT_CATEGORIES: MoneyCategory[] = [
-  ...["Ăn uống", "Tiêu dùng", "Mua sắm", "Con", "Gia đình", "Khám, thuốc", "Giải trí", "Học tập", "Hiếu hỉ", "Du lịch", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Tiền cho vay", "Chi phí đầu tư", "Khác"].map((name) => ({ name, kind: "expense" as const })),
+  ...["Ăn uống", "Tiêu dùng", "Mua sắm", "Con", "Gia đình", "Khám, thuốc", "Giải trí", "Học tập", "Hiếu hỉ", "Du lịch", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Tiền trả nợ quỹ", "Tiền cho vay", "Chi phí đầu tư", "Khác"].map((name) => ({ name, kind: "expense" as const })),
   ...["Lương", "Thưởng", "Đầu tư", "Dự án ngoài", "Gia đình hỗ trợ", "Tiền trả nợ nhận về", "Vay cá nhân", "Vay ngân hàng", "Khác"].map((name) => ({ name, kind: "income" as const })),
 ];
 
-export const SAVING_CATEGORIES = ["Tiết kiệm", "Tiết kiệm cho con", "Rút tiết kiệm"];
+export const SAVING_CATEGORIES = ["Tiết kiệm", "Tiết kiệm cho con", "Tiết kiệm du lịch", "Tiết kiệm mua sắm", "Mua nhà", "Mua xe", "Trả nợ", "Rút tiết kiệm"];
+
+/**
+ * Names briefly used by the v2 list (deployed and rolled back 25/09) → the names the family prefers, per kind.
+ * Applied when reading, so anything saved under a v2 name shows and groups under the familiar one.
+ */
+const RENAMED: Record<MoneyKind, Record<string, string>> = {
+  expense: { "Others": "Khác", "Tiền trả nợ cá nhân": "Tiền trả nợ" },
+  income: { "Others": "Khác", "Tiền dự án ngoài": "Dự án ngoài", "Tiền trả nợ": "Tiền trả nợ nhận về" },
+  saving: { "Tiết kiệm cho gia đình": "Tiết kiệm", "Rút tiền tiết kiệm": "Rút tiết kiệm" },
+};
+export const currentCategory = (name: string, kind: MoneyKind) => RENAMED[kind][name] ?? name;
+
+/** A family's saved list with current names: renamed, duplicates merged, missing defaults added (own ones kept, in order). */
+export function currentCategories(list: MoneyCategory[]): MoneyCategory[] {
+  const out: MoneyCategory[] = [];
+  for (const item of list) {
+    const name = currentCategory(item.name, item.kind);
+    const existing = out.find((entry) => entry.kind === item.kind && entry.name === name);
+    if (existing) { if (!item.archived) existing.archived = undefined; continue; }
+    out.push({ ...item, name });
+  }
+  for (const item of DEFAULT_CATEGORIES) {
+    if (out.some((entry) => entry.kind === item.kind && entry.name === item.name)) continue;
+    // A new default goes right after the default it follows in the list ("Tiền trả nợ quỹ" after "Tiền trả nợ").
+    const before = DEFAULT_CATEGORIES[DEFAULT_CATEGORIES.indexOf(item) - 1];
+    const at = before ? out.findIndex((entry) => entry.kind === before.kind && entry.name === before.name) : -1;
+    out.splice(at >= 0 ? at + 1 : out.length, 0, { ...item });
+  }
+  return out;
+}

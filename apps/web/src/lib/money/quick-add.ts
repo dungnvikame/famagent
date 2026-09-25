@@ -102,7 +102,7 @@ function loanOf(raw: string): { kind: "income" | "expense"; category: string } |
   if (/^(đi |đang |mới )?(vay|mượn)(?!\p{L})/u.test(text)) return { kind: "income", category: /ngân hàng|bank|tín chấp|thế chấp|tài chính|fe credit|home credit|vpbank|techcombank|vietcombank|bidv|agribank|tpbank|mb bank/.test(text) ? "Vay ngân hàng" : "Vay cá nhân" };
   if (word("cho").test(text) && borrowWord.test(text) && /cho(?:\s+\p{L}+){0,3}\s+(vay|mượn)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền cho vay" };
   if (borrowWord.test(text)) return { kind: "expense", category: "Tiền cho vay" }; // "<ai đó> vay/mượn" — the family lent it
-  if (/^(trả nợ|trả tiền vay|trả lại tiền|trả tiền)(?!\p{L})/u.test(text)) return { kind: "expense", category: "Tiền trả nợ" };
+  if (/^(trả nợ|trả tiền vay|trả lại tiền|trả tiền)(?!\p{L})/u.test(text)) return { kind: "expense", category: /quỹ|hụi|(?<!\p{L})họ(?!\p{L})/u.test(text) ? "Tiền trả nợ quỹ" : "Tiền trả nợ" };
   // "<ai đó> trả nợ / trả lại / trả" (someone paid us back): "trả" after a name, never "trả góp" or a line starting with "trả".
   if (!/^trả/u.test(text) && (/(?<!\p{L})trả (nợ|lại|tiền)(?!\p{L})/u.test(text) || /(?<!\p{L})trả\s*$/u.test(text))) return { kind: "income", category: "Tiền trả nợ nhận về" };
   return null;
@@ -135,11 +135,21 @@ const tidy = (content: string) => {
 const shortVnd = (amount: number) => { const abs = Math.abs(amount); return abs >= 1_000_000 ? `${(abs / 1_000_000).toLocaleString("vi-VN", { maximumFractionDigits: 1 })}tr` : `${Math.round(abs / 1000)}k`; };
 const dayLabel = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
 
+/** Saving category from the purpose in the line (default: "Tiết kiệm"). */
+function savingPurpose(norm: string): string {
+  if (/\b(du lich|di choi|nghi mat)\b/.test(norm)) return "Tiết kiệm du lịch";
+  if (/\b(mua sam|sam do)\b/.test(norm)) return "Tiết kiệm mua sắm";
+  if (/\b(mua nha|nha moi|can ho)\b/.test(norm)) return "Mua nhà";
+  if (/\b(mua xe|o to|xe hoi)\b/.test(norm)) return "Mua xe";
+  if (/\b(tra no|tat toan no)\b/.test(norm)) return "Trả nợ";
+  return "Tiết kiệm";
+}
+
 /** Category for one line: memory → earlier ledger entry → the family's own categories → keyword rules → fallback. */
 function categorize(content: string, kind: MoneyKind, amount: number, context: QuickContext): Pick<QuickDraft, "category" | "unsure" | "suggestNew" | "forChild"> {
   const norm = normalize(content);
   const childWord = CHILD_WORDS.test(norm);
-  if (kind === "saving") return { category: amount < 0 ? "Rút tiết kiệm" : childWord ? "Tiết kiệm cho con" : "Tiết kiệm", unsure: false, forChild: childWord };
+  if (kind === "saving") return { category: amount < 0 ? "Rút tiết kiệm" : childWord ? "Tiết kiệm cho con" : savingPurpose(norm), unsure: false, forChild: childWord };
   const active = context.categories.filter((item) => item.kind === kind && !item.archived).map((item) => item.name);
   const has = (name: string) => active.includes(name);
   const key = memoryKey(content);
