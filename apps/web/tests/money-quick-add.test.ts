@@ -118,3 +118,11 @@ test("monthly-looking lines are suggested, never ticked", () => {
   const drafts = parseQuickList("tiền nhà 6tr\nlương t9 25tr\nphở 50k", context());
   assert.deepEqual(drafts.map((d) => [d.repeatHint, d.repeat]), [[true, false], [true, false], [false, false]]);
 });
+
+test("small amounts are kept; sizes and counts are not money", () => {
+  const drafts = parseQuickList("Nhập tất cả thành khoản Thu\nLời 866\nlãi 500đ\nLời 2,866", context());
+  assert.deepEqual(drafts.map((d) => [d.content, d.kind, d.amount]), [["Lời", "income", 866], ["Lãi", "income", 500], ["Lời", "income", 2_866]]);
+  assert.equal(parseQuickList("bỉm size 3", context()).length, 0);
+  assert.equal(parseQuickList("gửi xe tháng 9", context()).length, 0);
+  assert.deepEqual(parseQuickList("gói 2 bánh 15k\nkẹo 500", context()).map((d) => d.amount), [15_000, 500]);
+});

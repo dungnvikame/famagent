@@ -218,6 +218,26 @@ function draftFor(content: string, amount: number, direction: "in" | "out" | und
   return { key: crypto.randomUUID(), occurredOn, content: label, kind, amount: signed, autoCategory: picked.category, dateNote, dupeOf, selected: !dupeOf, repeat: false, repeatHint: kind !== "saving" && MONTHLY_HINT.test(norm), ...picked };
 }
 
+// A small bare number right after these words is a size or count, not money ("bỉm size 3", "gói 2", "lần 1").
+const COUNT_WORD = /(?:size|sz|số|so|lần|lan|gói|goi|hộp|hop|cái|cai|chiếc|chiec|tuổi|tuoi|tháng|thang|tầng|tang|phòng|phong|x)\s*$/i;
+
+/**
+ * The money amount of one item: the rightmost token that has a money unit or is at least 1.000đ; when the line
+ * only has small numbers, the rightmost one that is not a size or count (so "Lời 866" is 866đ).
+ */
+function pickAmount(scan: string, tokens: string[]): { amount: number | null; token: string } {
+  let small: { amount: number; token: string } | undefined;
+  for (const candidate of [...tokens].reverse()) {
+    const value = parseVnd(candidate.replace(/\s+/g, ""));
+    if (value === null) continue;
+    const unit = /(k|nghìn|ngàn|nghin|ngan|tr|triệu|trieu|m|đ|d|vnd)\d?$/i.test(candidate.trim());
+    if (unit || Math.abs(value) >= 1000) return { amount: value, token: candidate };
+    const before = scan.slice(0, scan.lastIndexOf(candidate));
+    if (!small && !COUNT_WORD.test(before)) small = { amount: value, token: candidate };
+  }
+  return small ?? { amount: null, token: "" };
+}
+
 /** Splits pasted text into drafts. A date at the start of a line applies to the rest of it and to following lines. */
 export function parseQuickList(text: string, context: QuickContext): QuickDraft[] {
   const drafts: QuickDraft[] = [];
@@ -239,7 +259,7 @@ export function parseQuickList(text: string, context: QuickContext): QuickDraft[
       const scan = item.replace(DATE, " ");
       const tokens = [...scan.matchAll(AMOUNT)].map((match) => match[1]);
       let amount: number | null = null; let token = "";
-      for (const candidate of tokens.reverse()) { const value = parseVnd(candidate.replace(/\s+/g, "")); if (value !== null && Math.abs(value) >= 1000) { amount = value; token = candidate; break; } }
+      ({ amount, token } = pickAmount(scan, tokens));
       if (amount === null) continue;
       const direction = /^\s*[+]/.test(token) ? "in" : /^\s*[-−]/.test(token) ? "out" : undefined;
       const content = scan.replace(token, " ");
