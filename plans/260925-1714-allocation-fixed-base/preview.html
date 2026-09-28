@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Cách chia cố định</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--ink:#1f1a3d;--muted:#7a7497;--line:#e6e2f3;--primary:#6c55f0}
+body{margin:0;background:#f6f4fd;font:14px/1.5 system-ui,"Segoe UI",sans-serif;color:var(--ink);padding:24px 16px}
+.card{max-width:960px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;display:grid;gap:12px}
+.head b{font-size:15px}.head small{display:block;color:var(--muted);font-size:12.5px}
+.base{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#f3f1fc;border-radius:12px;padding:12px 14px}
+.base label{font-weight:600}
+.money{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;background:#fff;padding:0 10px}
+.money input{border:0;width:150px;padding:8px 0;text-align:right;font:700 15px inherit;background:transparent;color:var(--ink)}
+.money span{color:var(--muted);font-weight:700}
+.base small{color:var(--muted);font-size:12.5px}
+.link{background:none;border:0;color:var(--primary);font:600 12.5px inherit;cursor:pointer;padding:0}
+.bucket{border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:grid;gap:8px}
+.top{display:grid;grid-template-columns:12px 1fr 90px 190px;gap:10px;align-items:center}
+.dot{width:10px;height:10px;border-radius:50%}
+.pct{display:flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:10px;padding:0 8px}
+.pct input{width:100%;border:0;padding:8px 0;text-align:right;font:700 14px inherit}
+.pct span{color:var(--muted);font-weight:700}
+.top .money input{width:100%}
+input[type=range]{width:100%;accent-color:#5b45d6}
+.total{border-top:1px solid var(--line);padding-top:10px;display:flex;justify-content:space-between;font-size:13.5px}
+.ok{color:#1f8a5b;font-weight:600}.warn{color:#b4540b;font-weight:600}
+.note{font-size:12.5px;color:var(--muted);background:#fbfaff;border:1px dashed #dcd5ff;border-radius:10px;padding:8px 12px}
+h2{max-width:960px;margin:18px auto 8px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.view{max-width:960px;margin:0 auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px 18px}
+.view small{color:var(--muted)}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.col{border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px}
+.col b{display:flex;justify-content:space-between}
+</style></head><body>
+<h2>Khi chỉnh cách chia</h2>
+<div class="card">
+  <div class="head"><b>Cách chia của nhà mình</b><small>Số tiền và % của từng phần giữ nguyên qua các tháng, không đổi theo thu nhập từng tháng.</small></div>
+  <div class="base"><label>Ngân sách chia mỗi tháng</label>
+    <span class="money"><input id="base" value="50.000.000" inputmode="numeric"><span>đ</span></span>
+    <small>Thu nhập tháng này 51.280.271đ · <button class="link" onclick="setBase(51280271)">dùng số này</button></small></div>
+  <div id="list"></div>
+  <div class="total"><span id="sum"></span><span id="state"></span></div>
+  <div class="note">Đổi ngân sách thì số tiền mỗi phần đổi theo %. Sửa số tiền một phần thì % của phần đó tự tính lại.</div>
+</div>
+
+<h2>Khung theo dõi mỗi tháng (tháng nào cũng cùng mục tiêu)</h2>
+<div class="view"><b>Cách chia của nhà mình</b> <small>· ngân sách 50.000.000đ/tháng</small>
+  <div class="cols">
+    <div class="col"><b><span>Tiêu dùng · 25%</span><span>9.420.000đ / 12.500.000đ</span></b></div>
+    <div class="col"><b><span>Tiết kiệm · 14%</span><span>7.000.000đ / 7.000.000đ</span></b></div>
+    <div class="col"><b><span>Hưởng thụ · 1%</span><span>320.000đ / 500.000đ</span></b></div>
+  </div></div>
+<script>
+const fmt = n => Math.round(n).toLocaleString("vi-VN");
+const parse = t => Number(String(t).replace(/\D/g, "")) || 0;
+let base = 50000000;
+const parts = [{ n: "Tiêu dùng", c: "#6c55f0", s: .25 }, { n: "Tiết kiệm", c: "#f0915c", s: .14 }, { n: "Hưởng thụ", c: "#3aa981", s: .01 }, { n: "Cho con", c: "#e05b8f", s: .6 }];
+function render() {
+  document.getElementById("list").innerHTML = parts.map((p, i) => `<div class="bucket"><div class="top"><span class="dot" style="background:${p.c}"></span><b>${p.n}</b>
+    <span class="pct"><input value="${Math.round(p.s * 1000) / 10}" oninput="parts[${i}].s=(parseFloat(this.value.replace(',', '.'))||0)/100;soft(${i},'pct')"><span>%</span></span>
+    <span class="money"><input value="${fmt(base * p.s)}" oninput="parts[${i}].s=base?parse(this.value)/base:0;soft(${i},'amt')"><span>đ</span></span></div>
+    <input type="range" min="0" max="100" value="${p.s * 100}" oninput="parts[${i}].s=this.value/100;render()"></div>`).join("");
+  totals();
+}
+function soft(i, from) { const row = document.querySelectorAll(".bucket")[i]; if (from === "pct") row.querySelector(".money input").value = fmt(base * parts[i].s); else row.querySelector(".pct input").value = Math.round(parts[i].s * 1000) / 10; row.querySelector("input[type=range]").value = parts[i].s * 100; totals(); }
+function totals() { const t = parts.reduce((a, p) => a + p.s, 0); document.getElementById("sum").innerHTML = `Tổng: <b>${Math.round(t * 1000) / 10}%</b> · ${fmt(base * t)}đ / ${fmt(base)}đ`; const st = document.getElementById("state"); if (Math.abs(t - 1) < .001) { st.className = "ok"; st.textContent = "✓ Đã chia hết"; } else { st.className = "warn"; st.textContent = t < 1 ? `Còn ${fmt(base * (1 - t))}đ chưa chia` : `Vượt ${fmt(base * (t - 1))}đ`; } }
+function setBase(v) { base = v; document.getElementById("base").value = fmt(v); render(); }
+document.getElementById("base").addEventListener("input", e => { base = parse(e.target.value); e.target.value = base ? fmt(base) : ""; render(); });
+render();
+</script></body></html>
