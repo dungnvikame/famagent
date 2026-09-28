@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { draftsFromImage, memoryKey, parseQuickList, rememberCorrections, type QuickContext } from "../src/lib/money/quick-add.ts";
+import { draftsFromImage, guessEntry, memoryKey, parseQuickList, rememberCorrections, type QuickContext } from "../src/lib/money/quick-add.ts";
 import { DEFAULT_CATEGORIES, type MoneyTransaction } from "../src/lib/money/types.ts";
 
 const withOwn = [...DEFAULT_CATEGORIES, { name: "Sữa & bỉm", kind: "expense" as const }];
@@ -125,4 +125,13 @@ test("small amounts are kept; sizes and counts are not money", () => {
   assert.equal(parseQuickList("bỉm size 3", context()).length, 0);
   assert.equal(parseQuickList("gửi xe tháng 9", context()).length, 0);
   assert.deepEqual(parseQuickList("gói 2 bánh 15k\nkẹo 500", context()).map((d) => d.amount), [15_000, 500]);
+});
+
+test("the ledger's add row: one typed entry gets the quick-add category, weak guesses are flagged", () => {
+  assert.deepEqual(guessEntry("ăn sáng", "expense", context()), { category: "Ăn uống", unsure: false, forChild: false });
+  assert.equal(guessEntry("tiền điện t9", "expense", context({ existing: [electricity] })).category, "Tiền điện");
+  assert.equal(guessEntry("lương t9", "income", context()).category, "Lương");
+  const unknown = guessEntry("xyz", "expense", context());
+  assert.equal(unknown.category, "Khác");
+  assert.equal(unknown.unsure, true);
 });

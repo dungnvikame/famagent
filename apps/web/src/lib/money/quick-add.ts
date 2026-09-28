@@ -292,4 +292,6 @@ export function rememberCorrections(memory: Record<string, string> | undefined, 
 export const isSavingCategory = (name: string) => SAVING_CATEGORIES.includes(name);
 
 /** Category for a single named item (e.g. a fixed monthly item from the Tình hình setup), same rules as quick add. */
-export const guessCategory = (content: string, kind: Exclude<MoneyKind, "saving">, context: QuickContext) => categorize(content, kind, 1, context).category;
+/** Category guess for one typed entry (the ledger's add row): same rules as quick add, plus whether it is a weak guess. */
+export const guessEntry = (content: string, kind: Exclude<MoneyKind, "saving">, context: QuickContext) => categorize(content, kind, 1, context);
+export const guessCategory = (content: string, kind: Exclude<MoneyKind, "saving">, context: QuickContext) => guessEntry(content, kind, context).category;
