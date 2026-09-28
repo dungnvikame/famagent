@@ -61,7 +61,7 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .quick-review input[type=date]{min-width:130px}
 .quick-review td.num,.quick-review th.num{text-align:right}
 .quick-review td.num input{text-align:right;font-weight:700;min-width:110px}
-.quick-review tr.unsure select.cat{border-color:#f0b77b;background:#fff8ee}
+.quick-review tr.unsure select.cat,.ledger-new select.unsure{border-color:#f0b77b;background:#fff8ee}
 .quick-review tr.dupe{opacity:.62}
 .quick-review .flag{display:block;font-size:11.5px;color:var(--warn);margin-top:3px}
 .quick-review .flag.ok{color:var(--ok)}
