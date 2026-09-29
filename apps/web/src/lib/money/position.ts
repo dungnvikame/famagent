@@ -1,4 +1,4 @@
-import type { MoneyBundle, MoneyDebt, MoneyPosition, MoneyRecurring, MoneyTransaction } from "./types.ts";
+import type { DebtPayment, MoneyBundle, MoneyDebt, MoneyPosition, MoneyRecurring, MoneyTransaction } from "./types.ts";
 
 /**
  * Current financial position ("Tình hình"): what the family has and owes on `asOf`, then the ledger moves it.
@@ -20,16 +20,29 @@ export function anchorFromPosition(position: MoneyPosition, untilAsOf: Totals): 
   return { openingCash: cash - (untilAsOf.income - (untilAsOf.expense - fromSavings) - untilAsOf.saving), openingSavings: savings - (untilAsOf.saving - fromSavings) };
 }
 
-/** Paid toward each debt through its linked recurring item after `asOf` (by debt id). */
-export function debtPayments(debts: MoneyDebt[], asOf: string, transactions: Array<Pick<MoneyTransaction, "recurringId" | "occurredOn" | "amount" | "kind">>): Record<string, number> {
+type PaidEntry = Pick<MoneyTransaction, "recurringId" | "occurredOn" | "amount" | "kind" | "debtId">;
+
+/**
+ * Payments toward each debt (by debt id), dated, oldest first: expenses dated after the debt's own date that are
+ * tagged with the debt (`debtId`) or were posted by its linked recurring item (each entry counts once). Entries
+ * dated on or before the debt's date are already inside its balance and never count.
+ */
+export function debtPaymentLog(debts: MoneyDebt[], asOf: string, transactions: PaidEntry[]): Record<string, DebtPayment[]> {
   const byRecurring = new Map(debts.filter((debt) => debt.recurringId).map((debt) => [debt.recurringId!, debt.id]));
   const since = new Map(debts.map((debt) => [debt.id, debt.asOf ?? asOf]));
-  const paid: Record<string, number> = {};
+  const log: Record<string, DebtPayment[]> = {};
   for (const tx of transactions) {
-    const debtId = tx.recurringId ? byRecurring.get(tx.recurringId) : undefined;
-    if (debtId && tx.kind === "expense" && tx.occurredOn > (since.get(debtId) ?? asOf)) paid[debtId] = (paid[debtId] ?? 0) + tx.amount;
+    if (tx.kind !== "expense") continue;
+    const debtId = tx.debtId && since.has(tx.debtId) ? tx.debtId : tx.recurringId ? byRecurring.get(tx.recurringId) : undefined;
+    if (debtId && tx.occurredOn > since.get(debtId)!) (log[debtId] ??= []).push({ on: tx.occurredOn, amount: tx.amount });
   }
-  return paid;
+  for (const list of Object.values(log)) list.sort((a, b) => a.on.localeCompare(b.on));
+  return log;
+}
+
+/** Total paid toward each debt since its date (by debt id); see `debtPaymentLog`. */
+export function debtPayments(debts: MoneyDebt[], asOf: string, transactions: PaidEntry[]): Record<string, number> {
+  return Object.fromEntries(Object.entries(debtPaymentLog(debts, asOf, transactions)).map(([id, list]) => [id, list.reduce((sum, item) => sum + item.amount, 0)]));
 }
 
 export const debtLeft = (debt: MoneyDebt, paid: Record<string, number> = {}) => Math.max(0, debt.balance - (paid[debt.id] ?? 0));
@@ -89,7 +102,7 @@ export function positionSummary(bundle: Pick<MoneyBundle, "settings" | "recurrin
   return summary;
 }
 
-type Entry = Pick<MoneyTransaction, "kind" | "amount" | "occurredOn" | "recurringId" | "paidFrom">;
+type Entry = Pick<MoneyTransaction, "kind" | "amount" | "occurredOn" | "recurringId" | "paidFrom" | "debtId">;
 
 /** Totals of entries dated before `before` (exclusive, YYYY-MM-DD); fromSavings = expenses paid out of the fund. */
 export function sumUntil(entries: Entry[], before: string) {
@@ -103,7 +116,7 @@ export function withPosition(bundle: MoneyBundle, entries: Entry[]): MoneyBundle
   const position = bundle.settings.position;
   if (!position) return bundle;
   // The typed balances are what the family had at the start of asOf, before any entry dated asOf or later.
-  return { ...bundle, settings: { ...bundle.settings, ...anchorFromPosition(position, sumUntil(entries, position.asOf)) }, debtPaid: debtPayments(position.debts, position.asOf, entries) };
+  return { ...bundle, settings: { ...bundle.settings, ...anchorFromPosition(position, sumUntil(entries, position.asOf)) }, debtPaid: debtPayments(position.debts, position.asOf, entries), debtLog: debtPaymentLog(position.debts, position.asOf, entries) };
 }
 
 /** Ledger category for a debt's monthly payment, among the family's active expense categories. */

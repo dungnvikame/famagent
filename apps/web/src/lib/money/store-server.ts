@@ -2,7 +2,7 @@
 // so API routes stay thin; the same shapes are used by the local (browser-only) store.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthlyHistory } from "./history.ts";
-import { BORROW_IN, isLoanEntry, LEND_OUT, loanTotals, REPAID_IN, REPAY_OUT } from "./loans.ts";
+import { BORROW_IN, debtLinkIds, isLoanEntry, LEND_OUT, loanTotals, REPAID_IN, REPAY_OUT } from "./loans.ts";
 import { sumUntil, withPosition } from "./position.ts";
 import { dueRecurring, postingFor } from "./summary.ts";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
@@ -11,8 +11,8 @@ type Row = Record<string, unknown>;
 const str = (value: unknown) => typeof value === "string" ? value : undefined;
 const num = (value: unknown) => typeof value === "number" ? value : typeof value === "string" ? Number(value) : 0;
 
-export const transactionFromRow = (row: Row): MoneyTransaction => ({ id: row.id as string, occurredOn: row.occurred_on as string, content: row.content as string, category: currentCategory(row.category as string, row.kind as MoneyTransaction["kind"]), kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), forChild: row.for_child === true, childId: str(row.child_id), note: str(row.note), source: row.source as MoneyTransaction["source"], recurringId: str(row.recurring_id), paidFrom: row.paid_from === "savings" ? "savings" : undefined });
-export const transactionRow = (item: MoneyTransaction, userId: string) => ({ id: item.id, user_id: userId, occurred_on: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: item.amount, for_child: item.forChild, child_id: item.childId ?? null, note: item.note ?? null, source: item.source, recurring_id: item.recurringId ?? null, paid_from: item.paidFrom === "savings" && item.kind === "expense" ? "savings" : "cash", updated_at: new Date().toISOString() });
+export const transactionFromRow = (row: Row): MoneyTransaction => ({ id: row.id as string, occurredOn: row.occurred_on as string, content: row.content as string, category: currentCategory(row.category as string, row.kind as MoneyTransaction["kind"]), kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), forChild: row.for_child === true, childId: str(row.child_id), note: str(row.note), source: row.source as MoneyTransaction["source"], recurringId: str(row.recurring_id), paidFrom: row.paid_from === "savings" ? "savings" : undefined, debtId: str(row.debt_id) });
+export const transactionRow = (item: MoneyTransaction, userId: string) => ({ id: item.id, user_id: userId, occurred_on: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: item.amount, for_child: item.forChild, child_id: item.childId ?? null, note: item.note ?? null, source: item.source, recurring_id: item.recurringId ?? null, paid_from: item.paidFrom === "savings" && item.kind === "expense" ? "savings" : "cash", debt_id: item.kind === "expense" ? item.debtId ?? null : null, updated_at: new Date().toISOString() });
 const budgetFromRow = (row: Row): MoneyBudget => ({ id: row.id as string, category: currentCategory(row.category as string, "expense"), month: (row.month as string).slice(0, 7), limitAmount: num(row.limit_amount) });
 export const budgetRow = (item: MoneyBudget, userId: string) => ({ id: item.id, user_id: userId, category: item.category, month: `${item.month}-01`, limit_amount: item.limitAmount });
 const recurringFromRow = (row: Row): MoneyRecurring => ({ id: row.id as string, name: row.name as string, category: currentCategory(row.category as string, row.kind as MoneyRecurring["kind"]), kind: row.kind as MoneyRecurring["kind"], amount: num(row.amount), dayOfMonth: num(row.day_of_month), active: row.active !== false, lastPostedMonth: str(row.last_posted_month)?.slice(0, 7) });
@@ -54,8 +54,8 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
   if (settings.error || transactions.error || totals.error || budgets.error || goals.error) return null;
   const all = entriesFromRows(totals.data ?? []);
   const loadedSettings = settingsFromRow(settings.data);
-  const debtRecurring = new Set((loadedSettings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
-  return withPosition({ history: monthlyHistory(all, month, 12), loans: loanTotals(all, debtRecurring), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
+  const debtLinks = debtLinkIds(loadedSettings.position?.debts ?? []);
+  return withPosition({ history: monthlyHistory(all, month, 12), loans: loanTotals(all, debtLinks), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow) }, all);
 }
 
 
@@ -65,7 +65,7 @@ const PAGE = 1000; // PostgREST returns at most this many rows per request by de
 async function allEntries(client: SupabaseClient, userId: string): Promise<{ data: Row[] | null; error: unknown }> {
   const rows: Row[] = [];
   for (let from = 0; from < 200_000; from += PAGE) {
-    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
+    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
     if (error) return { data: null, error };
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;
@@ -73,7 +73,7 @@ async function allEntries(client: SupabaseClient, userId: string): Promise<{ dat
   return { data: rows, error: null };
 }
 
-const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined }));
+const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined, debtId: str(row.debt_id) }));
 
 /** Entries dated from..to (inclusive, newest first) and the cash balance just before `from` (position anchor applied). */
 export async function loadRange(client: SupabaseClient, userId: string, from: string, to: string): Promise<MoneyRange | null> {

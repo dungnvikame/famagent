@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { loadLoans } from "@/lib/money/client";
-import { debtOverview, loansByPerson, loanTotals, type PersonLedger } from "@/lib/money/loans";
+import { debtLinkIds, debtOverview, loansByPerson, loanTotals, type PersonLedger } from "@/lib/money/loans";
 import { formatVnDate, parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeft, monthsToPayOff } from "@/lib/money/position";
 import type { MoneyBundle, MoneyTransaction } from "@/lib/money/types";
@@ -43,9 +43,9 @@ export function DebtsView({ bundle, onSave, onTab }: Props) {
   useEffect(() => { void refresh(); }, [refresh, bundle]);
 
   const debts = bundle.settings.position?.debts ?? [];
-  const debtRecurring = new Set(debts.map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
-  const people = loansByPerson(loans ?? [], debtRecurring);
-  const overview = debtOverview(loanTotals(loans ?? [], debtRecurring), debts, (debt) => debtLeft(debt, bundle.debtPaid));
+  const debtLinks = debtLinkIds(debts);
+  const people = loansByPerson(loans ?? [], debtLinks);
+  const overview = debtOverview(loanTotals(loans ?? [], debtLinks), debts, (debt) => debtLeft(debt, bundle.debtPaid));
   const lentOpen = people.lent.filter((row) => row.left > 0); const lentDone = people.lent.filter((row) => row.left <= 0);
   const oweOpen = people.owe.filter((row) => row.left > 0); const oweDone = people.owe.filter((row) => row.left <= 0);
 

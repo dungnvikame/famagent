@@ -20,7 +20,12 @@ export interface MoneyTransaction {
   recurringId?: string;
   /** Expense only: paid out of the savings fund instead of cash (so it does not add to "tiêu lẹm"). */
   paidFrom?: "savings";
+  /** Expense only: the Tình hình debt this payment pays down (any repayment, not just its linked recurring item). */
+  debtId?: string;
 }
+
+/** One payment toward a debt, after the debt's date. */
+export interface DebtPayment { on: string; amount: number }
 
 export interface MoneyBudget { id: string; category: string; /** YYYY-MM */ month: string; limitAmount: number }
 
@@ -84,8 +89,10 @@ export interface MoneyBundle {
   budgets: MoneyBudget[];
   recurring: MoneyRecurring[];
   goals: MoneyGoal[];
-  /** Paid toward each debt (by debt id) through its recurring item since `position.asOf`. */
+  /** Paid toward each debt (by debt id) since its date: expenses tagged with the debt or posted by its recurring item. */
   debtPaid?: Record<string, number>;
+  /** The same payments with dates, oldest first (interest depends on when they were made). */
+  debtLog?: Record<string, DebtPayment[]>;
   /** Borrowed / repaid / lent / collected over all entries (payments of Tình hình debts excluded). */
   loans?: { borrowed: number; repaid: number; lent: number; collected: number };
   /** The 12 months ending with `month` (oldest first): totals and expense per category, for trends. */
