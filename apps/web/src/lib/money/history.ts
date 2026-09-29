@@ -29,15 +29,6 @@ export function categoryAverages(history: MonthTotals[], month: string, span = 3
   return Object.fromEntries(Object.entries(sums).map(([name, total]) => [name, Math.round(total / earlier.length)]));
 }
 
-/** Cash after each entry, oldest first from `opening` (entries may arrive newest first; ties keep their order). */
-export function runningBalances(entries: Array<Pick<MoneyTransaction, "id" | "kind" | "amount" | "occurredOn">>, opening: number): Map<string, number> {
-  const ordered = entries.map((entry, index) => ({ entry, index })).sort((a, b) => a.entry.occurredOn.localeCompare(b.entry.occurredOn) || b.index - a.index);
-  const out = new Map<string, number>();
-  let cash = opening;
-  for (const { entry } of ordered) { cash += entry.kind === "income" ? entry.amount : -entry.amount; out.set(entry.id, cash); }
-  return out;
-}
-
 /** After each entry: the savings fund, what was spent beyond cash ("tiêu lẹm", owed to the fund) and the account total. */
 export interface PotBalance { savings: number; lem: number; account: number; cash: number }
 
