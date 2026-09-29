@@ -87,6 +87,7 @@ function validHousehold(value: unknown): boolean {
     && optional(h.motto, shortText(80))
     && optional(h.theme, inList(COVER_THEMES))
     && optional(h.measureEvery, inList(MEASURE_EVERY))
+    && optional(h.tipPush, (value) => typeof value === "boolean")
     && optional(h.notes, (notes) => !!notes && typeof notes === "object" && !Array.isArray(notes) && Object.keys(notes).length <= 12 && Object.entries(notes as Record<string, unknown>).every(([key, text]) => key.length <= 80 && typeof text === "string" && text.length <= 120));
 }
 

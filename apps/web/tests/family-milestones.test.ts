@@ -59,3 +59,22 @@ test("age guide: stages cover 0–72 months without gaps, unique tip ids, tips c
   assert.equal(validMilestoneInput({ childId: child, milestoneId: "tip-12-1", status: "done", on: "2026-09-29" }, new Date("2026-09-29T05:00:00Z")), true);
   assert.equal(validMilestoneInput({ childId: child, milestoneId: "tip-99-1", status: "done" }), false);
 });
+
+test("tip of the day: same pick for page and push, skips tried tips, youngest child under 6", async () => {
+  const { GUIDE_STAGES, stageFor } = await import("../src/lib/family/age-guide-data.ts");
+  const { tipOfDay, tipPushFor, dayNumberOf } = await import("../src/lib/family/age-guide.ts");
+  const stage = stageFor(14)!;
+  const first = tipOfDay(stage, new Set(), "2026-09-29")!;
+  assert.equal(first.id, stage.tips[dayNumberOf("2026-09-29") % stage.tips.length].id);
+  const next = tipOfDay(stage, new Set([first.id]), "2026-09-29")!;
+  assert.notEqual(next.id, first.id);
+  assert.equal(tipOfDay(stage, new Set(stage.tips.map((tip) => tip.id)), "2026-09-29"), undefined);
+  const push = tipPushFor([{ id: "big", name: "Bơ", ageMonths: 42 }, { id: "small", name: "Gold", ageMonths: 14 }, { id: "teen", name: "An", ageMonths: 150 }], new Map(), "2026-09-29")!;
+  assert.equal(push.childId, "small"); assert.equal(push.tipId, first.id);
+  assert.equal(push.title, "Mẹo hôm nay cho Gold (14–17 tháng)"); assert.equal(push.url, "/family#fam-guide");
+  // Every tip of the youngest tried → falls back to the next child.
+  const allTried = new Map([["small", new Set(stage.tips.map((tip) => tip.id))]]);
+  assert.equal(tipPushFor([{ id: "small", name: "Gold", ageMonths: 14 }, { id: "big", name: "Bơ", ageMonths: 42 }], allTried, "2026-09-29")?.childId, "big");
+  assert.equal(tipPushFor([{ id: "teen", name: "An", ageMonths: 150 }], new Map(), "2026-09-29"), null);
+  assert.ok(GUIDE_STAGES.length === 12);
+});

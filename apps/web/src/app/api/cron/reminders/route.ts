@@ -4,6 +4,7 @@ import pg from "pg";
 import webpush from "web-push";
 import { childAgeMonths, profileFromRow } from "@/lib/experience/profile-mapper";
 import { measureDue, measurePush } from "@/lib/family/measure-schedule";
+import { tipPushFor } from "@/lib/family/age-guide";
 import { remindersFor } from "@/lib/push/reminders";
 import { checkFromRow, itemFromRow } from "@/lib/shopping/item-store-server";
 import { estimateItems, itemRateResolver } from "@/lib/shopping/items";
@@ -30,7 +31,8 @@ const vnDayOf = (iso?: string) => iso && !Number.isNaN(Date.parse(iso)) ? new Da
 /**
  * Daily reminders (Vercel cron, vercel.json), for every family with a push subscription:
  * - "sắp hết": estimate stock with the same code as the app (Vietnam date), push items at ≤3 days left once per item per day;
- * - "đến lịch cân đo": children due for weighing / measuring on the family's cadence, at most once a week per child.
+ * - "đến lịch cân đo": children due for weighing / measuring on the family's cadence, at most once a week per child;
+ * - "Mẹo hôm nay": one age-guide tip (not tried yet) for the youngest child under 6, once a day, unless turned off.
  * Gone subscriptions are dropped.
  */
 export async function GET(request: Request) {
@@ -108,6 +110,19 @@ export async function GET(request: Request) {
           if (!await deliver(push)) await client.query("delete from public.measure_push_log where user_id = $1 and child_id = $2 and day = $3", [userId, push.childId, today]);
         }
       } catch (cause) { console.warn("[cron reminders] measure", cause instanceof Error ? cause.message : "error"); }
+
+      // Daily tip; also kept apart (migration 0027 missing must not block the others).
+      if (profile.household?.tipPush === false || !devices.length) return;
+      try {
+        const triedRows = await client.query<{ child_id: string; milestone_id: string }>("select child_id, milestone_id from public.child_milestones where user_id = $1 and status = 'done' and milestone_id like 'tip-%'", [userId]);
+        const tried = new Map<string, Set<string>>();
+        for (const row of triedRows.rows) { const set = tried.get(row.child_id) ?? new Set<string>(); set.add(row.milestone_id); tried.set(row.child_id, set); }
+        const push = tipPushFor(profile.children.map((child, index) => ({ id: child.id, name: child.name || `bé ${index + 1}`, ageMonths: childAgeMonths(child, now) })), tried, today);
+        if (!push) return;
+        const claimed = await client.query("insert into public.tip_push_log (user_id, day, tip_id) values ($1, $2, $3) on conflict do nothing", [userId, today, push.tipId]);
+        if (!claimed.rowCount) return;
+        if (!await deliver({ title: push.title, body: push.body, url: push.url, tag: push.tag })) await client.query("delete from public.tip_push_log where user_id = $1 and day = $2", [userId, today]);
+      } catch (cause) { console.warn("[cron reminders] tip", cause instanceof Error ? cause.message : "error"); }
     }
 
     for (let index = 0; index < users.length; index += FAMILY_BATCH) {

@@ -145,6 +145,8 @@ export interface HouseholdContext {
   motto?: string;
   theme?: (typeof COVER_THEMES)[number];
   measureEvery?: (typeof MEASURE_EVERY)[number];
+  /** false = no 8:00 "Mẹo hôm nay" push (on by default for families with notifications). */
+  tipPush?: boolean;
   /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */
   notes?: Record<string, string>;
 }

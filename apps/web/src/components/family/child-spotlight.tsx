@@ -19,12 +19,13 @@ export interface TodayPractice { id: string; title: string; source: string; done
  * One child, age first (Huckleberry/BabyCenter style): the ring counts the way to the next birthday, then what to do
  * with them today, the growth line on diaper sizes, and what to watch for when buying — all from data already known.
  */
-export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex, due, every, onEvery, milestones, onMarkMilestone }: {
+export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex, due, every, onEvery, milestones, onMarkMilestone, tipPush, onTipPush }: {
   child: ChildProfile; name: string; look: { color: AvatarColor; emoji?: string }; photo?: string; today: string;
   series: WeightPoint[]; heights: HeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
   onTogglePractice: () => void; onEdit: () => void; onEditLook: () => void;
   onAddMeasure: (date: string, values: { kg?: number; cm?: number }) => Promise<void>; onDeleteMeasure: (id: string, field: "kg" | "cm") => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
   due: MeasureDue | null; every: MeasureEvery; onEvery: (every: MeasureEvery) => void;
+  tipPush: boolean; onTipPush: (on: boolean) => void;
   milestones: MilestoneRecord[]; onMarkMilestone: (milestoneId: string, status: MilestoneStatus | null, on?: string) => Promise<void>;
 }) {
   const style = COLOR_STYLES[look.color];
@@ -78,7 +79,7 @@ export function ChildSpotlight({ child, name, look, photo, today, series, height
       </div>
 
       {months !== undefined && months < 72 && <div className="fam-blk wide" id="fam-guide"><h3>Cẩm nang chăm {name} theo tuổi <span className="sp" /><span className="fam-use">CDC · WHO · AAP</span></h3>
-        <AgeGuide name={name} ageMonths={months} records={milestones.filter((record) => record.milestoneId.startsWith("tip-"))} onTried={(id, tried) => onMarkMilestone(id, tried ? "done" : null, tried ? today : undefined)} />
+        <AgeGuide name={name} ageMonths={months} records={milestones.filter((record) => record.milestoneId.startsWith("tip-"))} onTried={(id, tried) => onMarkMilestone(id, tried ? "done" : null, tried ? today : undefined)} pushOn={tipPush} onPush={onTipPush} />
       </div>}
 
       <div className="fam-blk wide"><h3>Cân nặng & tăng trưởng <span className="sp" /><span className="fam-use">dùng cho: size bỉm · so chuẩn WHO</span></h3>

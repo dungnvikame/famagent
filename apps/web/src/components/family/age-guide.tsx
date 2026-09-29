@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { dayIndex } from "@/lib/brief/daily-tasks";
+import { localDay } from "@/lib/brief/daily-tasks";
+import { tipOfDay } from "@/lib/family/age-guide";
 import { GUIDE_STAGES, TOPIC_LABELS, stageFor, type GuideTip, type GuideTopic } from "@/lib/family/age-guide-data";
 import type { MilestoneRecord } from "@/lib/family/milestones";
 
@@ -10,7 +11,7 @@ import type { MilestoneRecord } from "@/lib/family/milestones";
  * health), a tip of the day among those not tried yet, "Đã thử" ticks shared by the family, what to prepare for the
  * next stage, and browsing other stages. Content: CDC tips + WHO/UNICEF feeding + AAP safe sleep / oral health.
  */
-export function AgeGuide({ name, ageMonths, records, onTried }: { name: string; ageMonths: number; records: MilestoneRecord[]; onTried: (tipId: string, tried: boolean) => Promise<void> }) {
+export function AgeGuide({ name, ageMonths, records, onTried, pushOn, onPush }: { name: string; ageMonths: number; records: MilestoneRecord[]; onTried: (tipId: string, tried: boolean) => Promise<void>; pushOn: boolean; onPush: (on: boolean) => void }) {
   const own = stageFor(ageMonths);
   const [key, setKey] = useState(own?.key ?? GUIDE_STAGES[0].key);
   const [topic, setTopic] = useState<GuideTopic | "all">("all");
@@ -21,7 +22,7 @@ export function AgeGuide({ name, ageMonths, records, onTried }: { name: string; 
   const tried = new Set(records.filter((record) => record.status === "done").map((record) => record.milestoneId));
   const done = stage.tips.filter((tip) => tried.has(tip.id)).length;
   const fresh = stage.tips.filter((tip) => !tried.has(tip.id));
-  const today = own && own.key === stage.key && fresh.length ? fresh[dayIndex(new Date()) % fresh.length] : undefined;
+  const today = own && own.key === stage.key ? tipOfDay(stage, tried, localDay(new Date())) : undefined;
   const topics = (Object.keys(TOPIC_LABELS) as GuideTopic[]).filter((item) => stage.tips.some((tip) => tip.topic === item));
   const shown = stage.tips.filter((tip) => topic === "all" || tip.topic === topic);
 
@@ -42,6 +43,8 @@ export function AgeGuide({ name, ageMonths, records, onTried }: { name: string; 
 
     {today && <div className="fam-guide-today"><span className="fam-guide-badge">Mẹo hôm nay</span><p>{TOPIC_LABELS[today.topic].icon} {today.text}</p>
       <button type="button" className="app-btn" onClick={() => void toggle(today)}>✓ Đã thử</button></div>}
+    {own?.key === stage.key && <div className="fam-guide-push"><span>🔔 Gửi “Mẹo hôm nay” qua thông báo lúc 8 giờ sáng<small>Cần bật Thông báo ở mục Tài khoản & quyền riêng tư (cuối trang).</small></span>
+      <input type="checkbox" role="switch" aria-label="Nhắc mẹo mỗi sáng" checked={pushOn} aria-checked={pushOn} onChange={(event) => onPush(event.target.checked)} /></div>}
     {own?.key === stage.key && !fresh.length && <p className="fam-guide-all">🎉 Bạn đã thử hết gợi ý của giai đoạn này — xem trước giai đoạn tới nhé.</p>}
 
     <div className="fam-filter" role="group" aria-label="Chủ đề">

@@ -101,6 +101,7 @@ export function FamilyPage() {
     queue.current = queue.current.then(async () => {
       const next = latest.current;
       if (!next) return;
+      setSave("saving");
       let updated = stampChanges(original.current, { ...next, updatedAt: new Date().toISOString() }, "user_entered");
       for (const [id, date] of Object.entries(weightDates.current)) {
         const key = `children.${id}.weightKg`;
@@ -122,7 +123,8 @@ export function FamilyPage() {
     return queue.current;
   }, []);
   const change = useCallback((next: FamilyProfile, immediate = false) => {
-    latest.current = next; setProfile(next); setSave("saving");
+    // No "Đang lưu…" while typing: it appears when the debounced save actually starts.
+    latest.current = next; setProfile(next);
     window.clearTimeout(timer.current);
     if (immediate) void persist(); else timer.current = window.setTimeout(() => void persist(), 700);
   }, [persist]);
@@ -266,6 +268,7 @@ export function FamilyPage() {
         onEdit={() => setSheet({ kind: "child", id: selectedChild.id })} onEditLook={() => setSheet({ kind: "childLook", id: selectedChild.id })}
         onAddMeasure={(date, values) => addMeasure(selectedChild, date, values)} onDeleteMeasure={(id, field) => removeMeasure(selectedChild, id, field)}
         onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)}
+        tipPush={p.household?.tipPush !== false} onTipPush={(on) => { change({ ...p, household: { ...p.household, tipPush: on ? undefined : false } }, true); trackEvent("guide_tip_push_set", { on }); }}
         milestones={milestones.filter((row) => row.childId === selectedChild.id)} onMarkMilestone={(id, status, on) => markMilestone(selectedChild.id, id, status, on)}
         due={dueOf(selectedChild)} every={every} onEvery={(value) => { change({ ...p, household: { ...p.household, measureEvery: value === "auto" ? undefined : value } }, true); trackEvent("measure_reminder_set", { every: value }); }} />}
     </section>}
