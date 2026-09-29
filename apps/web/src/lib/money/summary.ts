@@ -1,5 +1,5 @@
 import type { MoneyBundle, MoneyRecurring, MoneyTransaction } from "./types.ts";
-import { isLoanEntry } from "./loans.ts";
+import { debtLinkIds, loanFlows, loanRole, type LoanTotals } from "./loans.ts";
 import { vnd } from "../catalog/format.ts";
 
 /**
@@ -17,16 +17,18 @@ export interface MonthSummary {
   saving: number;
   /** income − expense − saving for the month. */
   net: number;
-  /** Cash change over the month including loans (for the month's opening balance). */
+  /** Cash change over the month (for the month's opening balance). */
   cashChange: number;
   /** Savings fund change over the month (transfers in − withdrawals − expenses paid from the fund). */
   savingsChange: number;
   /** Planned spend (settings.monthlyPlan) or the sum of category budgets, if any. */
   plan?: number;
   remainingOfPlan?: number;
-  /** Linear pace: spent / daysElapsed × daysInMonth (only for the current month). */
+  /** Month-end forecast (current month only): spent so far + fixed items still to post + the flexible pace for the days left. */
   expectedExpense?: number;
   paceRatio?: number;
+  /** Loan money inside income / expense (borrowed, collected / repaid, lent): already counted above, shown as "trong đó". */
+  loanFlows: LoanTotals;
   childSpend: number;
   byCategory: CategoryLine[];
   upcoming: UpcomingItem[];
@@ -62,13 +64,23 @@ export function upcomingRecurring(recurring: MoneyRecurring[], now: Date, horizo
   return out.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
+/**
+ * Month-end spend: what is already spent, plus the fixed expenses that have not posted yet (they come once, at
+ * their amount), plus the flexible spend's daily pace for the days left. Flexible = expenses that are not from a
+ * recurring item; one-off loan and debt payments are left out of the pace too (a lump is not a daily habit) but
+ * stay in what was spent. So rent posted on the 1st is never multiplied by the days of the month.
+ */
+function forecastExpense(spent: number, inMonth: MoneyTransaction[], recurring: MoneyRecurring[], month: string, elapsed: number, days: number): number {
+  const flexible = inMonth.filter((item) => item.kind === "expense" && !item.recurringId && !item.debtId && !loanRole(item)).reduce((sum, item) => sum + item.amount, 0);
+  const fixedDue = recurring.filter((item) => item.active && item.kind === "expense" && item.lastPostedMonth !== month).reduce((sum, item) => sum + item.amount, 0);
+  return Math.round(spent + fixedDue + flexible / elapsed * (days - elapsed));
+}
+
 export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSummary {
   const { month, transactions, budgets, settings, recurring, totals } = bundle;
-  const allInMonth = transactions.filter((item) => item.occurredOn.startsWith(month));
-  // Borrowing and lending are not income or spending (Nợ tab); they still move cash (cashChange).
-  const inMonth = allInMonth.filter((item) => !isLoanEntry(item));
+  // Loans (borrowing, repaying, lending, being paid back) are ordinary Thu/Chi; loanFlows tells how much of it they are.
+  const inMonth = transactions.filter((item) => item.occurredOn.startsWith(month));
   const sums = sumByKind(inMonth);
-  const moved = sumByKind(allInMonth);
   const byMap = new Map<string, CategoryLine>();
   for (const item of inMonth) {
     if (item.kind !== "expense") continue;
@@ -84,13 +96,13 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   const current = monthKey(now) === month;
   const days = daysInMonth(month);
   const elapsed = current ? Math.max(1, now.getDate()) : days;
-  const expectedExpense = current && sums.expense > 0 ? Math.round(sums.expense / elapsed * days) : undefined;
+  const expectedExpense = current && sums.expense > 0 ? forecastExpense(sums.expense, inMonth, recurring, month, elapsed, days) : undefined;
   const paceRatio = plan && expectedExpense ? expectedExpense / plan : undefined;
   const childSpend = inMonth.filter((item) => item.kind === "expense" && item.forChild).reduce((acc, item) => acc + item.amount, 0);
   const upcoming = current ? upcomingRecurring(recurring, now) : [];
   const fromSavings = totals.fromSavings ?? 0;
   const balances = { cash: settings.openingCash + totals.income - (totals.expense - fromSavings) - totals.saving, savings: settings.openingSavings + totals.saving - fromSavings };
-  const monthFromSavings = allInMonth.filter((item) => item.kind === "expense" && item.paidFrom === "savings").reduce((sum, item) => sum + item.amount, 0);
+  const monthFromSavings = inMonth.filter((item) => item.kind === "expense" && item.paidFrom === "savings").reduce((sum, item) => sum + item.amount, 0);
 
   const insights: MoneyInsight[] = [];
   if (plan && paceRatio !== undefined && paceRatio > 1.05) {
@@ -103,7 +115,7 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${vnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
   if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${vnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
 
-  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: moved.income - (moved.expense - monthFromSavings) - moved.saving, savingsChange: moved.saving - monthFromSavings, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
+  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: sums.income - (sums.expense - monthFromSavings) - sums.saving, savingsChange: sums.saving - monthFromSavings, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, loanFlows: loanFlows(inMonth, debtLinkIds(settings.position?.debts ?? [])), childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
 }
 
 /** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */

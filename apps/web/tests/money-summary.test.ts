@@ -24,6 +24,27 @@ test("tổng tháng, nhịp chi và số dư suy ra từ số dư đầu kỳ", 
   assert.ok(summary.insights.some((item) => item.id === "saving-rate"));
 });
 
+test("dự báo cuối tháng: tiền nhà đã ghi ngày 1 không bị nhân theo số ngày", () => {
+  const early = new Date(2026, 8, 3, 10); // 03/09/2026 — day 3 of 30
+  const rent = { id: "r-rent", name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 8_000_000, dayOfMonth: 1, active: true, lastPostedMonth: "2026-09" };
+  const posted = { ...tx("2026-09-01", "expense", 8_000_000, "Gia đình"), recurringId: "r-rent", source: "recurring" as const };
+  const items = [posted, tx("2026-09-02", "expense", 300_000, "Ăn uống")];
+  const summary = summarizeMonth(bundle(items, { recurring: [rent] }), early);
+  // 8,3tr spent + 300k/3 ngày × 27 ngày còn lại (not 8,3tr / 3 × 30 = 83tr).
+  assert.equal(summary.expectedExpense, 8_300_000 + 2_700_000);
+  assert.ok(!summary.insights.some((item) => item.id === "over-pace"), "không cảnh báo vượt kế hoạch");
+  // A fixed item still to post adds its amount once.
+  const internet = { id: "r-net", name: "Internet", category: "Tiêu dùng", kind: "expense" as const, amount: 450_000, dayOfMonth: 26, active: true };
+  assert.equal(summarizeMonth(bundle(items, { recurring: [rent, internet, { ...internet, id: "r-off", active: false }, { ...internet, id: "r-in", kind: "income" as const }] }), early).expectedExpense, 11_450_000);
+  // A one-off debt payment counts as spent but is not extrapolated.
+  const withDebt = [...items, tx("2026-09-03", "expense", 6_000_000, "Tiền trả nợ")];
+  assert.equal(summarizeMonth(bundle(withDebt, { recurring: [rent] }), early).expectedExpense, 14_300_000 + 2_700_000);
+  // Genuinely fast flexible spending is still flagged.
+  const fast = summarizeMonth(bundle([tx("2026-09-02", "expense", 3_000_000, "Ăn uống")]), early);
+  assert.equal(fast.expectedExpense, 3_000_000 + 27_000_000);
+  assert.ok(fast.insights.some((item) => item.id === "over-pace"));
+});
+
 test("vượt nhịp kế hoạch: cảnh báo kèm nhóm vượt ngân sách; chi cho con ≥25% được nêu", () => {
   const items = [tx("2026-09-02", "expense", 13_000_000, "Ăn uống"), tx("2026-09-03", "expense", 9_000_000, "Con", true)];
   const summary = summarizeMonth(bundle(items, { budgets: [{ id: "b1", category: "Ăn uống", month: "2026-09", limitAmount: 5_000_000 }] }), now);

@@ -1,5 +1,5 @@
 import { MONEY_METHODS, type FamilyProfile } from "../experience/types.ts";
-import type { MoneyBudget, MoneyTransaction } from "./types.ts";
+import { DEFAULT_CATEGORIES, type MoneyBudget, type MoneyTransaction } from "./types.ts";
 
 /**
  * Well-known household money frameworks the family can choose from (the app suggests, the family decides).
@@ -102,18 +102,30 @@ export const frameworkById = (id?: string) => FRAMEWORKS.find((item) => item.id 
 // Default ledger categories (lib/money/types DEFAULT_CATEGORIES) grouped once, reused by every mapping.
 const ESSENTIAL = new Set(["Ăn uống", "Tiêu dùng", "Con", "Gia đình", "Tiền điện", "Tiền nước", "Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Tiền trả nợ quỹ", "Khám, thuốc"]);
 const DEBT = new Set(["Tiền trả góp", "Tiền thẻ tín dụng", "Tiền trả nợ", "Tiền trả nợ quỹ"]);
-const INVEST = new Set(["Chi phí đầu tư", "Tiền cho vay"]);
+const INVEST = new Set(["Chi phí đầu tư"]);
+// Money lent out is spending on someone else, never saving or investing: it lands in "Cho đi" / wants / unexpected.
+const LEND = new Set(["Tiền cho vay"]);
+// Categories the app ships with; anything else is the family's own and has no default part (see UNPLACED).
+const KNOWN = new Set(DEFAULT_CATEGORIES.filter((item) => item.kind === "expense").map((item) => item.name));
 
-/** Bucket key a ledger entry counts toward in a framework (null = not counted, e.g. income). */
+/** Key of the extra row for spending in categories no part claims (the family's own categories until it places them). */
+export const UNPLACED = "unplaced";
+
+/**
+ * Bucket key a ledger entry counts toward in a framework (null = not counted, e.g. income). Loan repayments are
+ * essentials (and the debt part of Baby Steps); lending is not saving; an expense category the family created and no
+ * part holds yet is UNPLACED instead of silently counting as enjoyment.
+ */
 export function bucketOf(id: FrameworkId, tx: Pick<MoneyTransaction, "kind" | "category" | "amount">): string | null {
   if (tx.kind === "income") return null;
   const saving = tx.kind === "saving";
   const c = tx.category;
+  const other = KNOWN.has(c);
   switch (id) {
-    case "jars": return saving ? "ltss" : INVEST.has(c) ? "ffa" : c === "Học tập" ? "edu" : c === "Hiếu hỉ" ? "give" : ESSENTIAL.has(c) ? "nec" : "play";
-    case "50-30-20": return saving || INVEST.has(c) ? "save" : ESSENTIAL.has(c) || c === "Học tập" ? "needs" : "wants";
+    case "jars": return saving ? "ltss" : INVEST.has(c) ? "ffa" : c === "Học tập" ? "edu" : c === "Hiếu hỉ" || LEND.has(c) ? "give" : ESSENTIAL.has(c) ? "nec" : other ? "play" : UNPLACED;
+    case "50-30-20": return saving || INVEST.has(c) ? "save" : ESSENTIAL.has(c) || c === "Học tập" ? "needs" : other ? "wants" : UNPLACED;
     case "pay-first": return saving || INVEST.has(c) ? "save" : "spend";
-    case "kakeibo": return saving ? null : c === "Học tập" ? "culture" : c === "Khám, thuốc" || c === "Hiếu hỉ" ? "unexpected" : ESSENTIAL.has(c) ? "survival" : "wants";
+    case "kakeibo": return saving ? null : c === "Học tập" ? "culture" : c === "Khám, thuốc" || c === "Hiếu hỉ" || LEND.has(c) ? "unexpected" : ESSENTIAL.has(c) ? "survival" : other ? "wants" : UNPLACED;
     case "baby-steps": return saving || INVEST.has(c) ? "save" : DEBT.has(c) ? "debt" : "spend";
     case "zero-based": return null;
     case "custom": return null; // mapped by each part's own categories in frameworkProgress
@@ -121,6 +133,8 @@ export function bucketOf(id: FrameworkId, tx: Pick<MoneyTransaction, "kind" | "c
 }
 
 export interface BucketProgress extends Bucket { target?: number; actual: number }
+
+const UNPLACED_ROW: Bucket = { key: UNPLACED, label: "Chưa xếp phần", hint: "nhóm chi bạn tự tạo, chưa thuộc phần nào — xếp vào một phần để tính đúng" };
 
 /** Target (share × fixed budget, or × income when there is none) vs actual for the month; zero-based compares budgets to income instead. */
 export function frameworkProgress(fw: Framework, income: number, transactions: MoneyTransaction[], budgets: MoneyBudget[] = []): BucketProgress[] {
@@ -132,10 +146,12 @@ export function frameworkProgress(fw: Framework, income: number, transactions: M
   const actual = new Map<string, number>();
   const byCategory = new Map(fw.buckets.flatMap((bucket) => (bucket.categories ?? []).map((name) => [name, bucket.key] as const)));
   for (const tx of transactions) {
-    const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? null) : bucketOf(fw.id, tx);
+    const key = fw.id === "custom" ? (tx.kind === "income" ? null : byCategory.get(tx.category) ?? UNPLACED) : bucketOf(fw.id, tx);
     if (key && !(tx.kind === "saving" && tx.amount < 0)) actual.set(key, (actual.get(key) ?? 0) + tx.amount);
   }
-  return fw.buckets.map((bucket) => ({ ...bucket, target: fw.base ? bucket.amount ?? (bucket.share !== undefined ? Math.round(fw.base * bucket.share) : undefined) : bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
+  const rows: BucketProgress[] = fw.buckets.map((bucket) => ({ ...bucket, target: fw.base ? bucket.amount ?? (bucket.share !== undefined ? Math.round(fw.base * bucket.share) : undefined) : bucket.amount ?? (bucket.share !== undefined && income > 0 ? Math.round(income * bucket.share) : undefined), actual: actual.get(bucket.key) ?? 0 }));
+  const unplaced = actual.get(UNPLACED) ?? 0;
+  return unplaced > 0 ? [...rows, { ...UNPLACED_ROW, actual: unplaced }] : rows;
 }
 
 /** Dave Ramsey step the family is on, from onboarding answers (1-based). */
