@@ -181,7 +181,7 @@ export function FamilyPage() {
   async function markMilestone(childId: string, milestoneId: string, status: MilestoneStatus | null, on?: string) {
     const before = milestones;
     setMilestones((rows) => [...rows.filter((row) => !(row.childId === childId && row.milestoneId === milestoneId)), ...(status ? [{ childId, milestoneId, status, ...(on ? { on } : {}) }] : [])]);
-    try { await saveMilestone(childId, milestoneId, status, on); if (status) trackEvent("milestone_marked", { status }); } catch (cause) { setMilestones(before); throw cause; }
+    try { await saveMilestone(childId, milestoneId, status, on); if (status) trackEvent(milestoneId.startsWith("tip-") ? "guide_tip_tried" : "milestone_marked", { status }); } catch (cause) { setMilestones(before); throw cause; }
   }
   async function togglePractice(id: string, on: boolean) {
     setDoneIds((ids) => on ? [...ids, id] : ids.filter((item) => item !== id));

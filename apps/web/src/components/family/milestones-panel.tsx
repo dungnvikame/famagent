@@ -92,6 +92,6 @@ export function MilestonesPanel({ name, ageMonths, ageMonthsExact, birthDate, to
       <ol>{(allMemories ? list : list.slice(0, 5)).map((memory) => <li key={memory.milestone.id}><span className="dot" aria-hidden="true">{AREA_LABELS[memory.milestone.area].icon}</span><div><b>{memory.milestone.text}</b><small>{shortDate(memory.on)}{memory.ageText ? ` · lúc ${memory.ageText}` : ""}</small></div></li>)}</ol>
       {list.length > 5 && <button type="button" className="link-btn" onClick={() => setAllMemories((value) => !value)}>{allMemories ? "Thu gọn" : `Xem cả ${list.length} kỷ niệm`}</button>}
     </div>}
-    <p className="fam-hint">Theo checklist “Learn the Signs. Act Early.” của CDC (2022) và Nghiên cứu vận động WHO (2006). Trẻ sinh non tính theo tuổi hiệu chỉnh. Đây là công cụ theo dõi, không phải chẩn đoán.</p>
+    <p className="fam-hint">Theo checklist “Learn the Signs. Act Early.” của CDC (2022) và Nghiên cứu vận động WHO (2006). Đây là công cụ theo dõi, không phải chẩn đoán.</p>
   </div>;
 }

@@ -43,3 +43,19 @@ test("just entered a checkpoint, memories with age, WHO motor state", () => {
   assert.equal(motorState(walk, 7), "early"); assert.equal(motorState(walk, 12), "window"); assert.equal(motorState(walk, 18), "late");
   assert.equal(motorState(walk, 18, { childId: "c", milestoneId: walk.id, status: "done" }), "done");
 });
+
+test("age guide: stages cover 0–72 months without gaps, unique tip ids, tips can be saved", async () => {
+  const { GUIDE_STAGES, stageFor, knownTip } = await import("../src/lib/family/age-guide-data.ts");
+  const { validMilestoneInput } = await import("../src/lib/family/validate.ts");
+  assert.equal(GUIDE_STAGES[0].from, 0); assert.equal(GUIDE_STAGES.at(-1)!.to, 72);
+  for (let index = 1; index < GUIDE_STAGES.length; index++) assert.equal(GUIDE_STAGES[index].from, GUIDE_STAGES[index - 1].to);
+  const ids = GUIDE_STAGES.flatMap((item) => item.tips.map((tip) => tip.id));
+  assert.equal(new Set(ids).size, ids.length);
+  assert.ok(ids.every((id) => /^tip-[0-9]{1,2}-[0-9]{1,2}$/.test(id)));
+  assert.ok(GUIDE_STAGES.every((item) => item.tips.length >= 8));
+  assert.equal(stageFor(14)?.label, "14–17 tháng"); assert.equal(stageFor(0)?.key, 2); assert.equal(stageFor(72), undefined);
+  assert.ok(knownTip("tip-12-1")); assert.ok(!knownTip("tip-99-1"));
+  const child = "11111111-1111-4111-8111-111111111111";
+  assert.equal(validMilestoneInput({ childId: child, milestoneId: "tip-12-1", status: "done", on: "2026-09-29" }, new Date("2026-09-29T05:00:00Z")), true);
+  assert.equal(validMilestoneInput({ childId: child, milestoneId: "tip-99-1", status: "done" }), false);
+});

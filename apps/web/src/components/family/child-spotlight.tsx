@@ -9,6 +9,7 @@ import { COLOR_STYLES, SENSITIVITY_LABELS, type AvatarColor } from "@/lib/family
 import { MemberAvatar } from "./member-avatar";
 import { GrowthChart, type HeightPoint } from "./growth-chart";
 import { MilestonesPanel } from "./milestones-panel";
+import { AgeGuide } from "./age-guide";
 import { ageMonthsExact, type MilestoneRecord, type MilestoneStatus } from "@/lib/family/milestones";
 import { MEASURE_EVERY, MEASURE_EVERY_LABELS, cadenceText, dueLine, type MeasureDue, type MeasureEvery } from "@/lib/family/measure-schedule";
 
@@ -76,6 +77,10 @@ export function ChildSpotlight({ child, name, look, photo, today, series, height
         <small className="fam-hint">Tham khảo theo tuổi — không thay lời khuyên của bác sĩ.</small>
       </div>
 
+      {months !== undefined && months < 72 && <div className="fam-blk wide" id="fam-guide"><h3>Cẩm nang chăm {name} theo tuổi <span className="sp" /><span className="fam-use">CDC · WHO · AAP</span></h3>
+        <AgeGuide name={name} ageMonths={months} records={milestones.filter((record) => record.milestoneId.startsWith("tip-"))} onTried={(id, tried) => onMarkMilestone(id, tried ? "done" : null, tried ? today : undefined)} />
+      </div>}
+
       <div className="fam-blk wide"><h3>Cân nặng & tăng trưởng <span className="sp" /><span className="fam-use">dùng cho: size bỉm · so chuẩn WHO</span></h3>
         <div className={`fam-sched ${due?.state ?? "off"}`} role="status">
           <span className="fam-sched-ico" aria-hidden="true">{due?.state === "due" ? "⏰" : "📅"}</span>
@@ -90,7 +95,7 @@ export function ChildSpotlight({ child, name, look, photo, today, series, height
       </div>
 
       {months !== undefined && months < 72 && <div className="fam-blk wide" id="fam-milestones"><h3>Cột mốc phát triển <span className="sp" /><span className="fam-use">theo CDC · WHO</span></h3>
-        <MilestonesPanel name={name} ageMonths={months} ageMonthsExact={child.birthDate ? ageMonthsExact(child.birthDate, today) : months} birthDate={child.birthDate} today={today} records={milestones} onMark={onMarkMilestone} />
+        <MilestonesPanel name={name} ageMonths={months} ageMonthsExact={child.birthDate ? ageMonthsExact(child.birthDate, today) : months} birthDate={child.birthDate} today={today} records={milestones.filter((record) => !record.milestoneId.startsWith("tip-"))} onMark={onMarkMilestone} />
       </div>}
 
       <div className="fam-blk wide"><h3>Lưu ý khi chọn đồ <span className="sp" /><span className="fam-use">dùng cho: gợi ý sản phẩm</span></h3>
