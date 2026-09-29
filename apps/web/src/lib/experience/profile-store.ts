@@ -16,7 +16,7 @@ const vnDay = (iso?: string) => new Date((iso && !Number.isNaN(Date.parse(iso)) 
 async function logWeights(client: SupabaseClient, userId: string, profile: FamilyProfile, childIds: string[]) {
   const weighed = profile.children.map((child, index) => ({ id: childIds[index], kg: child.weightKg, date: vnDay(profile.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt) })).filter((item): item is { id: string; kg: number; date: string } => item.kg !== undefined);
   if (!weighed.length) return;
-  const { data, error } = await client.from("child_weights").select("child_id,measured_on,weight_kg").eq("user_id", userId).in("child_id", weighed.map((item) => item.id)).order("measured_on", { ascending: false });
+  const { data, error } = await client.from("child_weights").select("child_id,measured_on,weight_kg").eq("user_id", userId).in("child_id", weighed.map((item) => item.id)).not("weight_kg", "is", null).order("measured_on", { ascending: false });
   if (error) return;
   const latest = new Map<string, { date: string; kg: number }>();
   for (const row of data ?? []) if (!latest.has(row.child_id as string)) latest.set(row.child_id as string, { date: String(row.measured_on).slice(0, 10), kg: Number(row.weight_kg) });

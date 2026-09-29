@@ -17,7 +17,7 @@ import { clearAllData, getProfile, saveProfile, trackEvent } from "@/lib/experie
 import type { AdultMember, ChildProfile, FamilyProfile, MemberLook } from "@/lib/experience/types";
 import { validProfile } from "@/lib/experience/validate";
 import { ageParts, ageShort, dayMilestone, nextBirthday, shortDate, weightSeries, type WeightPoint } from "@/lib/family/child-stats";
-import { deleteWeight, loadAvatars, loadWeights, removeAvatar, saveAvatar, saveWeight, type ChildWeight } from "@/lib/family/client";
+import { deleteMeasure, loadAvatars, loadMeasures, removeAvatar, saveAvatar, saveMeasure, type ChildMeasure } from "@/lib/family/client";
 import { adultLook, adultMembers, adultName, childLook, childName, newMemberId, ROLE_LABELS, withChildLook, withMembers, type AvatarColor } from "@/lib/family/members";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
@@ -38,6 +38,8 @@ type Sheet = { kind: "child" | "childLook" | "adult"; id: string } | { kind: "ho
 type SaveState = "idle" | "saving" | "saved" | "error";
 /** VN noon of a weighing day, so fieldMeta keeps the day the child was weighed (the chart and the server log read it). */
 const weighedAt = (date: string) => `${date}T12:00:00+07:00`;
+/** Weighings of one child from the day measurements (weight present). */
+const weighings = (rows: ChildMeasure[], childId: string) => rows.flatMap((row) => row.childId === childId && row.kg !== undefined ? [{ id: row.id, date: row.date, kg: row.kg }] : []);
 const vnDay = (iso?: string) => iso && !Number.isNaN(Date.parse(iso)) ? new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10) : undefined;
 
 /**
@@ -56,7 +58,7 @@ export function FamilyPage() {
   const [sheet, setSheet] = useState<Sheet>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [notes, setNotes] = useState<FamilyNote[] | null>(null);
-  const [weights, setWeights] = useState<ChildWeight[]>([]);
+  const [measures, setMeasures] = useState<ChildMeasure[]>([]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [done, setDoneIds] = useState<string[]>([]);
   const [money, setMoney] = useState<MonthSummary | null>(null);
@@ -79,7 +81,7 @@ export function FamilyPage() {
       original.current = value; latest.current = value; setProfile(value); setLoaded(true);
       if (!value) return;
       void reloadNotes();
-      loadWeights().then((rows) => { if (!cancelled) setWeights(rows); }).catch(() => {});
+      loadMeasures().then((rows) => { if (!cancelled) setMeasures(rows); }).catch(() => {});
       loadAvatars().then((rows) => { if (!cancelled) setAvatars(rows); }).catch(() => {});
       loadDone().then((byDay) => { if (!cancelled) setDoneIds(byDay[localDay(new Date())] ?? []); }).catch(() => {});
       loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
@@ -130,7 +132,8 @@ export function FamilyPage() {
 
   const children = useMemo(() => profile?.children ?? [], [profile]);
   const selectedChild = children.find((child) => child.id === selected) ?? children[0];
-  const series = useCallback((child: ChildProfile): WeightPoint[] => weightSeries(weights.filter((row) => row.childId === child.id), { kg: child.weightKg, date: vnDay(profile?.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt) ?? vnDay(profile?.updatedAt) }), [weights, profile]);
+  const heightsOf = (childId: string) => measures.flatMap((row) => row.childId === childId && row.cm !== undefined ? [{ id: row.id, date: row.date, cm: row.cm }] : []).sort((a, b) => a.date.localeCompare(b.date));
+  const series = useCallback((child: ChildProfile): WeightPoint[] => weightSeries(weighings(measures, child.id), { kg: child.weightKg, date: vnDay(profile?.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt) ?? vnDay(profile?.updatedAt) }), [measures, profile]);
 
   if (!loaded) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang mở hồ sơ gia đình…</p></div>;
   if (!profile) return <div className="app-page"><div className="app-card fam-empty"><h1>Chưa có hồ sơ gia đình</h1>{loadError && <p className="form-error">{loadError}</p>}<p className="app-sub">Trả lời vài câu để FamAgent hiểu nhà mình.</p><Link className="app-btn" href="/onboarding">Bắt đầu →</Link></div></div>;
@@ -150,23 +153,25 @@ export function FamilyPage() {
     setAvatars((current) => { const next = { ...current }; if (image) next[id] = image; else delete next[id]; return next; });
     setSave("saved");
   }
-  async function addWeight(child: ChildProfile, date: string, kg: number) {
+  /** A day's weight and/or height; a newest weight also becomes the profile weight (size, shopping). */
+  async function addMeasure(child: ChildProfile, date: string, values: { kg?: number; cm?: number }) {
     if (timer.current !== undefined) await persist();
     const last = series(child).at(-1);
-    const id = await saveWeight(child.id, date, kg);
-    setWeights((rows) => [...rows.filter((row) => !(row.childId === child.id && row.date === date)), { id, childId: child.id, date, kg }]);
-    if (!last || date >= last.date) { weightDates.current[child.id] = date; updateChild(child.id, { weightKg: kg }, true); }
-    trackEvent("child_weight_logged");
+    const id = await saveMeasure(child.id, date, values);
+    setMeasures((rows) => { const same = rows.find((row) => row.childId === child.id && row.date === date); return [...rows.filter((row) => row !== same), { ...same, id, childId: child.id, date, ...values }]; });
+    if (values.kg !== undefined && (!last || date >= last.date)) { weightDates.current[child.id] = date; updateChild(child.id, { weightKg: values.kg }, true); }
+    if (values.kg !== undefined) trackEvent("child_weight_logged");
+    if (values.cm !== undefined) trackEvent("child_height_logged");
   }
-  async function removeWeight(child: ChildProfile, point: WeightPoint) {
-    if (!point.id) return;
-    await deleteWeight(point.id);
-    const rest = weights.filter((row) => row.id !== point.id);
-    setWeights(rest);
-    const remaining = weightSeries(rest.filter((row) => row.childId === child.id));
-    const previous = remaining.at(-1);
+  async function removeMeasure(child: ChildProfile, id: string, field: "kg" | "cm") {
+    const removed = measures.find((row) => row.id === id);
+    await deleteMeasure(id, field);
+    const rest = measures.flatMap((row) => { if (row.id !== id) return [row]; const next = { ...row, [field]: undefined }; return next.kg === undefined && next.cm === undefined ? [] : [next]; });
+    setMeasures(rest);
+    if (field !== "kg" || removed?.kg === undefined) return;
+    const previous = weightSeries(weighings(rest, child.id)).at(-1);
     // Deleting the newest weighing moves the profile weight back to the one before it.
-    if (previous && child.weightKg === point.kg && previous.date < point.date) { weightDates.current[child.id] = previous.date; updateChild(child.id, { weightKg: previous.kg }, true); }
+    if (previous && child.weightKg === removed.kg && previous.date < removed.date) { weightDates.current[child.id] = previous.date; updateChild(child.id, { weightKg: previous.kg }, true); }
   }
   async function togglePractice(id: string, on: boolean) {
     setDoneIds((ids) => on ? [...ids, id] : ids.filter((item) => item !== id));
@@ -239,11 +244,11 @@ export function FamilyPage() {
       <div className="fam-sec-h"><h2>{children.length > 1 ? "Các bé" : "Bé nhà mình"}</h2><small>chạm avatar để đổi ảnh · mọi thay đổi tự lưu</small></div>
       {children.length > 1 && <div className="fam-kid-tabs" role="tablist" aria-label="Chọn bé">{children.map((child) => { const look = childLooks.get(child.id)!; const on = child.id === selectedChild?.id; const months = child.birthDate ? ageShort(ageParts(child.birthDate, today)) : childAgeMonths(child) !== undefined ? `${childAgeMonths(child)} tháng` : ""; return <button type="button" role="tab" aria-selected={on} key={child.id} className={`fam-kt${on ? " on" : ""}`} onClick={() => setSelected(child.id)}><MemberAvatar name={names.get(child.id)!} color={look.color} emoji={look.emoji} photo={avatars[child.id]} size={36} />{names.get(child.id)}{months && ` · ${months}`}</button>; })}</div>}
       {selectedChild && <ChildSpotlight key={selectedChild.id} child={selectedChild} name={names.get(selectedChild.id)!} look={childLooks.get(selectedChild.id)!} photo={avatars[selectedChild.id]} today={today}
-        series={series(selectedChild)} notes={(notes ?? []).filter((note) => note.childId === selectedChild.id || (!note.childId && children.length === 1))}
+        series={series(selectedChild)} heights={heightsOf(selectedChild.id)} notes={(notes ?? []).filter((note) => note.childId === selectedChild.id || (!note.childId && children.length === 1))}
         practice={method ? { id: practiceId, title: method.practices[practiceIndex], source: method.name, done: done.includes(practiceId) } : undefined}
         onTogglePractice={() => void togglePractice(practiceId, !done.includes(practiceId))}
         onEdit={() => setSheet({ kind: "child", id: selectedChild.id })} onEditLook={() => setSheet({ kind: "childLook", id: selectedChild.id })}
-        onAddWeight={(date, kg) => addWeight(selectedChild, date, kg)} onDeleteWeight={(point) => removeWeight(selectedChild, point)}
+        onAddMeasure={(date, values) => addMeasure(selectedChild, date, values)} onDeleteMeasure={(id, field) => removeMeasure(selectedChild, id, field)}
         onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)} />}
     </section>}
     {children.length === 0 && <section className="app-card fam-nokid"><span aria-hidden="true">👶</span><div><b>{p.household?.setup === "expecting" ? "Đang chờ bé chào đời" : "Chưa có hồ sơ bé"}</b><p className="fam-hint">Thêm bé để thấy tuổi, mốc ngày tuổi, biểu đồ cân nặng và gợi ý size bỉm.</p></div><button type="button" className="app-btn" onClick={() => setSheet({ kind: "addChild" })}>＋ Thêm bé</button></section>}

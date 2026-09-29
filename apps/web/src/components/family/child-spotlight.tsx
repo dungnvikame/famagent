@@ -7,7 +7,7 @@ import type { ChildProfile } from "@/lib/experience/types";
 import { ageParts, ageText, dayMilestone, nextBirthday, shortDate, sizeOutlook, growthPerMonth, type WeightPoint } from "@/lib/family/child-stats";
 import { COLOR_STYLES, SENSITIVITY_LABELS, type AvatarColor } from "@/lib/family/members";
 import { MemberAvatar } from "./member-avatar";
-import { WeightChart } from "./weight-chart";
+import { GrowthChart, type HeightPoint } from "./growth-chart";
 
 export interface TodayPractice { id: string; title: string; source: string; done: boolean }
 
@@ -15,11 +15,11 @@ export interface TodayPractice { id: string; title: string; source: string; done
  * One child, age first (Huckleberry/BabyCenter style): the ring counts the way to the next birthday, then what to do
  * with them today, the growth line on diaper sizes, and what to watch for when buying — all from data already known.
  */
-export function ChildSpotlight({ child, name, look, photo, today, series, notes, practice, onTogglePractice, onEdit, onEditLook, onAddWeight, onDeleteWeight, onUseSize, onSetSex }: {
+export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex }: {
   child: ChildProfile; name: string; look: { color: AvatarColor; emoji?: string }; photo?: string; today: string;
-  series: WeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
+  series: WeightPoint[]; heights: HeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
   onTogglePractice: () => void; onEdit: () => void; onEditLook: () => void;
-  onAddWeight: (date: string, kg: number) => Promise<void>; onDeleteWeight: (point: WeightPoint) => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
+  onAddMeasure: (date: string, values: { kg?: number; cm?: number }) => Promise<void>; onDeleteMeasure: (id: string, field: "kg" | "cm") => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
 }) {
   const style = COLOR_STYLES[look.color];
   const months = child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child);
@@ -51,6 +51,7 @@ export function ChildSpotlight({ child, name, look, photo, today, series, notes,
       </button>
       <h2>{name}</h2>
       <div className="fam-kid-age">{age ? ageText(age) : months !== undefined ? `khoảng ${months} tháng` : "Chưa có tuổi"}</div>
+      {(series.at(-1) || heights.at(-1)) && <div className="fam-kid-size">{[heights.at(-1) && `📏 ${heights.at(-1)!.cm.toLocaleString("vi-VN")} cm`, series.at(-1) && `⚖️ ${series.at(-1)!.kg.toLocaleString("vi-VN")} kg`].filter(Boolean).join(" · ")}</div>}
       <div className="fam-kid-born">{child.birthDate ? `Sinh ${shortDate(child.birthDate)}${age ? ` · ngày thứ ${age.dayNumber.toLocaleString("vi-VN")}` : ""}` : <button type="button" className="link-btn" onClick={onEdit}>Thêm ngày sinh để xem sinh nhật & mốc ngày tuổi</button>}</div>
       {(milestone || birthday) && <div className="fam-moments">
         {birthday?.isToday && <div className="fam-mo hi"><i>🎉</i><div><b>Chúc mừng sinh nhật {name}!</b>Tròn {birthday.turning} tuổi hôm nay</div></div>}
@@ -71,7 +72,7 @@ export function ChildSpotlight({ child, name, look, photo, today, series, notes,
       </div>
 
       <div className="fam-blk wide"><h3>Cân nặng & tăng trưởng <span className="sp" /><span className="fam-use">dùng cho: size bỉm · so chuẩn WHO</span></h3>
-        <WeightChart series={series} today={today} name={name} color={{ dot: style.dot, ink: style.ink }} onAdd={onAddWeight} onDelete={onDeleteWeight}
+        <GrowthChart weights={series} heights={heights} today={today} name={name} color={{ dot: style.dot, ink: style.ink }} onAdd={onAddMeasure} onDelete={onDeleteMeasure}
           who={{ sex: child.sex, birthDate: child.birthDate, showSize: usesDiapers, onSex: onSetSex, onAddBirth: onEdit }} />
         {suggestSize && <div className="fam-suggest">Theo cân nặng mới nhất, {name} hợp size <b>{suggestSize}</b> (đang ghi {child.diaperSize}).<button type="button" className="app-btn" onClick={() => onUseSize(suggestSize)}>Đổi sang {suggestSize}</button></div>}
         {!usesDiapers && <small className="fam-hint">{name} đã qua tuổi dùng bỉm nên FamAgent không lập kế hoạch bỉm cho con.</small>}

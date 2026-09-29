@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { ageParts, ageText, bandFor, dayMilestone, growthPerMonth, nextBirthday, sizeOutlook, weightSeries } from "../src/lib/family/child-stats.ts";
 import { adultMembers, adultName, childLook, withChildLook, withMembers } from "../src/lib/family/members.ts";
-import { validWeightInput, validAvatarImage } from "../src/lib/family/validate.ts";
+import { validMeasureInput, validAvatarImage } from "../src/lib/family/validate.ts";
 import { validProfile } from "../src/lib/experience/validate.ts";
 import type { FamilyProfile } from "../src/lib/experience/types.ts";
 
@@ -79,9 +79,12 @@ test("validation rejects bad members, looks and inputs", () => {
   assert.equal(bad({ looks: { "not-a-uuid": {} } }), false);
   assert.equal(bad({ theme: "disco" }), false);
   const now = new Date("2026-09-29T05:00:00Z");
-  assert.equal(validWeightInput({ childId: CHILD, date: "2026-09-29", kg: 10.4 }, now), true);
-  assert.equal(validWeightInput({ childId: CHILD, date: "2026-10-05", kg: 10.4 }, now), false);
-  assert.equal(validWeightInput({ childId: CHILD, date: "2026-09-29", kg: 45 }, now), false);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", kg: 10.4 }, now), true);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", cm: 80.5 }, now), true);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29" }, now), false);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", cm: 20 }, now), false);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-10-05", kg: 10.4 }, now), false);
+  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", kg: 45 }, now), false);
   assert.equal(validAvatarImage("data:image/png;base64,AAAA"), false);
   assert.equal(validAvatarImage("data:image/jpeg;base64,AAAA"), true);
 });

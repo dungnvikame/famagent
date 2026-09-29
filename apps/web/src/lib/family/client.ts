@@ -2,10 +2,10 @@
 
 // Browser side of the Family page extras: /api/family/* when Supabase is configured, else localStorage (demo mode).
 import { cloudEnabled } from "@/lib/experience/cloud";
-import type { WeightPoint } from "./child-stats";
-import { validAvatarImage, validWeightInput } from "./validate";
+import { validAvatarImage, validMeasureInput } from "./validate";
 
-export type ChildWeight = WeightPoint & { id: string; childId: string };
+/** One day's growth measurement of a child: weight, height or both. */
+export interface ChildMeasure { id: string; childId: string; date: string; kg?: number; cm?: number }
 const WEIGHTS_KEY = "family-ai:weights:v1";
 const AVATARS_KEY = "family-ai:avatars:v1";
 
@@ -18,24 +18,27 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export async function loadWeights(): Promise<ChildWeight[]> {
-  if (cloudEnabled) return (await api<{ weights: ChildWeight[] }>("/api/family/weights")).weights;
-  return read<ChildWeight[]>(WEIGHTS_KEY, []);
+export async function loadMeasures(): Promise<ChildMeasure[]> {
+  if (cloudEnabled) return (await api<{ weights: ChildMeasure[] }>("/api/family/weights")).weights;
+  return read<ChildMeasure[]>(WEIGHTS_KEY, []);
 }
 
-/** Saves one weighing (same child + day replaces) and returns its id. */
-export async function saveWeight(childId: string, date: string, kg: number): Promise<string> {
-  if (!validWeightInput({ childId, date, kg })) throw new Error("Cân nặng từ 1 đến 40 kg, ngày không ở tương lai.");
-  if (cloudEnabled) return (await api<{ id: string }>("/api/family/weights", { method: "POST", body: JSON.stringify({ childId, date, kg }) })).id;
-  const rest = read<ChildWeight[]>(WEIGHTS_KEY, []).filter((row) => !(row.childId === childId && row.date === date));
-  const id = crypto.randomUUID();
-  write(WEIGHTS_KEY, [...rest, { id, childId, date, kg }]);
+/** Saves a day's weight and/or height (only the values given change) and returns the day's id. */
+export async function saveMeasure(childId: string, date: string, values: { kg?: number; cm?: number }): Promise<string> {
+  if (!validMeasureInput({ childId, date, ...values })) throw new Error("Cân nặng 1–40 kg, chiều cao 35–200 cm, ngày không ở tương lai.");
+  if (cloudEnabled) return (await api<{ id: string }>("/api/family/weights", { method: "POST", body: JSON.stringify({ childId, date, ...values }) })).id;
+  const rows = read<ChildMeasure[]>(WEIGHTS_KEY, []);
+  const same = rows.find((row) => row.childId === childId && row.date === date);
+  const id = same?.id ?? crypto.randomUUID();
+  write(WEIGHTS_KEY, [...rows.filter((row) => row !== same), { ...same, id, childId, date, ...values }]);
   return id;
 }
 
-export async function deleteWeight(id: string): Promise<void> {
-  if (cloudEnabled) { await api(`/api/family/weights?id=${encodeURIComponent(id)}`, { method: "DELETE" }); return; }
-  write(WEIGHTS_KEY, read<ChildWeight[]>(WEIGHTS_KEY, []).filter((row) => row.id !== id));
+/** Clears the weight or the height of a day; the day goes when nothing is left. */
+export async function deleteMeasure(id: string, field: "kg" | "cm"): Promise<void> {
+  if (cloudEnabled) { await api(`/api/family/weights?id=${encodeURIComponent(id)}&field=${field}`, { method: "DELETE" }); return; }
+  const rows = read<ChildMeasure[]>(WEIGHTS_KEY, []).flatMap((row) => { if (row.id !== id) return [row]; const next = { ...row, [field]: undefined }; return next.kg === undefined && next.cm === undefined ? [] : [next]; });
+  write(WEIGHTS_KEY, rows);
 }
 
 export async function loadAvatars(): Promise<Record<string, string>> {
