@@ -25,11 +25,11 @@ function readDebt(form: typeof EMPTY): MoneyDebt | string {
     const monthly = parseVnd(form.monthly);
     if (monthly === null || monthly <= 0) return "Số trả mỗi tháng không hợp lệ (ví dụ 1,5tr).";
     debt.monthlyPayment = monthly;
-    if (form.day.trim()) {
-      const day = Number(form.day);
-      if (!Number.isInteger(day) || day < 1 || day > 31) return "Ngày trả phải từ 1 đến 31.";
-      debt.dueDay = day;
-    }
+    // Without a due day no reminder is created, so a monthly payment needs one.
+    if (!form.day.trim()) return "Nhập ngày trả trong tháng để app nhắc “Đã trả?” mỗi tháng.";
+    const day = Number(form.day);
+    if (!Number.isInteger(day) || day < 1 || day > 31) return "Ngày trả phải từ 1 đến 31.";
+    debt.dueDay = day;
   }
   if (form.rate.trim()) {
     const rate = Number(form.rate.trim().replace(",", "."));
@@ -72,7 +72,7 @@ export function DebtAddForm({ hasPosition, onAdd, onTab }: Props) {
       <div className="f"><label htmlFor={`${uid}-name`}>Nợ ai / ngân hàng nào</label><input id={`${uid}-name`} value={form.name} maxLength={60} autoComplete="off" required placeholder="Thẻ Sacombank" onChange={(event) => set({ name: event.target.value })} /></div>
       <div className="f"><label htmlFor={`${uid}-balance`}>Còn nợ</label><AmountInput id={`${uid}-balance`} value={form.balance} required placeholder="15tr" onChange={(event) => set({ balance: event.target.value })} /></div>
       <div className="f"><label htmlFor={`${uid}-monthly`}>Trả mỗi tháng <small>(tuỳ chọn)</small></label><AmountInput id={`${uid}-monthly`} value={form.monthly} placeholder="1,5tr" onChange={(event) => set({ monthly: event.target.value })} /></div>
-      {form.monthly.trim() && <div className="f"><label htmlFor={`${uid}-day`}>Ngày trả trong tháng <small>(tuỳ chọn)</small></label><input id={`${uid}-day`} value={form.day} inputMode="numeric" maxLength={2} autoComplete="off" placeholder="5" onChange={(event) => set({ day: event.target.value.replace(/\D/g, "") })} aria-describedby={`${uid}-day-help`} /><small id={`${uid}-day-help`}>Có ngày trả thì app nhắc “Đã trả?” mỗi tháng.</small></div>}
+      {form.monthly.trim() && <div className="f"><label htmlFor={`${uid}-day`}>Ngày trả trong tháng</label><input id={`${uid}-day`} value={form.day} inputMode="numeric" maxLength={2} autoComplete="off" placeholder="5" onChange={(event) => set({ day: event.target.value.replace(/\D/g, "") })} aria-describedby={`${uid}-day-help`} /><small id={`${uid}-day-help`}>Có ngày trả thì app nhắc “Đã trả?” mỗi tháng.</small></div>}
       <div className="f"><label htmlFor={`${uid}-rate`}>Lãi %/năm <small>(tuỳ chọn)</small></label><input id={`${uid}-rate`} value={form.rate} inputMode="decimal" autoComplete="off" placeholder="0" onChange={(event) => set({ rate: event.target.value })} /></div>
       {error && <p className="form-error wide" role="alert">{error}</p>}
       <div className="acts wide">
