@@ -27,6 +27,7 @@ import { DueFlow } from "./due-flow";
 import { MoneyHero } from "./money-hero";
 import { MONEY_CHANGED_EVENT } from "./quick-entry";
 import { MonthView } from "./month-view";
+import { PlanView } from "./plan-view";
 import { PositionView } from "./position-view";
 import { QuickAddPanel } from "./quick-add-panel";
 import { SavingsBackfill } from "./savings-backfill";
@@ -221,7 +222,7 @@ export function MoneyPage() {
       {tab !== "month" && <DueFlow bundle={bundle} summary={summary} onChanged={() => reload()} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
       {tab === "situ" && <SavingsBackfill recurring={bundle.recurring} onDone={() => reload()} />}
-      {tab === "situ" && <PositionView key={`${bundle.settings.position?.asOf ?? "none"}:${bundle.settings.position?.accounts.length ?? 0}:${bundle.settings.position?.debts.length ?? 0}`} bundle={bundle} summary={summary} estimatedIncome={profile?.household?.monthlyIncome ?? 0} onSavePosition={savePosition} onRecurring={(item) => act("money_recurring_saved")(() => saveMoneyItem("recurring", item))} onDeleteRecurring={(id) => act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id))} />}
+      {tab === "situ" && <PositionView key={`${bundle.settings.position?.asOf ?? "none"}:${bundle.settings.position?.accounts.length ?? 0}:${bundle.settings.position?.debts.length ?? 0}`} bundle={bundle} summary={summary} estimatedIncome={profile?.household?.monthlyIncome ?? 0} onSavePosition={savePosition} onTab={(next) => setTab(next)} onRecurring={(item) => act("money_recurring_saved")(() => saveMoneyItem("recurring", item))} onDeleteRecurring={(id) => act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id))} />}
       {tab === "ledger" && <>
         {!bundle.settings.position && <div className="banner"><span>Nhập tình hình hiện tại để FamAgent tính đúng số dư, nợ và khoản cố định.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Nhập ngay</button></div>}
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
@@ -231,8 +232,14 @@ export function MoneyPage() {
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} />}
-      {tab === "plan" && profile && <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} onSaveCustom={saveCustom} />}
-      {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}
+      {tab === "plan" && <PlanView bundle={bundle} summary={summary} month={month}
+        onSettings={async (settings) => { await act("money_saving_set")(() => saveMoneySettings(settings)); }}
+        onRecurring={async (item) => { await act("money_recurring_saved")(() => saveMoneyItem("recurring", item)); }}
+        onDeleteRecurring={async (id) => { await act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id)); }}
+        onBudget={async (item) => { await act("money_budget_saved")(() => saveMoneyItem("budgets", item)); }}
+        onDeleteBudget={async (id) => { await act("money_budget_deleted")(() => deleteMoneyItem("budgets", id)); }}
+        frameworkSlot={profile ? <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} onSaveCustom={saveCustom} /> : undefined}
+        goalsSlot={<GoalsPlan goals={bundle.goals} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} />} />}
       <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}. <Link className="brief-link" href="/agent">Hỏi FamAgent về tiền →</Link></p>
     </>}
   </div>;
