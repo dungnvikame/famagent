@@ -1,1 +1,46 @@
-/* Nợ tab additions and the "Tương lai & nên làm gì" card (phase 2). */
+/* Nợ tab additions and the "Tương lai & nên làm gì" card (phase 2). Muted text is #5d5878 (AA on white), targets 44px. */
+
+/* Nợ: "＋ Thêm khoản nợ cũ" */
+.debt-add{display:grid;gap:10px}
+.debt-add-btn{min-height:44px;justify-self:start}
+.debt-add-note{margin:0;font-size:13px;line-height:1.45;color:var(--primary-ink);background:var(--mint);border-radius:12px;padding:10px 12px}
+.debt-add-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:start}
+.debt-add-form .wide{grid-column:1/-1}
+.debt-add-form .f{display:grid;gap:4px;min-width:0}
+.debt-add-form label{font-size:12px;font-weight:700;color:#5d5878}
+.debt-add-form label small{font-weight:500;font-size:12px}
+.debt-add-form .f>small{font-size:12px;color:#5d5878}
+.debt-add-form input{min-height:44px;width:100%;min-width:0;border:1px solid #b9b3d3;border-radius:10px;padding:0 12px;font:inherit;font-size:16px;background:#fff;color:var(--ink)}
+.debt-add-form input:focus-visible{outline:2px solid var(--primary-2);outline-offset:1px}
+.debt-add-form .form-error{margin:0;font-size:13px}
+.debt-add-form .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.debt-add-form .acts .app-btn{min-height:44px}
+
+/* Tháng: the 3-month outlook and what to do about it */
+.future .card-head{margin-bottom:2px}
+.future h3{margin:0}
+.future-sub{font-size:12px;font-weight:600;color:#5d5878}
+.future-hint,.future-empty{margin:0 0 10px;font-size:13px;color:#5d5878}
+.future-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;background:#fff;border:1px solid var(--line);border-radius:12px}
+.future-scroll:focus-visible{outline:2px solid var(--primary-2);outline-offset:2px}
+.future-table{width:100%;min-width:460px;border-collapse:collapse;font-size:14px}
+.future-table thead th{padding:8px;text-align:right;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#5d5878}
+.future-table tbody th{position:sticky;left:0;z-index:1;min-width:132px;padding:10px 8px;text-align:left;font-weight:600;color:var(--ink);background:#fff;border-top:1px solid var(--line)}
+.future-table td{padding:10px 8px;text-align:right;font-variant-numeric:tabular-nums;border-top:1px solid var(--line)}
+.future-table .lump{display:block;font-size:13px}
+.future-table tr.left th,.future-table tr.left td{font-weight:800;background:#faf9ff}
+.future-table td.pos{color:var(--ok)}
+.future-table td.neg{color:var(--danger)}
+.future-todo-title{margin:16px 0 2px;font-size:15px}
+.future-tips{list-style:none;margin:0;padding:0}
+.future-tip{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--line)}
+.future-tip:first-child{border-top:0}
+.future-tip .ic{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:800}
+.future-tip.warn .ic{background:var(--warn-bg);color:var(--warn)}
+.future-tip.ok .ic{background:var(--ok-bg);color:var(--ok)}
+.future-tip.info .ic{background:#ece8ff;color:var(--primary-ink)}
+.future-tip .txt{flex:1 1 240px;min-width:0}
+.future-tip .txt b{display:block;font-size:14px}
+.future-tip .txt small{display:block;margin-top:2px;font-size:13px;line-height:1.45;color:#5d5878}
+.future-act{flex:none;min-height:44px}
+@media(max-width:520px){.future-act{width:100%}.debt-add-form .acts .app-btn{flex:1 1 auto}}

@@ -7,6 +7,7 @@ import { formatVnDate, parseVnd } from "@/lib/money/parse";
 import { daysInMonth, monthKey, type MonthSummary } from "@/lib/money/summary";
 import type { MoneyBudget, MoneyBundle } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
+import { FutureCard } from "./future-card";
 import { CashChart, PaceChart, TrendChart } from "./money-charts";
 
 interface Props {
@@ -18,7 +19,7 @@ interface Props {
   onDeleteBudget: (id: string) => Promise<void>;
   /** Open the Sổ tab filtered on one category. */
   onOpenLedger: (category?: string) => void;
-  onTab: (tab: "situ" | "plan") => void;
+  onTab: (tab: "situ" | "plan" | "debt") => void;
 }
 
 const SPANS = [3, 6, 12] as const;
@@ -68,6 +69,7 @@ export function MonthView({ summary, bundle, openingCash, onBudget, onDeleteBudg
     : <button type="button" className={`bud ${row.budget ? (row.spent > row.budget ? "warn" : "ok") : "none"}`} title="Sửa ngân sách" onClick={(event) => { event.stopPropagation(); setEditing(row.name); setValue(row.budget ? row.budget.toLocaleString("vi-VN") : ""); }}>{row.budget ? `${Math.round(row.spent / row.budget * 100)}%` : "+ Ngân sách"}</button>;
 
   return <div className="month-view viz">
+    {current && <FutureCard bundle={bundle} summary={summary} now={now} onOpenLedger={onOpenLedger} onTab={onTab} />}
     <section className="app-card pulse">
       <div className="pulse-top">
         <div><small>Tháng {Number(month.slice(5))}{current && pulse.daysLeft !== undefined ? ` · còn ${pulse.daysLeft} ngày` : ""}</small><b className="big">{vnd(pulse.spent)}</b>{pulse.plan ? <span className="muted"> / {vnd(pulse.plan)}</span> : null}</div>
