@@ -14,8 +14,9 @@ test("agent mở nội dung trong hội thoại theo yêu cầu tiếng Việt",
 
 test("cập nhật đúng bé được nhắc tới mà không đổi bé khác", () => {
   const profile = { id: "family", children: [{ id: "gold", name: "Gold", weightKg: 10 }, { id: "silver", name: "Silver", weightKg: 8 }], pricePreference: "balanced" as const, aiConsent: false, updatedAt: "2026-09-23T00:00:00Z" };
-  const updated = parseProfileChange("Bé Gold hiện nặng 11kg", profile);
+  const updated = parseProfileChange("Cập nhật bé Gold hiện nặng 11kg", profile);
   assert.equal(updated?.children[0].weightKg, 11);
   assert.equal(updated?.children[1].weightKg, 8);
   assert.equal(parseProfileChange("Tìm bỉm cho bé Gold 11kg", profile), null);
+  assert.equal(parseProfileChange("Bé Gold hiện nặng 11kg", profile), null, "câu kể không có lệnh sửa thì không ghi đè hồ sơ");
 });
