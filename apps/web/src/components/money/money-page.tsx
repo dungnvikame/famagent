@@ -96,7 +96,8 @@ export function MoneyPage() {
   const shown = applyFilter(source, filter, monthlyIds);
   // The running balance only reads right when no entry between two rows is hidden (a date range alone is fine).
   const showBalance = !filter.kinds.length && !filter.categories.length && !filter.text.trim() && !filter.forChild && !filter.monthly && filter.min === undefined && filter.max === undefined;
-  const firstNegative = showBalance ? [...shown].reverse().find((tx) => (balances.get(tx.id)?.account ?? 0) < 0) : undefined;
+  // Only meaningful once the family has said where it stands (a position): before that, a negative balance just means no opening balance yet.
+  const firstNegative = showBalance && bundle?.settings.position ? [...shown].reverse().find((tx) => (balances.get(tx.id)?.account ?? 0) < 0) : undefined;
   // "Tiền đang có" at the end of the month viewed, and how much more was spent out of savings during that month.
   const pots = summary ? potsOf(summary.balances.cash, summary.balances.savings) : undefined;
   // What the family owes (ledger loans + Tình hình debts) and what others owe it.
@@ -219,7 +220,7 @@ export function MoneyPage() {
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "debt" && <DebtsView bundle={bundle} onSave={(item) => act("money_loan_saved")(() => saveTransaction(item))} onTab={(next) => setTab(next)} />}
-      {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} savingsBalance={summary.balances.savings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}
+      {tab === "plan" && <GoalsPlan goals={bundle.goals} settings={bundle.settings} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} onSettings={(settings) => act("money_settings_saved")(() => saveMoneySettings(settings))} />}
       <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}. <Link className="brief-link" href="/agent">Hỏi FamAgent về tiền →</Link></p>
     </>}
   </div>;

@@ -151,8 +151,8 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const today = todayLocal();
-  // The date the typed balances belong to (start of that day, before its entries); new families start on 1/1.
-  const [asOfDraft, setAsOfDraft] = useState(position?.asOf ?? `${today.slice(0, 4)}-01-01`);
+  // The date the typed balances belong to (start of that day, before its entries); new families start today.
+  const [asOfDraft, setAsOfDraft] = useState(position?.asOf ?? today);
   const asOfField = <label className="asof-field"><span>Số dư tại đầu ngày</span><DateInput aria-label="Số dư tại đầu ngày" value={asOfDraft} onChange={setAsOfDraft} /><small>Số tiền mỗi nơi có trước mọi giao dịch từ ngày này; sổ cộng trừ tiếp từ đó. Loại “Tiết kiệm” là quỹ tiết kiệm lúc đó.</small></label>;
 
   function fillFromStory() {

@@ -31,7 +31,7 @@ export interface HealthReport {
 }
 
 export const HEALTH_LABELS: Record<Exclude<HealthStatus, "unknown">, string> = { healthy: "Vững vàng", coping: "Tạm ổn", vulnerable: "Dễ tổn thương" };
-const POINTS: Record<Exclude<HealthStatus, "unknown">, number> = { healthy: 90, coping: 60, vulnerable: 20 };
+const POINTS: Record<Exclude<HealthStatus, "unknown">, number> = { healthy: 100, coping: 60, vulnerable: 20 };
 const tr = (amount: number) => `${(Math.round(amount / 100_000) / 10).toLocaleString("vi-VN")} triệu`;
 
 export function financialHealth(profile: FamilyProfile): HealthReport {
@@ -41,7 +41,7 @@ export function financialHealth(profile: FamilyProfile): HealthReport {
   const debt = h.monthlyDebt ?? 0;
   const kids = profile.children.length > 0 || h.setup === "expecting";
   // Irregular income needs a thicker buffer (common planner guidance: 6 months stable, 9–12 months irregular).
-  const emergencyMonths = h.incomeStability === "irregular" ? 9 : h.incomeStability === "stable_both" ? 6 : 6;
+  const emergencyMonths = h.incomeStability === "irregular" ? 9 : 6;
   const items: HealthIndicator[] = [];
   const add = (item: HealthIndicator) => items.push(item);
 
