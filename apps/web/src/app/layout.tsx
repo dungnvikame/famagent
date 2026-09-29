@@ -17,6 +17,7 @@ import "./money.css";
 import "./money-frameworks.css";
 import "./money-upgrade.css";
 import "./money-entry.css";
+import "./money-ui.css";
 import "./financial-health.css";
 import "./family-notes.css";
 import "./shopping-plan.css";

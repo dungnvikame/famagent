@@ -1,0 +1,128 @@
+/* Money page, phase 1 (29/09): one hero number, tabs right under it, a ledger that fits without sideways scrolling.
+   Rules for the new ledger (.lt-*) are self-contained; the old .ledger* table rules in money.css / money-upgrade.css no longer match anything. */
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:root{--mu-muted:#5d5878}
+
+/* ---------- hero ---------- */
+.mh{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:24px;align-items:center;padding:22px 24px}
+.mh-eyebrow{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu-muted)}
+.mh-big{font-size:clamp(34px,5vw,46px);font-weight:800;letter-spacing:-.03em;line-height:1.1;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+.mh-big.neg,.mh-pot b.neg{color:var(--danger)}
+.mh-sub{margin:0;color:var(--mu-muted);font-size:14px}
+.mh-bar{position:relative;height:12px;border-radius:99px;background:var(--mint);margin:16px 0 6px}
+.mh-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--grad)}
+.mh-bar i.over{background:linear-gradient(135deg,#e5867f,#b4413c)}
+.mh-bar u{position:absolute;top:-5px;bottom:-5px;width:2px;margin-left:-1px;background:var(--ink);border-radius:2px}
+.mh-legend{display:flex;justify-content:space-between;font-size:12px;color:var(--mu-muted)}
+.mh-pills{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.mh-pill{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:99px;font-size:13px;font-weight:700}
+.mh-pill.ok{background:var(--ok-bg);color:var(--ok)}
+.mh-pill.warn{background:var(--warn-bg);color:var(--warn)}
+.mh-pill.note{background:var(--mint);color:var(--primary-ink)}
+.mh-pots{display:grid;gap:10px}
+.mh-pot{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}
+.mh-pot span{font-size:13px;color:var(--mu-muted)}
+.mh-pot b{font-size:20px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.mh-link{min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary-ink);font:700 13px var(--font-sans),system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
+.mh-extra{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.mh-extra li{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:#ffffffb0;border-radius:12px;padding:8px 12px;color:var(--mu-muted)}
+.mh-extra li b{color:var(--ink);font-variant-numeric:tabular-nums}
+.mh-extra li.warn b{color:var(--danger)}.mh-extra li.ok b{color:var(--ok)}
+@media(max-width:700px){.mh{grid-template-columns:1fr;padding:18px;gap:14px}.mh-pots{grid-template-columns:1fr 1fr}.mh-pots .mh-link,.mh-extra{grid-column:1/-1}}
+
+/* ---------- due strip ---------- */
+.mh-due h2{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu-muted);margin:0 0 8px}
+.mh-due ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.mh-due li{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-height:64px;display:grid;gap:2px}
+.mh-due li b{font-size:14px}.mh-due li span{font-size:13px;color:var(--mu-muted)}
+.mh-due li.soon{border-color:#f0b77b;background:#fff8ee}
+@media(max-width:700px){.mh-due ul{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px}.mh-due li{flex:0 0 220px}}
+
+/* ---------- tabs (≥44px, scroll sideways on a phone) ---------- */
+.money-page .app-tabs{overflow-x:auto;scrollbar-width:none}
+.money-page .app-tabs::-webkit-scrollbar{display:none}
+.money-page .app-tabs a{min-height:44px;display:inline-flex;align-items:center;white-space:nowrap}
+
+/* ---------- ledger ---------- */
+.lt-tools{display:flex;justify-content:flex-end;margin-bottom:2px}
+.lt-toggle{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary-ink);font:700 13px var(--font-sans),system-ui,sans-serif;cursor:pointer}
+.lt-toggle i{width:38px;height:22px;border-radius:99px;background:#cfc8ea;position:relative;transition:background .15s}
+.lt-toggle i::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:left .15s}
+.lt-toggle.on i{background:var(--primary)}.lt-toggle.on i::after{left:19px}
+.lt-wrap{background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow);overflow-x:auto}
+.lt-table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:14px}
+.lt-table.wide{min-width:980px}
+.lt-table th{text-align:left;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--mu-muted);padding:12px 10px 8px;border-bottom:1px solid var(--line);font-weight:800}
+.lt-table td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle;height:56px}
+.lt-table tbody tr:last-child td{border-bottom:0}
+.lt-table th.lt-date,.lt-table td.lt-date{width:148px}
+.lt-table th.lt-type,.lt-table td.lt-type{width:84px}
+.lt-table th.lt-cat,.lt-table td.lt-cat{width:172px}
+.lt-table th.lt-amount,.lt-table td.lt-amount{width:150px}
+.lt-table th.lt-bal,.lt-table td.lt-bal{width:128px}
+.lt-table th.lt-actions,.lt-table td.lt-actions{width:120px}
+.lt-table .num{text-align:right;font-variant-numeric:tabular-nums}
+.lt-table .th-sort{background:none;border:0;padding:0;min-height:44px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer}
+.lt-table input:not([type=checkbox]),.lt-table select{width:100%;min-width:0;min-height:44px;border:1px solid #cfc8ea;border-radius:12px;padding:0 10px;font:500 14px var(--font-sans),system-ui,sans-serif;background:#fff;color:var(--ink)}
+.lt-table input:focus,.lt-table select:focus{outline:0;border-color:var(--primary-2);box-shadow:0 0 0 3px #7a5cff40}
+.lt-table select.unsure{border-color:#f0b77b;background:#fff8ee}
+.lt-table .date-input{min-width:0;gap:2px}
+.lt-table .date-input input:not(.date-native){min-width:0;padding:0 6px!important}
+.lt-table .date-pick{width:36px;height:44px;border-radius:12px;flex:none}
+.lt-add td,.lt-edit td{background:#fff;border-bottom:2px solid var(--mint)}
+.lt-actions{text-align:right;white-space:nowrap}
+.lt-save{min-height:44px;padding:0 14px;border:0;border-radius:99px;background:var(--grad);color:#fff;font:700 14px var(--font-sans),system-ui,sans-serif;cursor:pointer;box-shadow:0 8px 18px -10px #5b4bb7aa}
+.lt-save:disabled{opacity:.55;cursor:not-allowed}
+.lt-more-btn,.lt-menu{width:44px;height:44px;border:0;border-radius:12px;background:none;color:var(--mu-muted);font-size:18px;cursor:pointer}
+.lt-more-btn:hover,.lt-menu:hover{background:var(--mint)}
+.lt-menu{display:none}
+.lt-buttons{display:inline-flex}
+.lt-link{min-height:44px;padding:0 10px;border:0;background:none;color:var(--primary-ink);font:600 14px var(--font-sans),system-ui,sans-serif;cursor:pointer}
+.lt-link.danger{color:var(--danger)}
+.lt-link:hover{text-decoration:underline}
+.lt-row td{background:#ffffff70}
+.lt-row:hover td{background:#ffffffc0}
+.lt-kind{display:inline-grid;place-items:center;width:36px;height:28px;border-radius:99px;font-weight:800;font-size:15px;background:#fdeceb;color:var(--danger)}
+.lt-kind.income{background:var(--ok-bg);color:var(--ok)}.lt-kind.saving{background:var(--mint);color:var(--primary-ink)}
+.lt-content{overflow:hidden}
+.lt-content .ledger-content{display:inline;font-weight:600}
+.lt-content small{display:block;color:var(--mu-muted);font-size:12px}
+.lt-content .app-pill,.lt-content .rec-pill,.lt-content .src-pill{margin-left:6px;vertical-align:middle}
+.lt-catchip{display:inline-flex;align-items:center;min-height:28px;max-width:100%;padding:0 10px;border-radius:99px;background:var(--mint);color:var(--primary-ink);font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.lt-amount{font-weight:700;white-space:nowrap}
+.lt-amount.income{color:var(--ok)}.lt-amount.saving{color:var(--primary-ink)}
+.lt-bal{color:var(--mu-muted);font-size:13px;white-space:nowrap}
+.lt-bal.negative{color:var(--danger)}
+.lt-details td{background:#fbfaff;padding:6px 12px 12px;height:auto;display:table-cell}
+.lt-details td>*{margin-right:14px;vertical-align:middle}
+.lt-details .paid-from{display:inline-flex}
+.lt-details .paid-from button{min-height:44px;padding:0 14px;font-size:13px}
+.lt-details .repeat{min-height:44px}
+.lt-details .repeat input{width:20px!important;height:20px}
+.lt-details .repeat-day input{min-height:44px!important;width:64px!important}
+.lt-empty-row td{height:auto}
+
+/* phone: rows become two-line cards; adding goes through the "＋ Ghi khoản" sheet */
+@media(max-width:700px){
+  .lt-tools{display:none}
+  .lt-wrap{background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible}
+  .lt-table,.lt-table tbody,.lt-table tr,.lt-table td{display:block;width:auto!important;min-width:0!important}
+  .lt-table thead,.lt-add,.lt-bal,.lt-table th{display:none!important}
+  .lt-row{display:grid!important;grid-template-columns:40px auto minmax(0,1fr) auto;grid-template-areas:"kind content content amount" "kind date cat cat" "acts acts acts acts";column-gap:8px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);position:relative}
+  .lt-row td{padding:0;border:0;height:auto;background:transparent}
+  .lt-row .lt-type{grid-area:kind}.lt-row .lt-content{grid-area:content;font-size:15px}.lt-row .lt-amount{grid-area:amount;font-size:15px}
+  .lt-row .lt-date{grid-area:date;font-size:13px;color:var(--mu-muted);white-space:nowrap}.lt-row .lt-cat{grid-area:cat}.lt-row .lt-actions{grid-area:acts;text-align:left}
+  .lt-row .lt-content .ledger-content{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lt-menu{display:grid;place-items:center;position:absolute;right:0;bottom:0}
+  .lt-buttons{display:none}.lt-buttons.open{display:flex}
+  .lt-row .lt-cat{justify-self:start;max-width:calc(100% - 48px)}
+  /* editing a row on a phone: a stacked form with labels */
+  .lt-edit{padding:12px;margin:8px 0;border-radius:16px;background:#fff;border:1px solid var(--line)}
+  .lt-edit td{padding:4px 0;border:0;height:auto;background:transparent}
+  .lt-edit td[data-label]::before{content:attr(data-label);display:block;font-size:12px;font-weight:700;color:var(--mu-muted);margin-bottom:4px}
+  .lt-edit .lt-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding-top:8px}
+  .lt-edit .lt-actions .lt-save{flex:1;min-height:48px}
+  .lt-edit input:not([type=checkbox]),.lt-edit select{min-height:48px;font-size:16px}
+  .lt-details td{padding:0 0 8px;background:transparent}
+  .lt-empty-row td{padding:18px 0}
+}
