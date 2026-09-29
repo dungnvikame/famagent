@@ -22,6 +22,8 @@ interface Props {
   onSavePosition: (position: MoneyPosition, newFixed: Array<Omit<MoneyRecurring, "id" | "active" | "category"> & { category?: string }>) => Promise<void>;
   onRecurring: (item: MoneyRecurring) => Promise<void>;
   onDeleteRecurring: (id: string) => Promise<void>;
+  /** Where the standing fixed items are managed now: the Kế hoạch tab. */
+  onTab?: (tab: "plan") => void;
 }
 
 const uid = () => crypto.randomUUID();
@@ -138,7 +140,7 @@ function FixedList({ recurring, debts, onRecurring, onDeleteRecurring, pending, 
  * "Tình hình": what the family has, owes, and pays every month. First visit = 3 short steps (or one paragraph the
  * agent fills in); afterwards the numbers follow the ledger from the date the family entered them.
  */
-export function PositionView({ bundle, summary, estimatedIncome, onSavePosition, onRecurring, onDeleteRecurring }: Props) {
+export function PositionView({ bundle, summary, estimatedIncome, onSavePosition, onRecurring, onDeleteRecurring, onTab }: Props) {
   const position = bundle.settings.position;
   const [step, setStep] = useState(1);
   const [later, setLater] = useState(false);
@@ -236,8 +238,7 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     </section>
 
     <section className="situ-sec">
-      <header><h2>Thu & chi cố định hằng tháng</h2><small>Tự ghi vào sổ khi tới ngày, bạn không phải nhớ</small></header>
-      <FixedList recurring={bundle.recurring} debts={position.debts} categories={bundle.settings.categories} onRecurring={onRecurring} onDeleteRecurring={onDeleteRecurring} />
+      <header><h2>Thu & chi cố định hằng tháng</h2><small>Quản lý ở tab Kế hoạch{onTab && <> · <button type="button" className="ledger-link" onClick={() => onTab("plan")}>Mở tab Kế hoạch</button></>}</small></header>
     </section>
   </div>;
 }
