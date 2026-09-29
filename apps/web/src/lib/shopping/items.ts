@@ -56,6 +56,8 @@ export interface ItemEstimate {
 
 const DAY_MS = 86_400_000;
 export const localDate = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+/** Today in Vietnam (UTC+7), whatever the server or device timezone: between 0h and 7h a UTC server is still on yesterday. */
+export const vnToday = (now = new Date()) => new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
 const dayStart = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
 export const daysBetween = (from: string, to: string) => Math.round((dayStart(to).getTime() - dayStart(from).getTime()) / DAY_MS);
 export const addDays = (iso: string, days: number) => localDate(new Date(dayStart(iso).getTime() + days * DAY_MS));
@@ -113,7 +115,7 @@ const round = (value: number) => Math.round(value * 1000) / 1000;
  * at zero on the first purchase; consumption runs at the family's set rate, then the learned one, then the default.
  */
 export function estimateItems(items: ShoppingItem[], purchases: Purchase[], rateFor: (item: ShoppingItem) => number, now = new Date(), checks: StockCheck[] = []): ItemEstimate[] {
-  const today = localDate(now);
+  const today = vnToday(now);
   const out = items.filter((item) => item.status === "active").map((item): ItemEstimate => {
     const own = purchasesOf(item, purchases);
     const ownChecks = checks.filter((check) => check.itemId === item.id && check.checkedOn <= today);
