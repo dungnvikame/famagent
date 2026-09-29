@@ -13,6 +13,7 @@ import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-f
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
 import { debtTotals, syncDebtRecurring } from "@/lib/money/position";
 import { autoDebtId } from "@/lib/money/debt-link";
+import { saveNewEntry } from "@/lib/money/save-entry";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
 import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRange, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
@@ -22,7 +23,8 @@ import { FrameworkPanel } from "./framework-panel";
 import { GoalsPlan } from "./goals-plan";
 import { LedgerFilters } from "./ledger-filters";
 import { LedgerTable } from "./ledger-table";
-import { DueStrip, MoneyHero } from "./money-hero";
+import { DueFlow } from "./due-flow";
+import { MoneyHero } from "./money-hero";
 import { MONEY_CHANGED_EVENT } from "./quick-entry";
 import { MonthView } from "./month-view";
 import { PositionView } from "./position-view";
@@ -95,7 +97,7 @@ export function MoneyPage() {
   }, [bundle, suggested, reload]);
 
   const summary = bundle ? summarizeMonth(bundle) : null;
-  const act = (name: string) => async <T,>(task: () => Promise<T>) => { await task(); trackEvent(name); await reload(); };
+  const act = (name: string) => async <T,>(task: () => Promise<T>) => { const result = await task(); trackEvent(name); await reload(); return result; };
   const quickContext = bundle ? { categories: bundle.settings.categories, memory: bundle.settings.categoryMemory, existing: bundle.transactions, children: children.map((child) => child.name).filter((name): name is string => Boolean(name?.trim())) } : null;
 
   // Entries in the filter's date range, their running cash, and what the filters leave.
@@ -130,7 +132,7 @@ export function MoneyPage() {
    * One ledger entry + its "Hằng tháng" choice: on = create (or re-enable and update) the linked monthly item,
    * off = pause it so later months stop posting (entries already written stay). Debt-owned items are left alone.
    */
-  async function saveEntry(item: MoneyTransaction, repeat: { on: boolean; day: number }) {
+  async function saveEntry(item: MoneyTransaction, repeat: { on: boolean; day: number }): Promise<{ answered: string | null } | void> {
     if (!bundle) return;
     const linked = item.recurringId ? bundle.recurring.find((rec) => rec.id === item.recurringId) : undefined;
     let recurringId = item.recurringId;
@@ -141,13 +143,17 @@ export function MoneyPage() {
         recurringId = next.id;
       } else if (!repeat.on && linked?.active) await saveMoneyItem("recurring", { ...linked, active: false });
     }
-    await saveTransaction({ ...item, recurringId });
+    return saveTransaction({ ...item, recurringId });
   }
 
   /** Writes one entry; a repayment whose wording names exactly one Tình hình debt is tagged with it so that debt goes down. */
-  async function saveTransaction(item: MoneyTransaction) {
+  async function saveTransaction(item: MoneyTransaction): Promise<{ answered: string | null }> {
     const debtId = item.debtId ?? autoDebtId(item, bundle?.settings.position?.debts ?? []);
-    await saveMoneyItem("transactions", debtId ? { ...item, debtId } : item);
+    const entry = debtId ? { ...item, debtId } : item;
+    // A new manual entry that matches a waiting fixed item answers that period instead of adding a second entry.
+    if (bundle && !source.some((tx) => tx.id === entry.id)) return { answered: (await saveNewEntry(bundle, entry)).answered?.name ?? null };
+    await saveMoneyItem("transactions", entry);
+    return { answered: null };
   }
 
   /** Quick add: writes the selected lines (and their monthly items), then remembers any category the family corrected. */
@@ -204,7 +210,7 @@ export function MoneyPage() {
     {error && <p className="form-error" role="alert">{error}{!cloudEnabled ? "" : " "}<Link href="/sign-in">{error.includes("đăng nhập") ? "Đăng nhập" : ""}</Link></p>}
     {!bundle || !summary || !quickContext ? <div className="app-card" aria-busy="true"><p className="app-sub">Đang tải sổ thu chi…</p></div> : <>
       {tab !== "month" && pots && <MoneyHero summary={summary} pots={pots} debts={debts} current={month === monthKey(new Date())} today={{ day: new Date().getDate(), days: new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate() }} onPlan={() => setTab("plan")} />}
-      {tab !== "month" && summary.upcoming.length > 0 && <DueStrip items={summary.upcoming} />}
+      {tab !== "month" && <DueFlow bundle={bundle} summary={summary} onChanged={() => reload()} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
       {tab === "situ" && <SavingsBackfill recurring={bundle.recurring} onDone={() => reload()} />}
       {tab === "situ" && <PositionView key={`${bundle.settings.position?.asOf ?? "none"}:${bundle.settings.position?.accounts.length ?? 0}:${bundle.settings.position?.debts.length ?? 0}`} bundle={bundle} summary={summary} estimatedIncome={profile?.household?.monthlyIncome ?? 0} onSavePosition={savePosition} onRecurring={(item) => act("money_recurring_saved")(() => saveMoneyItem("recurring", item))} onDeleteRecurring={(id) => act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id))} />}

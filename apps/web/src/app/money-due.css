@@ -1,1 +1,43 @@
-/* Fixed-item due strip and the "Đã trả?" dialog (phase 2). */
+/* Fixed-item due strip, the hero's "held back" segment and the "Đã trả?" dialog (phase 2). Text ≥12px, targets ≥44px. */
+.mh-bar i.held{background:repeating-linear-gradient(135deg,#c9bff5 0 6px,#e5defc 6px 12px)}
+.mh-key{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--mu-muted);margin-top:2px}
+.mh-key span{display:inline-flex;align-items:center;gap:6px}
+.mh-key i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.mh-key .k-spent{background:var(--primary)}
+.mh-key .k-held{background:repeating-linear-gradient(135deg,#c9bff5 0 3px,#e5defc 3px 6px)}
+.mh-key .k-free{background:var(--mint);border:1px solid #cfc8ea}
+
+.due-strip h2{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu-muted);margin:0 0 8px;display:flex;gap:8px;align-items:center}
+.due-strip h2 em{font-style:normal;background:var(--warn-bg);color:var(--warn);border-radius:99px;padding:1px 8px;letter-spacing:0;text-transform:none;font-size:12px}
+.due-strip ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.due-strip li{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-height:68px;display:flex;gap:10px;align-items:center}
+.due-strip li.overdue{border-color:#e5a29c;background:#fff6f5}
+.due-strip li.due{border-color:#f0b77b;background:#fff8ee}
+.due-strip li>div{flex:1;min-width:0;display:grid;gap:2px}
+.due-strip li b{font-size:14px}
+.due-strip li span{font-size:13px;color:var(--mu-muted)}
+.due-tag{font-style:normal;justify-self:start;font-size:12px;font-weight:700;border-radius:99px;padding:0 8px;background:var(--mint);color:var(--primary-ink)}
+.due-tag.due{background:var(--warn-bg);color:var(--warn)}
+.due-tag.overdue{background:#fdeceb;color:var(--danger)}
+.due-strip button{min-height:44px;padding:0 14px;border-radius:99px;border:1px solid var(--primary);background:var(--mint);color:var(--primary-ink);font:700 14px var(--font-sans),system-ui,sans-serif;white-space:nowrap;cursor:pointer}
+.due-strip button.alt{border-color:#cfc8ea;background:#fff;color:var(--mu-muted)}
+@media(max-width:700px){.due-strip ul{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px}.due-strip li{flex:0 0 250px}}
+
+/* dialog */
+.pd-scrim{position:fixed;inset:0;z-index:90;background:#1f1b2e66}
+.pd-dialog{position:fixed;z-index:100;left:50%;top:50%;transform:translate(-50%,-50%);width:min(440px,calc(100% - 32px));max-height:92dvh;overflow-y:auto;background:#fff;border-radius:24px;box-shadow:0 30px 60px -20px #1f1b2e88;padding:22px;display:flex;flex-direction:column;gap:12px}
+.pd-dialog h2{margin:0;font-size:19px;letter-spacing:-.01em}
+.pd-hint{margin:0;color:var(--mu-muted);font-size:13px}
+.pd-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pd-field label,.pd-label{display:block;font-size:13px;font-weight:700;color:var(--mu-muted);margin-bottom:6px}
+.pd-field input:not([type=date]){width:100%;min-height:52px;border-radius:14px;border:1px solid #cfc8ea;padding:0 12px;font:500 16px var(--font-sans),system-ui,sans-serif;background:#fff;color:var(--ink);min-width:0}
+.pd-field input:focus{border-color:var(--primary-2);box-shadow:0 0 0 3px #7a5cff40;outline:0}
+.pd-field .date-input{min-width:0}
+.pd-note{margin:0;background:var(--mint);color:var(--primary-ink);border-radius:12px;padding:10px 12px;font-size:13px}
+.pd-note.warn{background:var(--warn-bg);color:var(--warn)}
+.pd-error{margin:0;color:#a2423c;font-size:14px;font-weight:600}
+.pd-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pd-btn{flex:1 1 auto;min-height:48px;border-radius:99px;border:1px solid var(--line);background:#fff;color:var(--primary-ink);font:700 14px var(--font-sans),system-ui,sans-serif;cursor:pointer}
+.pd-btn.primary{flex:2 1 160px;border:0;background:var(--grad);color:#fff;box-shadow:0 10px 22px -10px #5b4bb7aa}
+.pd-btn:disabled{opacity:.55;cursor:not-allowed}
+@media(max-width:700px){.pd-dialog{left:0;right:0;top:auto;bottom:0;transform:none;width:auto;border-radius:28px 28px 0 0;padding-bottom:calc(22px + env(safe-area-inset-bottom))}}

@@ -13,7 +13,7 @@ export const EVENT_NAMES = [
   // Money
   "money_budget_deleted", "money_budget_saved", "money_category_added", "money_custom_split_saved", "money_goal_deleted", "money_goal_saved",
   "money_loan_saved", "money_method_chosen", "money_position_saved", "money_quick_ai_refined", "money_quick_parsed", "money_quick_saved",
-  "money_recurring_deleted", "money_recurring_saved", "money_settings_saved", "money_transaction_deleted", "money_transaction_saved", "money_transaction_saved_monthly",
+  "money_debt_added", "money_period_paid", "money_period_skipped", "money_saving_set", "money_recurring_deleted", "money_recurring_saved", "money_settings_saved", "money_transaction_deleted", "money_transaction_saved", "money_transaction_saved_monthly",
   // Push
   "push_enabled", "push_disabled",
 ] as const;
