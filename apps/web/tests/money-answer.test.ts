@@ -21,7 +21,8 @@ test("trả lời từ tổng hợp tháng bằng template, kèm gợi ý hỏi 
     budgets: [{ id: "b", category: "Ăn uống", month: "2026-09", limitAmount: 5_000_000 }], recurring: [{ id: "r", name: "Internet", category: "Tiêu dùng", kind: "expense", amount: 450_000, dayOfMonth: 26, active: true }] }, now);
   const overview = answerMoney("overview", summary);
   assert.match(overview.text, /^Tháng 9: thu 25\.000\.000đ, đã chi 10\.000\.000đ, chuyển tiết kiệm 5\.000\.000đ\. Chi nhiều nhất: Ăn uống 7\.000\.000đ \(140% ngân sách\), Con 3\.000\.000đ\./);
-  assert.match(overview.text, /Nhịp chi đang trong kế hoạch 12\.000\.000đ \(dự kiến 12\.500\.000đ\)/, "12.500.000đ / 12.000.000đ = 4% chưa vượt ngưỡng 5%");
+  // Forecast = spent so far + fixed items still due (Internet 450k on day 26) + flexible pace: 10M + 0,45M + 2,5M = 12,95M, 8% over the plan.
+  assert.match(overview.text, /cuối tháng sẽ chi khoảng 12\.950\.000đ — cao hơn kế hoạch 12\.000\.000đ khoảng 8%/);
   assert.equal(overview.choices.length, 3);
   assert.match(answerMoney("category", summary, "ăn uống tháng này tiêu bao nhiêu").text, /^Ăn uống tháng 9: đã chi 7\.000\.000đ trên ngân sách 5\.000\.000đ \(140%\)\./);
   assert.match(answerMoney("remaining", summary).text, /còn 2\.000\.000đ\./);
