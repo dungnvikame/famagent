@@ -23,6 +23,8 @@ export function ReconcileCard({ tx, items, purchases, familyChildren, onDone }: 
   const [other, setOther] = useState(false);
   const [preset, setPreset] = useState<ShoppingItem | null>(null);
   const [error, setError] = useState("");
+  // One purchase id per ledger row: a second tap is the same purchase, not another one.
+  const [purchaseId] = useState(() => crypto.randomUUID());
   const options = suggestItems(tx, items, purchases);
 
   async function link(item: ShoppingItem) {
@@ -31,7 +33,7 @@ export function ReconcileCard({ tx, items, purchases, familyChildren, onDone }: 
     try {
       const size = item.packSize ?? 1;
       const packs = packsFor(tx.amount, item, purchases);
-      await recordPurchase({ id: crypto.randomUUID(), itemId: item.id, productId: item.productId, productName: item.name, brand: item.brand, merchant: item.merchant, amount: tx.amount, packs, unitCount: size * packs, purchasedOn: tx.occurredOn, childId: tx.childId ?? item.childId, source: "ledger" }, CHILD_CATEGORIES.has(item.category), undefined, tx.id);
+      await recordPurchase({ id: purchaseId, itemId: item.id, productId: item.productId, productName: item.name, brand: item.brand, merchant: item.merchant, amount: tx.amount, packs, unitCount: size * packs, purchasedOn: tx.occurredOn, childId: tx.childId ?? item.childId, source: "ledger" }, CHILD_CATEGORIES.has(item.category), undefined, tx.id);
       trackEvent("ledger_linked", { category: item.category });
       onDone();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa gắn được."); }

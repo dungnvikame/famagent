@@ -50,6 +50,12 @@ export function transactionForPurchase(purchase: Purchase, forChild: boolean, id
   return { id, occurredOn: purchase.purchasedOn, content: `${purchase.productName}${purchase.packs > 1 ? ` ×${purchase.packs}` : ""}`, category: forChild ? "Con" : "Mua sắm", kind: "expense" as const, amount: purchase.amount, forChild, childId: purchase.childId, note: purchase.merchant ? `Mua tại ${purchase.merchant}` : undefined, source: "purchase" as const };
 }
 
+/** Adds the purchase unless one with the same id is stored: a retried save must not count twice. */
+export function addPurchaseOnce(stored: Purchase[], purchase: Purchase): { list: Purchase[]; existing?: Purchase } {
+  const existing = stored.find((entry) => entry.id === purchase.id);
+  return existing ? { list: stored, existing } : { list: [...stored, purchase] };
+}
+
 /** Budget context for a price the family is about to spend (SPEC_V2 §14). */
 export function budgetHint(price: number, category: { spent: number; limit?: number } | undefined, remainingOfPlan: number | undefined, categoryName = "Con"): string | null {
   if (category?.limit) {
