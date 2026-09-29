@@ -6,9 +6,10 @@ import { loadLoans } from "@/lib/money/client";
 import { debtLinkIds, loansByPerson, type PersonLedger } from "@/lib/money/loans";
 import { formatVnDate, parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeftIn, debtTotals, monthsToPayOff } from "@/lib/money/position";
-import type { MoneyBundle, MoneyTransaction } from "@/lib/money/types";
+import type { MoneyBundle, MoneyDebt, MoneyTransaction } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
 import { DateInput } from "./date-input";
+import { DebtAddForm } from "./debt-add-form";
 
 type Role = "lend" | "collect" | "borrow" | "repay";
 const ROLES: Array<{ id: Role; label: string }> = [{ id: "lend", label: "Cho vay" }, { id: "collect", label: "Thu nợ về" }, { id: "borrow", label: "Vay vào" }, { id: "repay", label: "Trả nợ" }];
@@ -25,13 +26,15 @@ interface Props {
   /** Saves one ledger entry (the page reloads the month afterwards). */
   onSave: (item: MoneyTransaction) => Promise<void>;
   onTab: (tab: "situ") => void;
+  /** Saves a debt the family already had (into Tình hình's position, not the ledger); without it the "Thêm khoản nợ cũ" form is hidden. */
+  onAddDebt?: (debt: MoneyDebt) => Promise<void>;
 }
 
 /**
  * Nợ: who owes the family and whom the family owes, per person, read from the ledger; big scheduled loans come
  * from Tình hình. Recording a loan here writes the same ledger line the Sổ would.
  */
-export function DebtsView({ bundle, onSave, onTab }: Props) {
+export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
   const [loans, setLoans] = useState<MoneyTransaction[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -97,6 +100,8 @@ export function DebtsView({ bundle, onSave, onTab }: Props) {
       <button type="button" className="app-btn" disabled={busy} onClick={() => void record()}>{busy ? "Đang ghi…" : "Ghi"}</button>
     </div>{error && <p className="form-error" role="alert">{error}</p>}</section>
 
+    {onAddDebt && <DebtAddForm hasPosition={Boolean(bundle.settings.position)} onAdd={onAddDebt} onTab={onTab} />}
+
     {!loans ? <div className="app-card"><p className="app-sub">Đang tải các khoản nợ…</p></div> : <div className="dgrid">
       <section className="app-card dcard"><h3>Người khác nợ mình <small>{vnd(overview.lent)}</small></h3>
         {lentOpen.length ? lentOpen.map((row) => personRow(row, "lent")) : <p className="app-sub">Không ai đang nợ nhà mình.</p>}
@@ -104,7 +109,7 @@ export function DebtsView({ bundle, onSave, onTab }: Props) {
       </section>
       <section className="app-card dcard"><h3>Mình đang nợ <small>{vnd(overview.owed)}</small></h3>
         {oweOpen.map((row) => personRow(row, "owe"))}
-        {debts.map((debt) => { const left = debtLeftIn(bundle, debt); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small></span><b className="owe-c">{vnd(left)}</b></div>; })}
+        {debts.map((debt) => { const left = debtLeftIn(bundle, debt); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); const paid = bundle.debtPaid?.[debt.id] ?? 0; const since = debt.asOf ?? bundle.settings.position?.asOf; return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small>{paid > 0 && since && <small>Đã trả {vnd(paid)} từ {formatVnDate(since)}</small>}</span><b className="owe-c">{vnd(left)}</b></div>; })}
         {!oweOpen.length && !debts.length && <p className="app-sub">Nhà mình không nợ ai.</p>}
         {oweDone.length > 0 && showDone && oweDone.map((row) => personRow(row, "owe"))}
       </section>
