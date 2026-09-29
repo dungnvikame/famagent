@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { dueRecurring, postingFor, recurringFor, shortVnd, summarizeMonth, upcomingRecurring } from "../src/lib/money/summary.ts";
+import { dueEntries } from "../src/lib/money/fixed-items.ts";
+import { recurringFor, shortVnd, summarizeMonth } from "../src/lib/money/summary.ts";
 import { DEFAULT_CATEGORIES, type MoneyBundle, type MoneyTransaction } from "../src/lib/money/types.ts";
 import { validGoal, validRecurring, validSettings, validTransaction } from "../src/lib/money/validate.ts";
 
@@ -60,20 +61,51 @@ test("tháng đã qua: không dự báo nhịp, không có khoản sắp tới",
   assert.equal(summary.expectedExpense, undefined); assert.equal(summary.upcoming.length, 0); assert.equal(summary.expense, 100_000);
 });
 
-test("khoản định kỳ: sắp tới trong 7 ngày (kể cả đầu tháng sau), đến hạn thì tự ghi một lần mỗi tháng", () => {
+test("khoản cố định: hỏi khi tới hạn, không tự ghi; khoản của tháng sau (ngày 1) chưa hỏi", () => {
   const recurring = [
     { id: "r1", name: "Internet", category: "Tiêu dùng", kind: "expense" as const, amount: 450_000, dayOfMonth: 26, active: true },
     { id: "r2", name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 8_000_000, dayOfMonth: 1, active: true },
     { id: "r3", name: "Lương", category: "Lương", kind: "income" as const, amount: 25_000_000, dayOfMonth: 6, active: true, lastPostedMonth: "2026-09" },
     { id: "r4", name: "Cũ", category: "Khác", kind: "expense" as const, amount: 1, dayOfMonth: 25, active: false },
   ];
-  const upcoming = upcomingRecurring(recurring, now);
-  assert.deepEqual(upcoming.map((item) => [item.name, item.daysLeft, item.dueOn]), [["Internet", 2, "2026-09-26"], ["Tiền nhà", 7, "2026-10-01"]]);
-  assert.deepEqual(dueRecurring(recurring, "2026-09", now).map((item) => item.id), ["r2"], "chỉ khoản đã tới ngày và chưa ghi tháng này");
-  assert.deepEqual(dueRecurring(recurring, "2026-10", now), [], "không ghi trước cho tháng sau");
-  const posted = postingFor(recurring[1], "2026-09", "p1");
-  assert.equal(posted.occurredOn, "2026-09-01"); assert.equal(posted.source, "recurring"); assert.equal(posted.recurringId, "r2");
-  assert.equal(postingFor({ ...recurring[0], dayOfMonth: 31 }, "2026-09", "p2").occurredOn, "2026-09-30", "ngày 31 lùi về cuối tháng");
+  const summary = summarizeMonth(bundle([], { recurring }), now);
+  // Rent (never answered, day 1 passed) is overdue; internet is asked two days ahead; salary is settled; the paused one is silent.
+  assert.deepEqual(summary.due.map((d) => [d.name, d.state, d.period]), [["Tiền nhà", "overdue", "2026-09"], ["Internet", "due", "2026-09"]]);
+  assert.deepEqual(summary.upcoming.map((item) => [item.name, item.daysLeft, item.dueOn]), [["Internet", 2, "2026-09-26"]]);
+  assert.equal(summary.fixedDue, 8_450_000);
+  // Answering a period (a paid record) takes it out of the list and off what is held back.
+  const answered = summarizeMonth(bundle([], { recurring, periods: [{ recurringId: "r2", period: "2026-09", status: "paid" }] }), now);
+  assert.deepEqual(answered.due.map((d) => d.name), ["Internet"]);
+  assert.equal(answered.fixedDue, 450_000);
+  // Past months have no due list.
+  assert.deepEqual(summarizeMonth(bundle([], { month: "2026-08", recurring }), now).due, []);
+});
+
+test("còn tiêu được = kế hoạch − đã chi − khoản cố định chưa trả; kế hoạch = thu dự kiến − tiết kiệm; ngân sách nhóm chia theo mức chi quen", () => {
+  const salary = { id: "sal", name: "Lương", category: "Lương", kind: "income" as const, amount: 25_000_000, dayOfMonth: 1, active: true, lastPostedMonth: "2026-09" };
+  const rent = { id: "rent", name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 6_000_000, dayOfMonth: 1, active: true, lastPostedMonth: "2026-09" };
+  const internet = { id: "net", name: "Internet", category: "Tiêu dùng", kind: "expense" as const, amount: 250_000, dayOfMonth: 26, active: true };
+  const history = [
+    { month: "2026-07", income: 25_000_000, expense: 4_000_000, saving: 0, byCategory: { "Ăn uống": 3_000_000, "Con": 1_000_000 } },
+    { month: "2026-08", income: 25_000_000, expense: 4_000_000, saving: 0, byCategory: { "Ăn uống": 3_000_000, "Con": 1_000_000 } },
+  ];
+  const items = [tx("2026-09-05", "expense", 6_000_000, "Gia đình"), tx("2026-09-10", "expense", 1_000_000, "Ăn uống")];
+  const settings = { openingCash: 0, openingSavings: 0, monthlyPlan: 12_000_000, monthlySaving: 5_000_000, categories: DEFAULT_CATEGORIES };
+  const summary = summarizeMonth(bundle(items, { settings, recurring: [salary, rent, internet], history }), now);
+  assert.equal(summary.plan, 20_000_000);
+  assert.equal(summary.fixedDue, 250_000);
+  assert.equal(summary.remainingOfPlan, 13_000_000);
+  assert.equal(summary.freeToSpend, 20_000_000 - 7_000_000 - 250_000);
+  // Flexible budget = plan − monthly fixed (6tr + 250k) = 13,75tr, shared 3:1 between Ăn uống and Con.
+  const ăn = summary.budgetPlan.find((line) => line.category === "Ăn uống");
+  const con = summary.budgetPlan.find((line) => line.category === "Con");
+  assert.deepEqual([ăn?.source, con?.source], ["auto", "auto"]);
+  assert.equal((ăn?.limit ?? 0) + (con?.limit ?? 0), 13_750_000);
+  assert.equal(summary.byCategory.find((line) => line.category === "Ăn uống")?.limit, ăn?.limit);
+  // Without a monthly saving the old behaviour holds: the typed plan, no shared budgets.
+  const legacy = summarizeMonth(bundle(items, { settings: { ...settings, monthlySaving: undefined }, recurring: [salary, rent, internet], history }), now);
+  assert.equal(legacy.plan, 12_000_000);
+  assert.deepEqual(legacy.budgetPlan, []);
 });
 
 test("validate: chi âm bị từ chối, tiết kiệm âm hợp lệ (rút), số dạng chuỗi được nhận", () => {
@@ -90,20 +122,10 @@ test("validate: chi âm bị từ chối, tiết kiệm âm hợp lệ (rút), s
 
 test("shortVnd", () => { assert.equal(shortVnd(18_200_000), "18,2M"); assert.equal(shortVnd(450_000), "450K"); assert.equal(shortVnd(-698_000), "−698K"); assert.equal(shortVnd(17), "17đ"); });
 
-test("recurring items post forward only: no back-fill, no double post when switching months", () => {
-  const now = new Date(2026, 8, 24, 10);
-  const item = { id: "r1", name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 6_000_000, dayOfMonth: 1, active: true };
-  assert.equal(dueRecurring([item], "2026-09", now).length, 1);
-  assert.equal(dueRecurring([item], "2026-07", now).length, 0);
-  const posted = { ...item, lastPostedMonth: "2026-09" };
-  assert.equal(dueRecurring([posted], "2026-08", now).length, 0);
-  assert.equal(dueRecurring([posted], "2026-09", now).length, 0);
-  assert.equal(dueRecurring([{ ...item, lastPostedMonth: "2026-08" }], "2026-09", now).length, 1);
-});
-
-test("an entry marked Hằng tháng becomes a recurring item that starts next month", () => {
+test("an entry marked Hằng tháng becomes a fixed item whose first period is next month", () => {
   const rec = recurringFor({ content: "Học phí mầm non", kind: "expense", category: "Học tập", amount: 3_500_000, occurredOn: "2026-09-05" }, 5, "r9");
   assert.deepEqual(rec, { id: "r9", name: "Học phí mầm non", kind: "expense", category: "Học tập", amount: 3_500_000, dayOfMonth: 5, active: true, lastPostedMonth: "2026-09" });
-  assert.equal(dueRecurring([rec], "2026-09", new Date(2026, 8, 24)).length, 0);
-  assert.equal(dueRecurring([rec], "2026-10", new Date(2026, 9, 6)).length, 1);
+  assert.equal(dueEntries([rec], [], undefined, new Date(2026, 8, 24)).length, 0, "the entry itself answered September");
+  assert.deepEqual(dueEntries([rec], [], undefined, new Date(2026, 9, 6)).map((d) => [d.period, d.state]), [["2026-10", "overdue"]]);
+  assert.deepEqual(dueEntries([rec], [], undefined, new Date(2026, 9, 3)).map((d) => [d.period, d.state]), [["2026-10", "due"]]);
 });

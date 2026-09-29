@@ -5,9 +5,11 @@ import { vnd } from "@/lib/catalog/format";
 import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
 import { getProfile, trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile } from "@/lib/experience/types";
-import { deleteMoneyItem, loadMoney, saveMoneyItem, saveMoneySettings } from "@/lib/money/client";
+import { deleteMoneyItem, loadMoney, saveMoneySettings, undoPeriod } from "@/lib/money/client";
+import { autoDebtId, REPAYMENT_CATEGORIES } from "@/lib/money/debt-link";
 import { buildEntry } from "@/lib/money/entry";
-import { formatVnDate, todayLocal } from "@/lib/money/parse";
+import { formatVnDate, parseVnd, todayLocal } from "@/lib/money/parse";
+import { periodAnswered, saveNewEntry } from "@/lib/money/save-entry";
 import { guessEntry, rememberCategory, type QuickContext } from "@/lib/money/quick-add";
 import { monthKey } from "@/lib/money/summary";
 import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyBundle, type MoneyKind } from "@/lib/money/types";
@@ -78,6 +80,7 @@ function QuickEntrySheet({ open, onClose, onSaved }: { open: boolean; onClose: (
   const [date, setDate] = useState(todayLocal());
   const [fromSavings, setFromSavings] = useState<boolean | null>(null);
   const [forChild, setForChild] = useState<boolean | null>(null);
+  const [debtChoice, setDebtChoice] = useState<string | null>(null);
   const [childId, setChildId] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -110,16 +113,23 @@ function QuickEntrySheet({ open, onClose, onSaved }: { open: boolean; onClose: (
   // Same source the family used last time for this category (e.g. insurance paid from savings).
   const lastFromSavings = kind === "expense" && loaded?.bundle.transactions.find((tx) => tx.kind === "expense" && tx.category === category)?.paidFrom === "savings";
   const paidFromSavings = fromSavings ?? lastFromSavings;
+  // A payment toward a debt names the debt (guessed from the words, changeable); a typed entry may also answer a waiting fixed item.
+  const debts = loaded?.bundle.settings.position?.debts ?? [];
+  const isRepayment = kind === "expense" && REPAYMENT_CATEGORIES.includes(category) && debts.length > 0;
+  const autoDebt = isRepayment ? autoDebtId({ kind, category, content, debtId: undefined, recurringId: undefined }, debts) ?? "" : "";
+  const debtValue = debtChoice ?? autoDebt;
+  const answering = loaded && content.trim() ? periodAnswered(loaded.bundle, { content, kind, category, amount: parseVnd(amountText) ?? 0, source: "manual" }) : null;
 
-  function reset() { setContent(""); setAmountText(""); setKindChoice(null); setPickedCategory(null); setChanging(false); setFromSavings(null); setForChild(null); setError(""); }
+  function reset() { setDebtChoice(null); setContent(""); setAmountText(""); setKindChoice(null); setPickedCategory(null); setChanging(false); setFromSavings(null); setForChild(null); setError(""); }
 
   async function save(keepOpen: boolean) {
     if (!loaded || busy) return;
     const built = buildEntry({ content, amountText, kind, category, occurredOn: date, fromSavings: paidFromSavings, forChild: childChecked && kids.length > 0, childId: childId || (kids.length === 1 ? kids[0].id : undefined) });
     if ("error" in built) { setError(built.error); return; }
+    const entry = { ...built.entry, debtId: isRepayment && debtValue ? debtValue : undefined };
     setBusy(true); setError("");
     try {
-      await saveMoneyItem("transactions", built.entry);
+      const { answered } = await saveNewEntry(loaded.bundle, entry);
       // A category the family chose over the guess is remembered for the next entry with the same words.
       if (pickedCategory && kind !== "saving" && pickedCategory !== guess?.category) {
         const categoryMemory = rememberCategory(loaded.bundle.settings.categoryMemory, built.entry.content, pickedCategory);
@@ -128,8 +138,9 @@ function QuickEntrySheet({ open, onClose, onSaved }: { open: boolean; onClose: (
       trackEvent("money_transaction_saved", { source: "quick_sheet" });
       window.dispatchEvent(new Event(MONEY_CHANGED_EVENT));
       const sign = kind === "income" ? "+" : kind === "saving" ? "→" : "−";
-      onSaved(`Đã ghi: ${built.entry.content} ${sign}${vnd(Math.abs(built.entry.amount))} · ${built.entry.category}`, () => {
-        void deleteMoneyItem("transactions", built.entry.id).then(() => window.dispatchEvent(new Event(MONEY_CHANGED_EVENT))).catch(() => {});
+      const undo = () => answered ? undoPeriod(answered.recurringId, answered.period) : deleteMoneyItem("transactions", built.entry.id);
+      onSaved(`Đã ghi: ${built.entry.content} ${sign}${vnd(Math.abs(built.entry.amount))} · ${built.entry.category}${answered ? ` · khớp “${answered.name}”, đã đánh dấu ${built.entry.kind === "income" ? "Đã nhận" : "Đã trả"}` : ""}`, () => {
+        void undo().then(() => window.dispatchEvent(new Event(MONEY_CHANGED_EVENT))).catch(() => {});
       });
       reset();
       if (keepOpen) { void loadMoney(monthKey(new Date())).then((bundle) => setLoaded((prev) => prev && { ...prev, bundle })).catch(() => {}); textRef.current?.focus({ preventScroll: true }); }
@@ -167,6 +178,9 @@ function QuickEntrySheet({ open, onClose, onSaved }: { open: boolean; onClose: (
             {changing && <select aria-label="Nhóm" value={category} onChange={(event) => { setPickedCategory(event.target.value); setChanging(false); }}>{options.map((name) => <option key={name}>{name}</option>)}</select>}</>
           : <>Nhóm sẽ tự chọn khi bạn gõ nội dung.</>}
       </div>
+      {answering && <p className="qe-match">Khớp khoản cố định “{answering.name}” ({answering.label}) → sẽ đánh dấu {answering.kind === "income" ? "Đã nhận" : "Đã trả"}, không tạo trùng.</p>}
+      {isRepayment && <div className="qe-field"><label htmlFor="qe-debt">Trả cho khoản nợ nào?</label>
+        <select id="qe-debt" value={debtValue} onChange={(event) => setDebtChoice(event.target.value)}>{debts.map((debt) => <option key={debt.id} value={debt.id}>{debt.name}</option>)}<option value="">Khoản khác (không trừ nợ nào)</option></select></div>}
       <details className="qe-more">
         <summary>Thêm chi tiết</summary>
         <div className="qe-more-grid">

@@ -1,0 +1,135 @@
+/* Kế hoạch tab (phase 2): month plan, fixed items, category budgets. Design: plans/260929-0926-app-optimization-roadmap/mockups/money-phase2.html
+   Muted text uses --mu-muted (#5d5878, 4.5:1 on the tinted backgrounds); every control is >=44px; nothing scrolls sideways at 375px. */
+.plan-view{display:grid;gap:14px;min-width:0}
+.pl-card{padding:18px 20px;min-width:0}
+.pl-card h3{margin:0 0 4px;font-size:17px;letter-spacing:-.01em;display:flex;align-items:center;gap:4px 8px;flex-wrap:wrap}
+.pl-card h3 small{font-weight:600;font-size:13px;color:var(--mu-muted)}
+.pl-hint{margin:0 0 12px;color:var(--mu-muted);font-size:13px}
+.pl-empty{margin:4px 0 8px;font-size:14px;color:var(--mu-muted)}
+.pl-empty b{color:var(--ink)}
+.pl-card .form-error{font-size:13px;color:var(--danger)}
+.pl-btn{min-height:44px;font-size:14px;padding:0 18px}
+.pl-link,.pl-limit{min-height:44px;min-width:44px;padding:0 10px;border:0;background:none;color:var(--primary-ink);font:700 14px var(--font-sans),system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.pl-link.danger{color:var(--danger)}
+.pl-link:disabled{opacity:.55;cursor:not-allowed}
+.pl-inline-link{min-height:24px;padding:0 2px;border:0;background:none;color:var(--primary-ink);font:700 13px var(--font-sans),system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+
+/* ---------- plan waterfall ---------- */
+.pl-wf{display:grid}
+.pl-line{display:grid;grid-template-columns:28px minmax(0,1fr) auto;align-items:center;gap:4px 12px;padding:11px 0;border-top:1px solid var(--line);min-height:52px}
+.pl-line:first-child{border-top:0}
+.pl-line .pl-l{min-width:0}
+.pl-line .pl-l b{display:block;font-size:14px}
+.pl-line .pl-l small{display:block;color:var(--mu-muted);font-size:13px;line-height:1.4}
+.pl-line .pl-v{font-weight:800;font-size:16px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pl-sign{text-align:center;color:var(--mu-muted);font-weight:800}
+.pl-line.total{background:var(--mint);border-radius:14px;padding:12px 14px;margin-top:8px;border:0;grid-template-columns:28px minmax(0,1fr) auto}
+.pl-line.total.neg .pl-v,.pl-line.total.neg .pl-l small{color:var(--danger)}
+.pl-line.total.neg .pl-l small{font-weight:600}
+.pl-stepper{display:inline-flex;align-items:center;gap:6px}
+.pl-stepper button{width:44px;height:44px;border-radius:50%;border:1px solid #cfc8ea;background:#fff;font-size:20px;font-weight:700;color:var(--primary-ink);cursor:pointer;padding:0}
+.pl-stepper button:disabled{opacity:.45;cursor:not-allowed}
+.pl-stepper b{min-width:104px;text-align:center;font-size:16px;font-variant-numeric:tabular-nums}
+.pl-bar{display:flex;height:14px;border-radius:99px;overflow:hidden;background:var(--mint);margin:16px 0 8px}
+.pl-bar i{display:block;height:100%}
+.pl-key{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--mu-muted)}
+.pl-key span{display:inline-flex;align-items:center;gap:6px}
+.pl-key i{width:12px;height:12px;border-radius:4px;display:inline-block}
+.k-fixed{background:#7a5cff}.k-flex{background:#6fd7b5}.k-save{background:#ffb18f}
+.pl-sum{margin:12px 0 0}
+.pl-fallback{display:grid;gap:6px;margin-top:12px;padding:14px;background:#fbfaff;border:1px solid var(--line);border-radius:16px}
+.pl-fallback label,.pl-f label,.pl-flabel{font-size:13px;font-weight:700;color:var(--mu-muted)}
+.pl-fallback small{color:var(--mu-muted);font-size:13px}
+.pl-fallback-row{display:flex;gap:10px;flex-wrap:wrap}
+.pl-fallback-row input{flex:1 1 160px}
+
+/* ---------- inputs shared by the tab ---------- */
+.pl-fallback input,.pl-form input:not([type=checkbox]),.pl-form select,.pl-bud-edit input{height:48px;min-width:0;width:100%;border:1px solid #cfc8ea;border-radius:12px;padding:0 12px;background:#fff;color:var(--ink);font:500 16px var(--font-sans),system-ui,sans-serif}
+
+/* ---------- fixed items ---------- */
+.pl-items{list-style:none;margin:0;padding:0}
+.pl-item{display:grid;grid-template-columns:minmax(0,1fr) 110px 170px minmax(214px,auto);align-items:center;gap:4px 12px;padding:8px 0;border-top:1px solid var(--line);min-height:56px}
+.pl-item:first-child{border-top:0}
+.pl-item.off .pl-item-main,.pl-item.off .pl-item-amt{opacity:.7}
+.pl-item-main{min-width:0;overflow-wrap:anywhere}
+.pl-item-main b{display:block;font-size:14px}
+.pl-item-main small{display:block;color:var(--mu-muted);font-size:13px}
+.pl-est{display:inline-block;margin-left:6px;font-size:12px;font-weight:700;color:var(--primary-ink);background:var(--mint);border-radius:99px;padding:0 8px;vertical-align:middle}
+.pl-item-amt{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.pl-tag{display:inline-flex;align-items:center;min-height:24px;padding:2px 10px;border-radius:99px;font-size:12px;font-weight:700;background:#f0eef8;color:var(--mu-muted);justify-self:start}
+.pl-tag.paid{background:var(--ok-bg);color:var(--ok)}
+.pl-tag.due{background:var(--warn-bg);color:var(--warn)}
+.pl-tag.overdue{background:#fdeceb;color:var(--danger)}
+.pl-tag.soon{background:var(--mint);color:var(--primary-ink)}
+.pl-tag.skipped{text-decoration:line-through}
+.pl-item-acts{display:flex;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+.pl-linked{display:inline-flex;align-items:center;min-height:44px;padding:0 10px;font-size:13px;font-weight:600;color:var(--mu-muted)}
+.pl-add{margin-top:10px}
+.pl-item-edit{list-style:none}
+
+/* ---------- add / edit form ---------- */
+.pl-form{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;align-items:end;margin-top:12px;padding:14px;background:#fbfaff;border:1px solid var(--line);border-radius:16px}
+.pl-form .wide{grid-column:1/-1}
+.pl-f{display:grid;gap:4px;min-width:0}
+.pl-seg{display:flex;flex-wrap:wrap;gap:4px;background:var(--mint);border-radius:22px;padding:4px}
+.pl-seg button{flex:1 1 auto;min-height:44px;padding:0 14px;border:0;border-radius:99px;background:none;font:700 14px var(--font-sans),system-ui,sans-serif;color:var(--mu-muted);white-space:nowrap;cursor:pointer}
+.pl-seg button.on{background:#fff;color:var(--primary-ink);box-shadow:0 4px 10px -6px #4b3fa066}
+.pl-preview{margin:0;font-size:14px;background:var(--mint);color:var(--primary-ink);border-radius:12px;padding:10px 12px;overflow-wrap:anywhere}
+.pl-check{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-height:44px;font-weight:600;font-size:14px;cursor:pointer}
+.pl-check input{width:22px;height:22px;accent-color:var(--primary);flex:none}
+.pl-check small{font-weight:500;font-size:13px;color:var(--mu-muted)}
+.pl-form .form-error{margin:0}
+.pl-acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+
+/* ---------- category budgets ---------- */
+.pl-buds{display:grid}
+.pl-bud{display:grid;grid-template-columns:130px minmax(60px,1fr) 190px 120px;grid-template-areas:"name track amt src";gap:4px 10px;align-items:center;padding:6px 0;border-top:1px solid var(--line);min-height:52px}
+.pl-bud:first-child{border-top:0}
+.pl-bud.editing{grid-template-areas:"name edit edit src"}
+.pl-bud-name{grid-area:name;font-weight:600;overflow-wrap:anywhere}
+.pl-track{grid-area:track;height:8px;border-radius:99px;background:var(--mint);overflow:hidden}
+.pl-track i{display:block;height:100%;background:var(--grad);border-radius:99px}
+.pl-track i.over{background:linear-gradient(135deg,#e5867f,#b4413c)}
+.pl-bud-amt{grid-area:amt;text-align:right;font-variant-numeric:tabular-nums;font-size:14px}
+.pl-bud-amt small{color:var(--mu-muted);font-size:13px}
+.pl-bud-amt small.pl-over{color:var(--danger);font-weight:700}
+.pl-bud-amt .pl-limit{font-weight:800;color:var(--ink);font-size:14px}
+.pl-bud-edit{grid-area:edit;display:flex;gap:8px;align-items:center}
+.pl-bud-edit input{flex:1 1 90px}
+.pl-bud.editing .pl-track{display:none}
+.pl-bud-src{grid-area:src;font-size:12px;color:var(--mu-muted);text-align:right;display:flex;flex-direction:column;align-items:flex-end}
+.pl-bud-src .pl-link{font-size:13px;padding:0 4px;min-height:44px}
+.pl-note{background:var(--mint);color:var(--primary-ink);border-radius:12px;padding:10px 12px;font-size:13px;margin-top:10px}
+
+/* ---------- money-split fold ---------- */
+.pl-fold{background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--r-lg);box-shadow:var(--shadow);min-width:0}
+.pl-fold summary{list-style:none;cursor:pointer;min-height:52px;display:flex;align-items:center;gap:8px;padding:0 20px;font-weight:700;border-radius:var(--r-lg)}
+.pl-fold summary::-webkit-details-marker{display:none}
+.pl-fold summary::after{content:"▾";margin-left:auto;color:var(--mu-muted)}
+.pl-fold[open] summary::after{content:"▴"}
+.pl-fold-body{padding:0 20px 18px;min-width:0}
+
+/* controls of the reused goals / money-split blocks inside this tab: same 44px rule */
+.plan-view .app-btn{min-height:44px;font-size:14px}
+.plan-view .ledger-link{min-height:44px;font-size:14px}
+.plan-view .inline-form input,.plan-view .inline-form select{min-height:44px;font-size:16px}
+.plan-view .app-sub{color:var(--mu-muted)}
+
+/* narrow: a fixed item becomes two lines + its buttons (also on tablets, the right-hand columns need room) */
+@media(max-width:900px){
+  .pl-item{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"main amt" "tag tag" "acts acts"}
+  .pl-item-main{grid-area:main}.pl-item-amt{grid-area:amt}.pl-tag{grid-area:tag}.pl-item-acts{grid-area:acts;justify-content:flex-start;margin-left:-10px}
+}
+/* phone */
+@media(max-width:700px){
+  .pl-card{padding:14px}
+  .pl-line{grid-template-columns:28px minmax(0,1fr)}
+  .pl-line .pl-v,.pl-line .pl-stepper{grid-column:2;justify-self:start}
+  .pl-line.total{grid-template-columns:28px minmax(0,1fr)}
+  .pl-form{grid-template-columns:repeat(2,minmax(0,1fr));padding:12px}
+  .pl-bud{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name amt" "track track" "src src"}
+  .pl-bud.editing{grid-template-areas:"name name" "edit edit" "src src"}
+  .pl-bud-src{flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;text-align:left}
+  .pl-fold summary{padding:0 14px}.pl-fold-body{padding:0 14px 14px}
+}
+@media(prefers-reduced-motion:reduce){.pl-card,.pl-seg button{transition:none}}

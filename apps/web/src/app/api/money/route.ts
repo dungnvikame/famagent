@@ -6,7 +6,7 @@ import { validSettings } from "@/lib/money/validate";
 
 export const dynamic = "force-dynamic";
 
-/** GET /api/money?month=YYYY-MM → the whole month bundle (posts due recurring items first). */
+/** GET /api/money?month=YYYY-MM → the whole month bundle (fixed items do not post themselves; see /api/money/periods). */
 export async function GET(request: Request) {
   const auth = await authenticated();
   if (!auth || auth.user.is_anonymous) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });

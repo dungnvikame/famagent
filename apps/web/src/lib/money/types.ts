@@ -29,17 +29,39 @@ export interface DebtPayment { on: string; amount: number }
 
 export interface MoneyBudget { id: string; category: string; /** YYYY-MM */ month: string; limitAmount: number }
 
+/**
+ * When a fixed item comes due inside a month. The first day is always the item's `dayOfMonth`; `to` closes a window
+ * ("điện 5–12"). Without a schedule an item is monthly on `dayOfMonth`.
+ */
+export type RecurringSchedule =
+  | { kind: "month" }
+  | { kind: "range"; to: number }
+  | { kind: "eom" }
+  | { kind: "quarter"; to?: number }
+  | { kind: "year"; month: number; to?: number };
+
+/**
+ * A fixed item (rent, salary, electricity, tuition…). It never writes to the ledger by itself: when a period comes
+ * due the family confirms it ("Đã trả?") with the real date and amount, or skips it.
+ */
 export interface MoneyRecurring {
   id: string;
   name: string;
   category: string;
   kind: MoneyKind;
+  /** The usual amount; with `amountMode: "estimate"` it is only the first guess (later ones average the last periods). */
   amount: number;
+  /** First day of the due window (day of month, clamped to the month's length). */
   dayOfMonth: number;
   active: boolean;
-  /** YYYY-MM of the last month auto-posted into the ledger. */
+  schedule?: RecurringSchedule;
+  amountMode?: "fixed" | "estimate";
+  /** YYYY-MM up to which every period is settled (older ones are never asked about). */
   lastPostedMonth?: string;
 }
+
+/** The family's answer for one period of a fixed item. Paid periods are also found from ledger entries carrying the item's id. */
+export interface RecurringPeriod { recurringId: string; /** YYYY-MM */ period: string; status: "paid" | "skipped"; paidOn?: string; amount?: number }
 
 export interface MoneyGoal { id: string; name: string; targetAmount: number; savedAmount: number; monthlyPlan?: number }
 
@@ -74,6 +96,8 @@ export interface MoneySettings {
   position?: MoneyPosition;
   /** The family's own split (money method "custom"). */
   allocation?: MoneyAllocation;
+  /** Saved every month; the plan is then planned income − this (see fixed-items/plan.ts). */
+  monthlySaving?: number;
   /** What the family corrected in quick add: normalized content key → category. */
   categoryMemory?: Record<string, string>;
 }
@@ -89,6 +113,10 @@ export interface MoneyBundle {
   budgets: MoneyBudget[];
   recurring: MoneyRecurring[];
   goals: MoneyGoal[];
+  /** Answered periods of the fixed items (paid/skipped), from the periods table and from ledger entries with a recurring id. */
+  periods?: RecurringPeriod[];
+  /** Last (up to 3) paid amounts per fixed item, newest first: the estimate for items in "ước lượng" mode. */
+  recurringAmounts?: Record<string, number[]>;
   /** Paid toward each debt (by debt id) since its date: expenses tagged with the debt or posted by its recurring item. */
   debtPaid?: Record<string, number>;
   /** The same payments with dates, oldest first (interest depends on when they were made). */

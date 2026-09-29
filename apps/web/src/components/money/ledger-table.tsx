@@ -29,7 +29,7 @@ interface Props {
   /** Recurring items owned by a debt (managed in Tình hình → Khoản nợ, not toggled here). */
   debtRecurringIds: Set<string>;
   /** Saves the entry; `repeat.on` also makes it (or keeps it) a monthly recurring item on `repeat.day`. */
-  onSave: (item: MoneyTransaction, repeat: { on: boolean; day: number }) => Promise<void>;
+  onSave: (item: MoneyTransaction, repeat: { on: boolean; day: number }) => Promise<{ answered: string | null } | void>;
   onDelete: (id: string) => Promise<void>;
   /** Categories, memory and the whole ledger: the add row guesses the category from the content as it is typed. */
   guessContext?: Omit<QuickContext, "today">;
@@ -80,7 +80,8 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
     if (draft.repeat && (built.entry.amount <= 0 || !(Number.isInteger(day) && day >= 1 && day <= 31))) { setError(built.entry.amount <= 0 ? "Khoản rút tiết kiệm không đặt lặp lại được." : "Ngày lặp lại cần từ 1 đến 31."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      await onSave(built.entry, { on: draft.repeat, day });
+      const saved = await onSave(built.entry, { on: draft.repeat, day });
+      if (saved && saved.answered) setNotice(`✓ Khớp khoản cố định “${saved.answered}” — đã đánh dấu ${built.entry.kind === "income" ? "Đã nhận" : "Đã trả"}, không tạo trùng.`);
       const name = built.entry.content;
       const wasOn = existing ? Boolean(recurringOf(existing)?.active) : false;
       if (draft.repeat && !wasOn) setNotice(`✓ Đã đặt “${name}” lặp lại ngày ${day} hằng tháng. Xem ở Tình hình → Thu & chi cố định.`);

@@ -1,4 +1,5 @@
-import { ACCOUNT_TYPES, MONEY_KINDS, type MoneyAccount, type MoneyAllocation, type MoneyBudget, type MoneyDebt, type MoneyGoal, type MoneyPosition, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types.ts";
+import type { ConfirmInput } from "./period-confirm.ts";
+import { ACCOUNT_TYPES, MONEY_KINDS, type MoneyAccount, type MoneyAllocation, type MoneyBudget, type MoneyDebt, type MoneyGoal, type MoneyPosition, type MoneyRecurring, type MoneySettings, type MoneyTransaction, type RecurringSchedule } from "./types.ts";
 
 // Hand-rolled guards (no schema lib in the project); each returns a clean object or null.
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
@@ -30,7 +31,40 @@ export function validRecurring(input: unknown, id = crypto.randomUUID()): MoneyR
   if (!isRecord(input)) return null;
   const name = text(input.name, 80); const category = text(input.category, 40); const k = kind(input.kind); const amount = int(input.amount); const day = int(input.dayOfMonth);
   if (!name || !category || !k || amount === null || amount <= 0 || amount > MAX_VND || day === null || day < 1 || day > 31) return null;
-  return { id: uuid(input.id) ? input.id : id, name, category, kind: k, amount, dayOfMonth: day, active: input.active !== false, lastPostedMonth: isMonth(input.lastPostedMonth) ? input.lastPostedMonth : undefined };
+  const schedule = validSchedule(input.schedule, day); const amountMode = input.amountMode === undefined || input.amountMode === null ? undefined : input.amountMode === "fixed" || input.amountMode === "estimate" ? input.amountMode : null;
+  if (schedule === null || amountMode === null) return null;
+  return { id: uuid(input.id) ? input.id : id, name, category, kind: k, amount, dayOfMonth: day, active: input.active !== false, schedule, amountMode, lastPostedMonth: isMonth(input.lastPostedMonth) ? input.lastPostedMonth : undefined };
+}
+
+/** undefined = monthly (no schedule); null = junk. `to` closes the due window: an integer from the item's day up to 31. */
+function validSchedule(input: unknown, day: number): RecurringSchedule | undefined | null {
+  if (input === undefined || input === null) return undefined;
+  if (!isRecord(input)) return null;
+  const to = input.to === undefined || input.to === null ? undefined : typeof input.to === "number" && Number.isInteger(input.to) && input.to >= day && input.to <= 31 ? input.to : null;
+  if (to === null) return null;
+  switch (input.kind) {
+    case "month": case "eom": return to === undefined ? { kind: input.kind } : null;
+    case "range": return to === undefined ? null : { kind: "range", to };
+    case "quarter": return to === undefined ? { kind: "quarter" } : { kind: "quarter", to };
+    case "year": {
+      const month = input.month;
+      if (typeof month !== "number" || !Number.isInteger(month) || month < 1 || month > 12) return null;
+      return to === undefined ? { kind: "year", month } : { kind: "year", month, to };
+    }
+    default: return null;
+  }
+}
+
+/** One answer for a period of a fixed item; the paid-only fields are dropped for "skipped". */
+export function validConfirm(input: unknown): ConfirmInput | null {
+  if (!isRecord(input) || !uuid(input.recurringId) || !isMonth(input.period) || (input.status !== "paid" && input.status !== "skipped")) return null;
+  if (input.status === "skipped") return { recurringId: input.recurringId, period: input.period, status: "skipped" };
+  const amount = optionalInt(input.amount); const content = optionalText(input.content, 120); const category = optionalText(input.category, 40); const note = optionalText(input.note, 200);
+  if (amount === null || (amount !== undefined && (amount <= 0 || amount > MAX_VND)) || content === null || category === null || note === null) return null;
+  if ((input.occurredOn !== undefined && input.occurredOn !== null && !isDate(input.occurredOn)) || (input.debtId !== undefined && input.debtId !== null && !uuid(input.debtId))) return null;
+  // Like validTransaction: a child id only rides with the child flag; paidFrom is applied to expenses when the entry is built.
+  const forChild = input.forChild === true;
+  return { recurringId: input.recurringId, period: input.period, status: "paid", occurredOn: isDate(input.occurredOn) ? input.occurredOn : undefined, amount, content, category, debtId: uuid(input.debtId) ? input.debtId : undefined, forChild: forChild || undefined, childId: forChild && uuid(input.childId) ? input.childId : undefined, paidFrom: input.paidFrom === "savings" ? "savings" : undefined, note };
 }
 
 export function validGoal(input: unknown, id = crypto.randomUUID()): MoneyGoal | null {
@@ -55,8 +89,9 @@ export function validSettings(input: unknown): MoneySettings | null {
   const position = input.position === undefined || input.position === null ? undefined : validPosition(input.position);
   const allocation = input.allocation === undefined || input.allocation === null ? undefined : validAllocation(input.allocation);
   const categoryMemory = input.categoryMemory === undefined || input.categoryMemory === null ? undefined : validMemory(input.categoryMemory);
-  if (position === null || allocation === null || categoryMemory === null) return null;
-  return { openingCash, openingSavings, monthlyPlan: plan, categories, position, allocation, categoryMemory };
+  const monthlySaving = optionalInt(input.monthlySaving);
+  if (position === null || allocation === null || categoryMemory === null || monthlySaving === null || (monthlySaving !== undefined && (monthlySaving < 0 || monthlySaving > MAX_VND))) return null;
+  return { openingCash, openingSavings, monthlyPlan: plan, categories, position, allocation, ...(monthlySaving !== undefined && { monthlySaving }), categoryMemory };
 }
 
 const optionalInt = (value: unknown) => value === undefined || value === null || value === "" ? undefined : int(value);
