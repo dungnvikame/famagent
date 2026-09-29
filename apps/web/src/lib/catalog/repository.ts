@@ -5,8 +5,16 @@ import type { Product } from "./types";
 type Row = {
   id: string; slug: string; canonical_name: string; brand: string; description: string | null; image_url: string | null;
   diaper_attributes: { min_weight_kg: number; max_weight_kg: number; diaper_type: "tape" | "pants"; night_use_score: number | null; absorbency_score: number | null; softness_score: number | null; thickness_score: number | null; sensitive_skin_score: number | null } | null;
-  product_variants: { id: string; name: string; size: string; quantity: number; quantity_unit: "piece"; product_offers: { id: string; merchant_id: string; source: "shopee" | "tiktok" | "lazada" | "affiliate" | "direct"; price: number; availability: "in_stock" | "out_of_stock" | "unknown"; updated_at: string; seller_rating: number | string | null; shipping_estimate: string | null; merchants: { name: string } | { name: string }[] }[] }[];
+  // weight_*_kg exist after migration 202609290019; null/absent = use the product's range.
+  product_variants: { id: string; name: string; size: string; quantity: number; quantity_unit: "piece"; weight_min_kg?: number | string | null; weight_max_kg?: number | string | null; product_offers: { id: string; merchant_id: string; source: "shopee" | "tiktok" | "lazada" | "affiliate" | "direct"; price: number; availability: "in_stock" | "out_of_stock" | "unknown"; updated_at: string; seller_rating: number | string | null; shipping_estimate: string | null; merchants: { name: string } | { name: string }[] }[] }[];
 };
+
+/** Both ends must be present and consistent; a half-filled or inverted range is ignored (product range applies). */
+function variantRange(variant: Row["product_variants"][number]): { minWeightKg?: number; maxWeightKg?: number } {
+  const min = variant.weight_min_kg == null ? NaN : Number(variant.weight_min_kg);
+  const max = variant.weight_max_kg == null ? NaN : Number(variant.weight_max_kg);
+  return min > 0 && max >= min ? { minWeightKg: min, maxWeightKg: max } : {};
+}
 
 function mapProduct(row: Row): Product | null {
   const diaper = row.diaper_attributes;
@@ -22,6 +30,7 @@ function mapProduct(row: Row): Product | null {
     },
     variants: row.product_variants.map((variant) => ({
       id: variant.id, name: variant.name, size: variant.size, quantity: variant.quantity, quantityUnit: variant.quantity_unit,
+      ...variantRange(variant),
       offers: variant.product_offers.map((offer) => ({
         id: offer.id, merchantId: offer.merchant_id,
         merchantName: Array.isArray(offer.merchants) ? (offer.merchants[0]?.name ?? "Cửa hàng") : offer.merchants.name,
@@ -39,7 +48,10 @@ export function isDemoMode(): boolean {
 export async function getProducts(): Promise<Product[]> {
   if (isDemoMode()) return demoProducts;
   const client = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)!, { auth: { persistSession: false } });
-  const { data, error } = await client.from("products").select("id,slug,canonical_name,brand,description,image_url,diaper_attributes(min_weight_kg,max_weight_kg,diaper_type,night_use_score,absorbency_score,softness_score,thickness_score,sensitive_skin_score),product_variants(id,name,size,quantity,quantity_unit,product_offers(id,merchant_id,source,price,availability,updated_at,seller_rating,shipping_estimate,merchants(name)))").eq("category_slug", "diapers").eq("published", true).order("canonical_name");
+  const query = (variantColumns: string) => client.from("products").select(`id,slug,canonical_name,brand,description,image_url,diaper_attributes(min_weight_kg,max_weight_kg,diaper_type,night_use_score,absorbency_score,softness_score,thickness_score,sensitive_skin_score),product_variants(id,name,size,quantity,quantity_unit${variantColumns},product_offers(id,merchant_id,source,price,availability,updated_at,seller_rating,shipping_estimate,merchants(name)))`).eq("category_slug", "diapers").eq("published", true).order("canonical_name");
+  let { data, error } = await query(",weight_min_kg,weight_max_kg");
+  // Migration 202609290019 not applied yet: the columns don't exist, so retry with the product-level range only.
+  if (error && (error.code === "42703" || /weight_m(in|ax)_kg/.test(error.message))) ({ data, error } = await query(""));
   if (error) throw new Error(`Catalog query failed: ${error.message}`);
   return ((data ?? []) as unknown as Row[]).map(mapProduct).filter((product): product is Product => product !== null);
 }
