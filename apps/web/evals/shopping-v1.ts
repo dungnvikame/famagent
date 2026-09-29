@@ -99,7 +99,7 @@ export const EVAL_CASES: EvalCase[] = [
   { id: "cf-02", group: "conflict_with_profile", message: "Tìm bỉm Mây cho bé 10kg", profile: family([child("c-gold", "Gold", { weightKg: 10, dislikedBrands: ["Mây"] })]), expect: { outcome: "clarify", ambiguity: "brand_conflict" } },
   { id: "cf-03", group: "conflict_with_profile", message: "Tìm bỉm cho bé 10kg", profile: family([child("c-gold", "Gold", { weightKg: 10, dislikedBrands: ["Mây"] })]), expect: { outcome: "results", excludedProducts: ["may-mong-l", "may-dem-l"] } },
   { id: "cf-04", group: "conflict_with_profile", message: "bỉm cho bé 10kg, không mua Bông", expect: { outcome: "results", excludedProducts: ["bong-dem-l"] } },
-  { id: "cf-05", group: "conflict_with_profile", message: "Tìm bỉm dưới 300k", profile: family([gold], { maxBudget: 450000 }), expect: { outcome: "none", maxTotalPriceVnd: 300000, weightKg: 10 } },
+  { id: "cf-05", group: "conflict_with_profile", message: "Tìm bỉm dưới 250k", profile: family([gold], { maxBudget: 450000 }), expect: { outcome: "none", maxTotalPriceVnd: 250000, weightKg: 10 } },
 
   // Giá trần theo gói và theo đơn vị.
   { id: "pc-01", group: "price_cap", message: "bỉm cho bé 10kg dưới 5.000đ/miếng", expect: { outcome: "results", maxUnitPriceVnd: 5000 } },
