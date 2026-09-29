@@ -20,7 +20,13 @@ export interface FamilyNote {
 
 export interface NoteCandidate { text: string; kind: FamilyNote["kind"]; brand?: string; childId?: string }
 
-const MERCHANTS = ["shopee", "lazada", "tiki", "tiktok", "concung", "con cưng", "bibo mart", "kids plaza", "siêu thị", "chợ", "nhà thuốc"];
+// Marketplaces and chains: places to buy, never a product brand ("mua Shopee" must not become a brand to avoid).
+const STORES = ["shopee", "lazada", "lazmall", "tiki", "tiktok shop", "tiktok", "sendo", "bách hóa xanh", "co.opmart", "co.op", "coopmart", "winmart", "vinmart", "concung", "con cưng", "bibo mart", "kids plaza", "mega market", "big c", "lotte", "aeon", "emart", "pharmacity", "long châu", "amazon"];
+const MERCHANTS = [...STORES, "siêu thị", "chợ", "nhà thuốc"];
+const foldName = (text: string) => text.toLocaleLowerCase("vi").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d");
+const STORE_START = new RegExp(`^(?:${MERCHANTS.map((name) => foldName(name).replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})(?![\\p{L}\\d])`, "u");
+/** True when the text starts with a store / marketplace name. */
+export const startsWithStore = (text: string) => STORE_START.test(foldName(text.trim()));
 const clean = (value: string) => value.trim().replace(/[.,;!?]+$/, "");
 const cap = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
@@ -30,6 +36,13 @@ function brandIn(text: string, brands: string[]): string | undefined {
   return brands.find((brand) => new RegExp(`(?<![\\p{L}])${brand.toLocaleLowerCase("vi").replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?![\\p{L}])`, "u").test(lower));
 }
 
+/** Capitalised word(s) after "dùng/mua/hãng…" as a brand guess; a store or marketplace name is never a brand. */
+function capturedBrand(text: string): string | undefined {
+  const match = /(?:dùng|xài|mua|hãng|loại|thương hiệu)\s+([A-Z][\p{L}\d]+(?:\s+[A-Z][\p{L}\d]+)?)/u.exec(text);
+  if (!match) return undefined;
+  return startsWithStore(text.slice(match.index + match[0].length - match[1].length)) ? undefined : match[1];
+}
+
 export function extractNotes(message: string, profile: FamilyProfile | null, brands: string[] = []): NoteCandidate[] {
   const text = message.trim();
   if (text.length < 8 || text.length > 400) return [];
@@ -37,7 +50,7 @@ export function extractNotes(message: string, profile: FamilyProfile | null, bra
   const children = profile?.children ?? [];
   const named = children.find((child) => child.name && lower.includes(child.name.toLocaleLowerCase("vi"))) ?? (children.length === 1 ? children[0] : undefined);
   const who = named?.name ? `Bé ${named.name}` : "Bé";
-  const brand = brandIn(text, brands) ?? text.match(/(?:dùng|xài|mua|hãng|loại|thương hiệu)\s+([A-Z][\p{L}\d]+(?:\s+[A-Z][\p{L}\d]+)?)/u)?.[1];
+  const brand = brandIn(text, brands) ?? capturedBrand(text);
   const out: NoteCandidate[] = [];
 
   // Health: rash / allergy / irritation with a product or brand.
@@ -65,7 +78,30 @@ export function newNotes(candidates: NoteCandidate[], existing: Pick<FamilyNote,
   return candidates.filter((note) => !seen.has(note.text.toLocaleLowerCase("vi").replace(/\s+/g, " ")));
 }
 
-/** Brands that a health note says caused a reaction → hard-excluded in shopping, with the note as the reason. */
-export function brandsToAvoid(notes: Pick<FamilyNote, "kind" | "brand" | "text">[]): Array<{ brand: string; reason: string }> {
-  return notes.filter((note) => note.kind === "health" && note.brand).map((note) => ({ brand: note.brand!, reason: note.text }));
+type NoteLike = Pick<FamilyNote, "kind" | "brand" | "text" | "status">;
+
+/**
+ * Brands that a health note says caused a reaction → hard-excluded in shopping, with the note as the reason.
+ * Only notes the family confirmed count: an automatic guess from a chat message must not silently hide a brand.
+ */
+export function brandsToAvoid(notes: NoteLike[]): Array<{ brand: string; reason: string }> {
+  return notes.filter((note) => note.kind === "health" && note.brand && note.status === "confirmed").map((note) => ({ brand: note.brand!, reason: note.text }));
 }
+
+/** Health notes that name a brand but are not confirmed yet (recorded, not applied). One per brand. */
+export function unconfirmedBrandNotes(notes: NoteLike[]): NoteLike[] {
+  const seen = new Set<string>();
+  return notes.filter((note) => {
+    if (note.kind !== "health" || !note.brand || note.status === "confirmed") return false;
+    const key = note.brand.toLocaleLowerCase("vi");
+    return seen.has(key) ? false : Boolean(seen.add(key));
+  });
+}
+
+/** Reply line for unconfirmed health notes: says what was recorded and how to make it count. */
+export function unconfirmedNoteReply(notes: NoteLike[]): string {
+  return unconfirmedBrandNotes(notes).map((note) => `Mình đã ghi nhận “${note.text}”. Bạn xác nhận ở Gia đình để mình tránh hãng ${note.brand} nhé.`).join(" ");
+}
+
+/** Shown when the family's notes could not be loaded, so brand avoidance was not applied. */
+export const NOTES_UNAVAILABLE_REPLY = "Lưu ý: mình chưa kiểm tra được ghi chú sức khỏe của bé nên chưa loại hãng từng gây hăm/dị ứng. Bạn xem lại ghi chú ở Gia đình trước khi mua nhé.";
