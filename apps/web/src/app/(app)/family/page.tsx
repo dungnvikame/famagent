@@ -1,4 +1,4 @@
-import { FamilyEditor } from "@/components/family-editor";
+import { FamilyPage } from "@/components/family/family-page";
 
 export const metadata = { title: "FamAgent | Gia đình" };
-export default function FamilyPage() { return <FamilyEditor />; }
+export default function Family() { return <FamilyPage />; }

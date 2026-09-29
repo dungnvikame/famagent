@@ -3,11 +3,11 @@
 import { useAccount } from "@/components/app-shell/use-account";
 import { PushToggle } from "@/components/push-toggle";
 
-/** Account & privacy block on the Family page: who is signed in (Google name/avatar), AI consent, data controls. */
+/** Account & privacy rows (inside the Family page's collapsible block): who is signed in (Google name/avatar), AI consent, data controls. */
 export function AccountSection({ aiConsent, onAiConsent, onErase, onSignOut, cloud }: { aiConsent: boolean; onAiConsent: (value: boolean) => void; onErase: () => void; onSignOut: () => void; cloud: boolean }) {
   const account = useAccount();
   const provider = account.provider === "google" ? "Google" : account.provider === "email" ? "email" : account.provider;
-  return <section className="form-card" id="account"><div><span className="section-number">06</span><h2>Tài khoản & quyền riêng tư</h2><p>{cloud ? "Dữ liệu được lưu trong tài khoản của bạn và chỉ bạn xem được." : "Bản thử lưu trên trình duyệt này."}</p></div>
+  return <div className="fam-account"><p className="fam-hint">{cloud ? "Dữ liệu được lưu trong tài khoản của bạn và chỉ bạn xem được." : "Bản thử lưu trên trình duyệt này."}</p>
     <div className="app-rows account-rows">
       {/* eslint-disable-next-line @next/next/no-img-element -- Google avatar */}
       {account.status === "member" && <div><span className="account-who">{account.avatarUrl ? <img src={account.avatarUrl} alt="" width={40} height={40} referrerPolicy="no-referrer" /> : <span className="app-me-initial" aria-hidden="true">{(account.name ?? "?").charAt(0).toUpperCase()}</span>}<span><b>{account.name}</b><small>{account.email}{provider ? ` · đăng nhập bằng ${provider}` : ""}</small></span></span><span className="app-pill ok">Đang hoạt động</span></div>}
@@ -16,5 +16,5 @@ export function AccountSection({ aiConsent, onAiConsent, onErase, onSignOut, clo
       <PushToggle cloud={cloud} />
       <div><span><b>Xóa hồ sơ và dữ liệu mua sắm</b><small>Xóa hồ sơ, lịch sử trò chuyện, sản phẩm đã lưu. Không khôi phục được.</small></span><button type="button" className="app-btn ghost danger" onClick={onErase}>Xóa</button></div>
       {cloud && account.status === "member" && <div><span><b>Đăng xuất</b><small>Thoát khỏi thiết bị này; dữ liệu vẫn ở trong tài khoản.</small></span><button type="button" className="app-btn ghost" onClick={onSignOut}>Đăng xuất</button></div>}
-    </div></section>;
+    </div></div>;
 }

@@ -1,4 +1,4 @@
-import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, INCOME_STABILITY, BILL_TIMELINESS, DEBT_TYPES, LONG_TERM_SAVINGS, INSURANCE_TYPES, PLANNING_LEVELS, CARE_METHODS, VACCINE_STATUS, CHECKUP_RECENCY, NUTRITION_LEVELS, SLEEP_QUALITY, PLAY_TIME, SCREEN_TIME, READING_FREQ, SAFETY_MEASURES, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
+import { DELIVERY_PREFERENCES, DIAPER_SIZES, FIELD_SOURCES, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MERCHANTS, SAVING_GOALS, CARE_WORRIES, MONEY_PAINS, TRACKING_METHODS, EMERGENCY_LEVELS, MONEY_METHODS, INCOME_STABILITY, BILL_TIMELINESS, DEBT_TYPES, LONG_TERM_SAVINGS, INSURANCE_TYPES, PLANNING_LEVELS, CARE_METHODS, MEMBER_ROLES, AVATAR_COLORS, COVER_THEMES, VACCINE_STATUS, CHECKUP_RECENCY, NUTRITION_LEVELS, SLEEP_QUALITY, PLAY_TIME, SCREEN_TIME, READING_FREQ, SAFETY_MEASURES, PRICE_PREFERENCES, SENSITIVITIES, SHOPPING_CONCERNS, WASHING_MACHINES, type FamilyProfile } from "./types.ts";
 
 // Limits keep stored context small and to what product selection needs (PRODUCT.md §4).
 const MAX_LIST = 10;
@@ -35,6 +35,20 @@ function validOnboarding(value: unknown): boolean {
   return state.version === 2 && slots(state.completedSlots) && slots(state.skippedSlots);
 }
 
+const MEMBER_ID = /^[a-z0-9-]{1,40}$/;
+/** An emoji avatar: 1–8 UTF-16 units, no letters/digits (so it cannot carry text). */
+const emoji = (value: unknown) => typeof value === "string" && value.length >= 1 && value.length <= 8 && !/[\p{L}\p{N}]/u.test(value);
+function validLook(value: unknown): boolean {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const look = value as Record<string, unknown>;
+  return optional(look.emoji, emoji) && optional(look.color, inList(AVATAR_COLORS));
+}
+function validMembers(value: unknown): boolean {
+  return Array.isArray(value) && value.length >= 1 && value.length <= 10 && new Set(value.map((item) => (item as Record<string, unknown>)?.id)).size === value.length
+    && value.every((item) => { const member = item as Record<string, unknown>; return validLook(member) && typeof member.id === "string" && MEMBER_ID.test(member.id) && optional(member.name, shortText(MAX_TEXT)) && optional(member.role, inList(MEMBER_ROLES)); });
+}
+const validLooks = (value: unknown) => !!value && typeof value === "object" && !Array.isArray(value) && Object.keys(value).length <= 5 && Object.entries(value as Record<string, unknown>).every(([id, look]) => UUID.test(id) && validLook(look));
+
 function validHousehold(value: unknown): boolean {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const h = value as Record<string, unknown>;
@@ -68,6 +82,10 @@ function validHousehold(value: unknown): boolean {
     && optional(h.reading, inList(READING_FREQ))
     && optional(h.safety, enumList(SAFETY_MEASURES))
     && optional(h.careMethod, inList(CARE_METHODS))
+    && optional(h.members, validMembers)
+    && optional(h.looks, validLooks)
+    && optional(h.motto, shortText(80))
+    && optional(h.theme, inList(COVER_THEMES))
     && optional(h.notes, (notes) => !!notes && typeof notes === "object" && !Array.isArray(notes) && Object.keys(notes).length <= 12 && Object.entries(notes as Record<string, unknown>).every(([key, text]) => key.length <= 80 && typeof text === "string" && text.length <= 120));
 }
 
