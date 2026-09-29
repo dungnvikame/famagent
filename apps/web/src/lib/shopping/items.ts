@@ -56,6 +56,8 @@ export interface ItemEstimate {
 
 const DAY_MS = 86_400_000;
 export const localDate = (date: Date) => new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+/** Today in Vietnam (UTC+7), whatever the server or device timezone: between 0h and 7h a UTC server is still on yesterday. */
+export const vnToday = (now = new Date()) => new Date(now.getTime() + 7 * 3_600_000).toISOString().slice(0, 10);
 const dayStart = (iso: string) => { const [y, m, d] = iso.split("-").map(Number); return new Date(y, m - 1, d); };
 export const daysBetween = (from: string, to: string) => Math.round((dayStart(to).getTime() - dayStart(from).getTime()) / DAY_MS);
 export const addDays = (iso: string, days: number) => localDate(new Date(dayStart(iso).getTime() + days * DAY_MS));
@@ -113,7 +115,7 @@ const round = (value: number) => Math.round(value * 1000) / 1000;
  * at zero on the first purchase; consumption runs at the family's set rate, then the learned one, then the default.
  */
 export function estimateItems(items: ShoppingItem[], purchases: Purchase[], rateFor: (item: ShoppingItem) => number, now = new Date(), checks: StockCheck[] = []): ItemEstimate[] {
-  const today = localDate(now);
+  const today = vnToday(now);
   const out = items.filter((item) => item.status === "active").map((item): ItemEstimate => {
     const own = purchasesOf(item, purchases);
     const ownChecks = checks.filter((check) => check.itemId === item.id && check.checkedOn <= today);
@@ -160,15 +162,30 @@ export function levelToRemaining(level: StockLevel, estimate: Pick<ItemEstimate,
 /** Loose name match (no diacritics, token overlap) used to find an existing item for a typed purchase. */
 export const normalizeText = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/đ/g, "d").replace(/Đ/g, "d").toLowerCase();
 const tokens = (text: string) => normalizeText(text).split(/[^a-z0-9]+/).filter((token) => token.length > 0);
+// Words that say nothing about which product it is: fillers, "bé", size/pack words.
+const STOPWORDS = new Set(["be", "cho", "cua", "loai", "va", "voi", "cac", "nhung", "mot", "cai", "con", "em", "tre", "hang", "size", "mieng", "to", "vien", "bich", "goi", "hop", "lon", "thung", "chai", "hu", "tui", "cuon", "loc", "tuyp", "vi", "lo"]);
+// Category nouns shared by many different products ("nước mắm" vs "nước giặt"): they only count when nothing else identifies the item.
+const GENERIC = new Set(["bim", "ta", "sua", "nuoc", "khan", "giay", "bot", "kem", "dau"]);
+const meaningful = (list: string[]) => new Set(list.filter((token) => token.length >= 2 && !/^\d+$/.test(token) && !STOPWORDS.has(token)));
+const identifying = (list: string[]) => { const all = meaningful(list); const rest = new Set([...all].filter((token) => !GENERIC.has(token))); return rest.size ? rest : all; };
+
+/**
+ * An item matches when the text repeats its identifying words: at least two distinct ones (one when the item has only
+ * one), or its brand. Single letters ("L"), numbers and "bé"/"cho"/"của"… never count, so "nước mắm" is not "Nước giặt".
+ * Size letters only break ties between items that pass (Merries L vs Merries M).
+ */
 export function matchItem(text: string, items: ShoppingItem[]): ShoppingItem | undefined {
   const words = new Set(tokens(text));
   let best: { item: ShoppingItem; score: number } | undefined;
   for (const item of items) {
-    const name = tokens(`${item.name} ${item.brand ?? ""}`);
-    if (!name.length) continue;
-    const hits = name.filter((token) => words.has(token)).length;
-    const score = hits / new Set(name).size;
-    if (hits >= 1 && score >= 0.5 && (!best || score > best.score)) best = { item, score };
+    const name = [...new Set(tokens(`${item.name} ${item.brand ?? ""}`))];
+    const core = identifying(name);
+    if (!core.size) continue;
+    const overlap = [...core].filter((token) => words.has(token)).length;
+    const brandHit = [...identifying(tokens(item.brand ?? ""))].some((token) => words.has(token));
+    if (!overlap || (overlap < Math.min(2, core.size) && !brandHit)) continue;
+    const score = overlap * 100 + name.filter((token) => words.has(token)).length;
+    if (!best || score > best.score) best = { item, score };
   }
   return best?.item;
 }

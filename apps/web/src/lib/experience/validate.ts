@@ -16,9 +16,9 @@ const number = (min: number, max: number, integer = false) => (value: unknown) =
 /**
  * YYYY-MM-DD, not in the future (1 day of timezone slack) and at most `maxYears` ago.
  * Stored data uses a loose bound so a saved date never ages into an invalid profile;
- * input forms limit new dates to INPUT_BIRTH_YEARS.
+ * input forms limit new dates to INPUT_BIRTH_YEARS (18 years: onboarding offers 6–12 and 12+ age bands).
  */
-export const INPUT_BIRTH_YEARS = 6;
+export const INPUT_BIRTH_YEARS = 18;
 export function validBirthDate(value: unknown, now = new Date(), maxYears = 18): boolean {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const date = new Date(`${value}T00:00:00Z`);
@@ -90,6 +90,7 @@ function validChild(value: unknown): boolean {
     && optional(child.birthDate, (date) => validBirthDate(date))
     && optional(child.weightKg, number(2, 30))
     && optional(child.ageMonths, number(0, 216, true))
+    && optional(child.ageAsOf, (date) => validBirthDate(date, new Date(), 30))
     && optional(child.diaperSize, inList(DIAPER_SIZES))
     && optional(child.sensitivities, enumList(SENSITIVITIES))
     && optional(child.currentBrand, shortText(MAX_TEXT))

@@ -13,7 +13,10 @@ export async function saveProfileForUser(client: SupabaseClient, userId: string,
   if (readError) return "children_read";
   const childIds = profile.children.map((child) => /^[a-f0-9-]{36}$/i.test(child.id) ? child.id : crypto.randomUUID());
   if (profile.children.length) {
-    const { error: childError } = await client.from("children").upsert(profile.children.map((child, index) => childRow({ ...child, id: childIds[index] }, family.id, index, now)));
+    const rows = profile.children.map((child, index) => childRow({ ...child, id: childIds[index] }, family.id, index, now));
+    let { error: childError } = await client.from("children").upsert(rows);
+    // Migration 202609290019 (children.age_as_of) not applied yet: save without it; the age then stays as given.
+    if (childError && /age_as_of/.test(childError.message)) ({ error: childError } = await client.from("children").upsert(rows.map((row) => { const copy = { ...row }; delete copy.age_as_of; return copy; })));
     if (childError) return "children_write";
   }
   const removed = (existing ?? []).map((child) => child.id as string).filter((id) => !childIds.includes(id));

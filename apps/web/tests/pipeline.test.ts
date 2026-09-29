@@ -27,7 +27,8 @@ test("'Mua bỉm cho Gold' dùng hồ sơ đã xác nhận (spec v1 §24.1)", as
   assert.ok(response.recommendations.length > 0 && response.recommendations.length <= 3);
   for (const item of response.recommendations) {
     assert.ok(item.product.diaper.minWeightKg <= 10 && item.product.diaper.maxWeightKg >= 10);
-    assert.equal(item.product.variants.find((variant) => variant.id === item.variantId)?.size, "L");
+    // Weight (10 kg) decides; the saved size is not pulled in next to it.
+    assert.ok(["M", "L"].includes(item.product.variants.find((variant) => variant.id === item.variantId)?.size ?? ""));
     assert.equal(item.scoreVersion, "product_score_v1");
   }
   assert.deepEqual(response.recommendations.map((item) => item.rank), response.recommendations.map((_, index) => index + 1));

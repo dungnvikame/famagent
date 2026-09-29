@@ -5,7 +5,9 @@ type Row = Record<string, unknown>;
 
 const text = (value: unknown) => typeof value === "string" && value ? value : undefined;
 const list = <T extends string = string>(value: unknown) => Array.isArray(value) && value.length ? value as T[] : undefined;
-const orNull = <T>(value: T | undefined) => value === undefined ? null : value;
+/** Same ceiling as the age_months column and validation (18 years). */
+const MAX_CHILD_MONTHS = 216;
+const orNull =<T>(value: T | undefined) => value === undefined ? null : value;
 
 function onboardingFromRow(value: unknown): OnboardingState | undefined {
   const state = value as Partial<OnboardingState> | null;
@@ -19,6 +21,8 @@ function childFromRow(row: Row): ChildProfile {
     birthDate: text(row.birth_date),
     weightKg: row.current_weight_kg === null || row.current_weight_kg === undefined ? undefined : Number(row.current_weight_kg),
     ageMonths: typeof row.age_months === "number" ? row.age_months : undefined,
+    // Key only when set, so rows from before migration 202609290019 map exactly as they did.
+    ...(text(row.age_as_of) ? { ageAsOf: text(row.age_as_of)!.slice(0, 10) } : {}),
     diaperSize: text(row.diaper_size),
     sensitivities: list(row.sensitivities),
     currentBrand: text(row.current_brand),
@@ -82,6 +86,7 @@ export function childRow(child: ChildProfile, familyProfileId: string, position:
     birth_date: child.birthDate || null,
     current_weight_kg: orNull(child.weightKg),
     age_months: orNull(child.ageMonths),
+    age_as_of: child.ageMonths === undefined ? null : child.ageAsOf ?? null,
     diaper_size: child.diaperSize || null,
     sensitivities: child.sensitivities ?? [],
     current_brand: child.currentBrand || null,
@@ -92,10 +97,21 @@ export function childRow(child: ChildProfile, familyProfileId: string, position:
   };
 }
 
-/** Months since birth when birthDate is known, otherwise the stored age. */
-export function childAgeMonths(child: ChildProfile, now = new Date()): number | undefined {
-  if (!child.birthDate) return child.ageMonths;
-  const birth = new Date(`${child.birthDate}T00:00:00Z`);
-  const months = (now.getUTCFullYear() - birth.getUTCFullYear()) * 12 + now.getUTCMonth() - birth.getUTCMonth() - (now.getUTCDate() < birth.getUTCDate() ? 1 : 0);
+/** Whole calendar months from `from` (YYYY-MM-DD) to `now`, never negative. */
+function monthsSince(from: string, now: Date): number {
+  const start = new Date(`${from}T00:00:00Z`);
+  // Not a real calendar date (or not ISO): no elapsed time can be derived from it.
+  if (Number.isNaN(start.getTime()) || start.toISOString().slice(0, 10) !== from) return 0;
+  const months = (now.getUTCFullYear() - start.getUTCFullYear()) * 12 + now.getUTCMonth() - start.getUTCMonth() - (now.getUTCDate() < start.getUTCDate() ? 1 : 0);
   return Math.max(0, months);
+}
+
+/**
+ * Months since birth when birthDate is known; otherwise the stored age plus the months elapsed since it was
+ * given (ageAsOf), so a picked range does not freeze the child at that age. Without ageAsOf the stored age is used as is.
+ */
+export function childAgeMonths(child: ChildProfile, now = new Date()): number | undefined {
+  if (child.birthDate) return monthsSince(child.birthDate, now);
+  if (child.ageMonths === undefined || !child.ageAsOf) return child.ageMonths;
+  return Math.min(MAX_CHILD_MONTHS, child.ageMonths + monthsSince(child.ageAsOf, now));
 }

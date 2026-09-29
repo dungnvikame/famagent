@@ -3,7 +3,7 @@
 
 export const REQUIRED = ["product_id", "slug", "name", "brand", "category", "image_url", "variant_id", "variant", "size", "quantity", "merchant_id", "merchant", "merchant_domain", "offer_id", "source", "price", "affiliate_url", "min_weight_kg", "max_weight_kg", "diaper_type", "price_verified_at"];
 export const SCORE_COLUMNS = ["night_use_score", "absorbency_score", "softness_score", "thickness_score", "sensitive_skin_score"];
-export const OPTIONAL = [...SCORE_COLUMNS, "attribute_source", "attribute_verified_at", "description", "availability", "seller_rating", "shipping_estimate", "gtin", "sku"];
+export const OPTIONAL = [...SCORE_COLUMNS, "attribute_source", "attribute_verified_at", "description", "availability", "seller_rating", "shipping_estimate", "gtin", "sku", "variant_min_weight_kg", "variant_max_weight_kg"];
 const SIZES = ["NB", "S", "M", "L", "XL", "XXL"];
 const SOURCES = ["shopee", "tiktok", "lazada", "affiliate", "direct"];
 const INT_MAX = 2_147_483_647;
@@ -52,6 +52,10 @@ export function validateRow(row, now = new Date()) {
   if (row.category && row.category !== "diapers") errors.push("chỉ hỗ trợ category diapers");
   for (const key of ["quantity", "price", "min_weight_kg", "max_weight_kg"]) if (row[key] && !positiveNumber(row[key])) errors.push(`${key} không hợp lệ`);
   for (const key of ["quantity", "price"]) if (row[key] && (!Number.isInteger(Number(row[key])) || Number(row[key]) > INT_MAX)) errors.push(`${key} phải là số nguyên ≤ ${INT_MAX}`);
+  // Optional per-variant range (a size line such as M 6-11 / L 9-14); both ends or neither.
+  for (const key of ["variant_min_weight_kg", "variant_max_weight_kg"]) if (row[key] && (!positiveNumber(row[key]) || Number(row[key]) >= 1000)) errors.push(`${key} không hợp lệ`);
+  if (Boolean(row.variant_min_weight_kg) !== Boolean(row.variant_max_weight_kg)) errors.push("variant_min_weight_kg và variant_max_weight_kg phải đi cùng nhau");
+  else if (positiveNumber(row.variant_min_weight_kg) && positiveNumber(row.variant_max_weight_kg) && Number(row.variant_max_weight_kg) < Number(row.variant_min_weight_kg)) errors.push("khoảng cân nặng của variant không hợp lệ");
   for (const key of ["min_weight_kg", "max_weight_kg"]) if (positiveNumber(row[key]) && Number(row[key]) >= 1000) errors.push(`${key} phải nhỏ hơn 1000`);
   if (positiveNumber(row.min_weight_kg) && positiveNumber(row.max_weight_kg) && Number(row.max_weight_kg) < Number(row.min_weight_kg)) errors.push("khoảng cân nặng không hợp lệ");
   if (row.size && !SIZES.includes(row.size.toUpperCase())) errors.push(`size phải là ${SIZES.join("/")}`);
@@ -101,7 +105,7 @@ export function validateCatalog(rows) {
     else for (const key of ["slug", "name", "brand", "image_url", "description", "min_weight_kg", "max_weight_kg", "diaper_type", ...SCORE_COLUMNS, "attribute_source", "attribute_verified_at"]) if ((product[key] ?? "") !== (row[key] ?? "")) errors.push({ line: row.__line, message: `${key} của product ${row.product_id} khác dòng ${product.__line}` });
     const variant = variants.get(row.variant_id);
     if (!variant) variants.set(row.variant_id, row);
-    else for (const key of ["product_id", "size", "quantity"]) if (variant[key] !== row[key]) errors.push({ line: row.__line, message: `${key} của variant ${row.variant_id} khác dòng ${variant.__line}` });
+    else for (const key of ["product_id", "size", "quantity", "variant_min_weight_kg", "variant_max_weight_kg"]) if ((variant[key] ?? "") !== (row[key] ?? "")) errors.push({ line: row.__line, message: `${key} của variant ${row.variant_id} khác dòng ${variant.__line}` });
     const pack = `${row.product_id}|${(row.size ?? "").toUpperCase()}|${row.quantity}`;
     const owner = packs.get(pack);
     if (owner && owner !== row.variant_id) errors.push({ line: row.__line, message: `product ${row.product_id} đã có variant ${owner} cùng size/số miếng` });

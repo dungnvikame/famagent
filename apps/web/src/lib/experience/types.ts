@@ -37,6 +37,8 @@ export interface ChildProfile {
   birthDate?: string;
   weightKg?: number;
   ageMonths?: number;
+  /** YYYY-MM-DD `ageMonths` was true on; the age then grows by the months elapsed since. Absent = ageMonths is taken as is. */
+  ageAsOf?: string;
   diaperSize?: string;
   sensitivities?: Sensitivity[];
   currentBrand?: string;

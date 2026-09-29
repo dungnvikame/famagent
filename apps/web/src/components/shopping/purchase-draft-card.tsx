@@ -37,6 +37,9 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
   const [childId, setChildId] = useState(defaultChildId ?? existing?.childId ?? familyChildren[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  // One id per draft, stable across retries: the server/local store treats a repeat as the same purchase.
+  const [purchaseId] = useState(() => crypto.randomUUID());
+  const [newItemId] = useState(() => crypto.randomUUID());
 
   function pick(id: string) {
     setItemId(id);
@@ -57,8 +60,8 @@ export function PurchaseDraftCard({ draft, items, familyChildren, source, catalo
     const kid = forChild && childId ? childId : undefined;
     const item: ShoppingItem = existing
       ? { ...existing, packSize: size, merchant: merchant.trim() || existing.merchant, productId: existing.productId ?? catalog?.productId, brand: existing.brand ?? catalog?.brand }
-      : { id: crypto.randomUUID(), name: name.trim(), category, unit: unit.trim() || DEFAULT_UNIT[category], packSize: size, merchant: merchant.trim() || undefined, childId: kid, productId: catalog?.productId, brand: catalog?.brand ?? draft.brand, status: "active" };
-    const purchase: Purchase = { id: crypto.randomUUID(), itemId: item.id, productId: catalog?.productId ?? item.productId, variantId: catalog?.variantId, offerId: catalog?.offerId, productName: item.name, brand: item.brand, merchant: merchant.trim() || undefined, amount: paid, packs: count, unitCount: count * size, purchasedOn: date, childId: kid, source };
+      : { id: newItemId, name: name.trim(), category, unit: unit.trim() || DEFAULT_UNIT[category], packSize: size, merchant: merchant.trim() || undefined, childId: kid, productId: catalog?.productId, brand: catalog?.brand ?? draft.brand, status: "active" };
+    const purchase: Purchase = { id: purchaseId, itemId: item.id, productId: catalog?.productId ?? item.productId, variantId: catalog?.variantId, offerId: catalog?.offerId, productName: item.name, brand: item.brand, merchant: merchant.trim() || undefined, amount: paid, packs: count, unitCount: count * size, purchasedOn: date, childId: kid, source };
     setBusy(true); setError("");
     try {
       const stored = await recordPurchase(purchase, forChild, item, linkTransactionId);
