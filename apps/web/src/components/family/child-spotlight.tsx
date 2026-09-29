@@ -8,6 +8,8 @@ import { ageParts, ageText, dayMilestone, nextBirthday, shortDate, sizeOutlook, 
 import { COLOR_STYLES, SENSITIVITY_LABELS, type AvatarColor } from "@/lib/family/members";
 import { MemberAvatar } from "./member-avatar";
 import { GrowthChart, type HeightPoint } from "./growth-chart";
+import { MilestonesPanel } from "./milestones-panel";
+import { ageMonthsExact, type MilestoneRecord, type MilestoneStatus } from "@/lib/family/milestones";
 import { MEASURE_EVERY, MEASURE_EVERY_LABELS, cadenceText, dueLine, type MeasureDue, type MeasureEvery } from "@/lib/family/measure-schedule";
 
 export interface TodayPractice { id: string; title: string; source: string; done: boolean }
@@ -16,12 +18,13 @@ export interface TodayPractice { id: string; title: string; source: string; done
  * One child, age first (Huckleberry/BabyCenter style): the ring counts the way to the next birthday, then what to do
  * with them today, the growth line on diaper sizes, and what to watch for when buying — all from data already known.
  */
-export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex, due, every, onEvery }: {
+export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex, due, every, onEvery, milestones, onMarkMilestone }: {
   child: ChildProfile; name: string; look: { color: AvatarColor; emoji?: string }; photo?: string; today: string;
   series: WeightPoint[]; heights: HeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
   onTogglePractice: () => void; onEdit: () => void; onEditLook: () => void;
   onAddMeasure: (date: string, values: { kg?: number; cm?: number }) => Promise<void>; onDeleteMeasure: (id: string, field: "kg" | "cm") => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
   due: MeasureDue | null; every: MeasureEvery; onEvery: (every: MeasureEvery) => void;
+  milestones: MilestoneRecord[]; onMarkMilestone: (milestoneId: string, status: MilestoneStatus | null, on?: string) => Promise<void>;
 }) {
   const style = COLOR_STYLES[look.color];
   const months = child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child);
@@ -85,6 +88,10 @@ export function ChildSpotlight({ child, name, look, photo, today, series, height
         {suggestSize && <div className="fam-suggest">Theo cân nặng mới nhất, {name} hợp size <b>{suggestSize}</b> (đang ghi {child.diaperSize}).<button type="button" className="app-btn" onClick={() => onUseSize(suggestSize)}>Đổi sang {suggestSize}</button></div>}
         {!usesDiapers && <small className="fam-hint">{name} đã qua tuổi dùng bỉm nên FamAgent không lập kế hoạch bỉm cho con.</small>}
       </div>
+
+      {months !== undefined && months < 72 && <div className="fam-blk wide" id="fam-milestones"><h3>Cột mốc phát triển <span className="sp" /><span className="fam-use">theo CDC · WHO</span></h3>
+        <MilestonesPanel name={name} ageMonths={months} ageMonthsExact={child.birthDate ? ageMonthsExact(child.birthDate, today) : months} birthDate={child.birthDate} today={today} records={milestones} onMark={onMarkMilestone} />
+      </div>}
 
       <div className="fam-blk wide"><h3>Lưu ý khi chọn đồ <span className="sp" /><span className="fam-use">dùng cho: gợi ý sản phẩm</span></h3>
         {tags.length ? <div className="fam-tags">{tags}</div> : <p className="fam-hint">Chưa có lưu ý. Kể với Trợ lý kiểu “{name} bị hăm với hãng X” hoặc bấm Sửa hồ sơ.</p>}

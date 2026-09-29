@@ -2,12 +2,14 @@
 
 // Browser side of the Family page extras: /api/family/* when Supabase is configured, else localStorage (demo mode).
 import { cloudEnabled } from "@/lib/experience/cloud";
-import { validAvatarImage, validMeasureInput } from "./validate";
+import { validAvatarImage, validMeasureInput, validMilestoneInput } from "./validate";
+import type { MilestoneRecord, MilestoneStatus } from "./milestones";
 
 /** One day's growth measurement of a child: weight, height or both. */
 export interface ChildMeasure { id: string; childId: string; date: string; kg?: number; cm?: number }
 const WEIGHTS_KEY = "family-ai:weights:v1";
 const AVATARS_KEY = "family-ai:avatars:v1";
+const MILESTONES_KEY = "family-ai:milestones:v1";
 
 function read<T>(key: string, fallback: T): T { try { return JSON.parse(localStorage.getItem(key) || "null") ?? fallback; } catch { return fallback; } }
 function write(key: string, value: unknown) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { throw new Error("Bộ nhớ trình duyệt đã đầy — chưa lưu được."); } }
@@ -59,6 +61,23 @@ export async function removeAvatar(memberId: string): Promise<void> {
   write(AVATARS_KEY, next);
 }
 
+export async function loadMilestones(): Promise<MilestoneRecord[]> {
+  if (cloudEnabled) return (await api<{ milestones: MilestoneRecord[] }>("/api/family/milestones")).milestones;
+  return read<MilestoneRecord[]>(MILESTONES_KEY, []);
+}
+
+/** Marks a milestone "done" (with the day) or "not_yet"; `null` clears the mark. */
+export async function saveMilestone(childId: string, milestoneId: string, status: MilestoneStatus | null, on?: string): Promise<void> {
+  if (status && !validMilestoneInput({ childId, milestoneId, status, on })) throw new Error("Ngày không hợp lệ.");
+  if (cloudEnabled) {
+    if (status) await api("/api/family/milestones", { method: "PUT", body: JSON.stringify({ childId, milestoneId, status, on }) });
+    else await api(`/api/family/milestones?childId=${encodeURIComponent(childId)}&milestoneId=${encodeURIComponent(milestoneId)}`, { method: "DELETE" });
+    return;
+  }
+  const rest = read<MilestoneRecord[]>(MILESTONES_KEY, []).filter((row) => !(row.childId === childId && row.milestoneId === milestoneId));
+  write(MILESTONES_KEY, status ? [...rest, { childId, milestoneId, status, ...(status === "done" && on ? { on } : {}) }] : rest);
+}
+
 /** Last weighing and last height day per child (for the measuring schedule). */
 export function lastMeasureDays(rows: ChildMeasure[]): Record<string, { weight?: string; height?: string }> {
   const out: Record<string, { weight?: string; height?: string }> = {};
@@ -70,4 +89,4 @@ export function lastMeasureDays(rows: ChildMeasure[]): Record<string, { weight?:
   return out;
 }
 
-export function clearLocalFamily() { localStorage.removeItem(WEIGHTS_KEY); localStorage.removeItem(AVATARS_KEY); }
+export function clearLocalFamily() { localStorage.removeItem(WEIGHTS_KEY); localStorage.removeItem(AVATARS_KEY); localStorage.removeItem(MILESTONES_KEY); }

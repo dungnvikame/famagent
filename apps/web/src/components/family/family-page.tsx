@@ -18,7 +18,8 @@ import type { AdultMember, ChildProfile, FamilyProfile, MemberLook } from "@/lib
 import { validProfile } from "@/lib/experience/validate";
 import { ageParts, ageShort, dayMilestone, nextBirthday, shortDate, weightSeries, type WeightPoint } from "@/lib/family/child-stats";
 import { dueLine, measureDue, type MeasureEvery } from "@/lib/family/measure-schedule";
-import { deleteMeasure, lastMeasureDays, loadAvatars, loadMeasures, removeAvatar, saveAvatar, saveMeasure, type ChildMeasure } from "@/lib/family/client";
+import { justEntered, type MilestoneRecord, type MilestoneStatus } from "@/lib/family/milestones";
+import { deleteMeasure, lastMeasureDays, loadAvatars, loadMeasures, loadMilestones, saveMilestone, removeAvatar, saveAvatar, saveMeasure, type ChildMeasure } from "@/lib/family/client";
 import { adultLook, adultMembers, adultName, childLook, childName, newMemberId, ROLE_LABELS, withChildLook, withMembers, type AvatarColor } from "@/lib/family/members";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
@@ -60,6 +61,7 @@ export function FamilyPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [notes, setNotes] = useState<FamilyNote[] | null>(null);
   const [measures, setMeasures] = useState<ChildMeasure[]>([]);
+  const [milestones, setMilestones] = useState<MilestoneRecord[]>([]);
   const [avatars, setAvatars] = useState<Record<string, string>>({});
   const [done, setDoneIds] = useState<string[]>([]);
   const [money, setMoney] = useState<MonthSummary | null>(null);
@@ -83,6 +85,7 @@ export function FamilyPage() {
       if (!value) return;
       void reloadNotes();
       loadMeasures().then((rows) => { if (!cancelled) setMeasures(rows); }).catch(() => {});
+      loadMilestones().then((rows) => { if (!cancelled) setMilestones(rows); }).catch(() => {});
       loadAvatars().then((rows) => { if (!cancelled) setAvatars(rows); }).catch(() => {});
       loadDone().then((byDay) => { if (!cancelled) setDoneIds(byDay[localDay(new Date())] ?? []); }).catch(() => {});
       loadMoney(monthKey(new Date())).then((bundle) => { if (!cancelled) setMoney(summarizeMonth(bundle)); }).catch(() => {});
@@ -174,6 +177,12 @@ export function FamilyPage() {
     // Deleting the newest weighing moves the profile weight back to the one before it.
     if (previous && child.weightKg === removed.kg && previous.date < removed.date) { weightDates.current[child.id] = previous.date; updateChild(child.id, { weightKg: previous.kg }, true); }
   }
+  /** Optimistic mark; rolled back when the save fails (the panel shows the error). */
+  async function markMilestone(childId: string, milestoneId: string, status: MilestoneStatus | null, on?: string) {
+    const before = milestones;
+    setMilestones((rows) => [...rows.filter((row) => !(row.childId === childId && row.milestoneId === milestoneId)), ...(status ? [{ childId, milestoneId, status, ...(on ? { on } : {}) }] : [])]);
+    try { await saveMilestone(childId, milestoneId, status, on); if (status) trackEvent("milestone_marked", { status }); } catch (cause) { setMilestones(before); throw cause; }
+  }
   async function togglePractice(id: string, on: boolean) {
     setDoneIds((ids) => on ? [...ids, id] : ids.filter((item) => item !== id));
     try { await setDone(today, id, on); } catch { setDoneIds((ids) => on ? ids.filter((item) => item !== id) : [...ids, id]); setError("Chưa lưu được việc đã làm."); }
@@ -207,6 +216,7 @@ export function FamilyPage() {
   const lastDays = lastMeasureDays(measures);
   const dueOf = (child: ChildProfile) => measureDue({ ageMonths: child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child), lastWeight: series(child).at(-1)?.date, lastHeight: lastDays[child.id]?.height, today, every });
   const lines: TodayLine[] = [];
+  for (const child of children) { const entered = child.birthDate ? justEntered(child.birthDate, today) : undefined; if (entered) lines.push({ icon: "🌟", text: <><b>{names.get(child.id)}</b> vừa sang mốc {entered.label} — {entered.items.length} điều bé thường làm được</>, href: "#fam-milestones" }); }
   for (const child of children) { const due = dueOf(child); if (due && due.state !== "ok") lines.push({ icon: due.state === "due" ? "⏰" : "📅", text: <><b>{names.get(child.id)}</b>: {dueLine(due, today)}</> }); }
   for (const child of children) {
     if (!child.birthDate) continue;
@@ -256,6 +266,7 @@ export function FamilyPage() {
         onEdit={() => setSheet({ kind: "child", id: selectedChild.id })} onEditLook={() => setSheet({ kind: "childLook", id: selectedChild.id })}
         onAddMeasure={(date, values) => addMeasure(selectedChild, date, values)} onDeleteMeasure={(id, field) => removeMeasure(selectedChild, id, field)}
         onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)}
+        milestones={milestones.filter((row) => row.childId === selectedChild.id)} onMarkMilestone={(id, status, on) => markMilestone(selectedChild.id, id, status, on)}
         due={dueOf(selectedChild)} every={every} onEvery={(value) => { change({ ...p, household: { ...p.household, measureEvery: value === "auto" ? undefined : value } }, true); trackEvent("measure_reminder_set", { every: value }); }} />}
     </section>}
     {children.length === 0 && <section className="app-card fam-nokid"><span aria-hidden="true">👶</span><div><b>{p.household?.setup === "expecting" ? "Đang chờ bé chào đời" : "Chưa có hồ sơ bé"}</b><p className="fam-hint">Thêm bé để thấy tuổi, mốc ngày tuổi, biểu đồ cân nặng và gợi ý size bỉm.</p></div><button type="button" className="app-btn" onClick={() => setSheet({ kind: "addChild" })}>＋ Thêm bé</button></section>}
