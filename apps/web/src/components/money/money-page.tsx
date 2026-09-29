@@ -11,9 +11,8 @@ import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings
 import { categoryAverages, potsOf, runningPots } from "@/lib/money/history";
 import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
-import { debtLeft, syncDebtRecurring } from "@/lib/money/position";
+import { debtTotals, syncDebtRecurring } from "@/lib/money/position";
 import { autoDebtId } from "@/lib/money/debt-link";
-import { debtOverview } from "@/lib/money/loans";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
 import { monthKey, recurringFor, summarizeMonth } from "@/lib/money/summary";
 import type { MoneyAllocation, MoneyBundle, MoneyCategory, MoneyPosition, MoneyRange, MoneyRecurring, MoneyTransaction } from "@/lib/money/types";
@@ -101,7 +100,7 @@ export function MoneyPage() {
   // "Tiền đang có" at the end of the month viewed, and how much more was spent out of savings during that month.
   const pots = summary ? potsOf(summary.balances.cash, summary.balances.savings) : undefined;
   // What the family owes (ledger loans + Tình hình debts) and what others owe it.
-  const debts = bundle ? debtOverview(bundle.loans ?? { borrowed: 0, repaid: 0, lent: 0, collected: 0 }, bundle.settings.position?.debts ?? [], (debt) => debtLeft(debt, bundle.debtPaid)) : undefined;
+  const debts = bundle ? debtTotals(bundle) : undefined;
   const lemAdded = summary && pots ? pots.lem - Math.max(0, -(summary.balances.cash - summary.cashChange)) : 0;
   const filterInsight = (() => {
     // One comparison when a single expense category is viewed over the whole month.

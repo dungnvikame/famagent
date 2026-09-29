@@ -1,3 +1,5 @@
+import { debtOverview } from "./loans.ts";
+import { todayLocal } from "./parse.ts";
 import type { DebtPayment, MoneyBundle, MoneyDebt, MoneyPosition, MoneyRecurring, MoneyTransaction } from "./types.ts";
 
 /**
@@ -45,15 +47,66 @@ export function debtPayments(debts: MoneyDebt[], asOf: string, transactions: Pai
   return Object.fromEntries(Object.entries(debtPaymentLog(debts, asOf, transactions)).map(([id, list]) => [id, list.reduce((sum, item) => sum + item.amount, 0)]));
 }
 
-export const debtLeft = (debt: MoneyDebt, paid: Record<string, number> = {}) => Math.max(0, debt.balance - (paid[debt.id] ?? 0));
+/**
+ * The one interest model behind `debtLeft` and `monthsToPayOff` (so the two numbers agree). With a yearly rate,
+ * interest of rate ÷ 12 accrues on the balance at the end of every full month since the debt's date, and that
+ * month's payments come off after it (plain amortisation: balance × (1 + r) − payment). Payments after the last
+ * full month just reduce the balance. Assumptions: monthly compounding, no fees, no early-repayment penalty, and
+ * the rate is the family's own figure. Without a rate everything is interest-free.
+ */
+const monthlyRate = (ratePct?: number) => ratePct && ratePct > 0 ? ratePct / 100 / 12 : 0;
+const afterMonth = (balance: number, rate: number, payment = 0) => Math.max(0, balance * (1 + rate) - payment);
+const MAX_MONTHS = 1200; // 100 years: beyond this a debt is treated as never paid off
 
-/** Months until a debt is paid off at its monthly payment (simple interest-free estimate when no rate is given). */
+const addMonths = (iso: string, count: number) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  const index = m - 1 + count; const year = y + Math.floor(index / 12); const month = ((index % 12) + 12) % 12;
+  return `${year}-${String(month + 1).padStart(2, "0")}-${String(Math.min(d, new Date(year, month + 1, 0).getDate())).padStart(2, "0")}`;
+};
+/** Full months from `since` to `today` (day of month clamped, so 31/01 → 28/02 is one month). */
+function fullMonths(since: string, today: string): number {
+  const [sy, sm] = since.split("-").map(Number); const [ty, tm] = today.split("-").map(Number);
+  let months = (ty - sy) * 12 + (tm - sm);
+  if (months > 0 && addMonths(since, months) > today) months -= 1;
+  return Math.min(Math.max(0, months), MAX_MONTHS);
+}
+
+/** What is still owed: the balance on the debt's date, plus interest when it has a rate, minus its payments. */
+export function debtLeft(debt: MoneyDebt, paid: Record<string, number> = {}, options: { asOf?: string; today?: string; log?: Record<string, DebtPayment[]> } = {}): number {
+  const total = paid[debt.id] ?? 0;
+  const rate = monthlyRate(debt.ratePct); const since = debt.asOf ?? options.asOf;
+  if (!rate || !since) return Math.max(0, debt.balance - total);
+  const today = options.today ?? todayLocal();
+  // Without dated payments (callers holding only totals) assume they were made today, after the interest accrued.
+  const payments = [...(options.log?.[debt.id] ?? (total > 0 ? [{ on: today, amount: total }] : []))].sort((a, b) => a.on.localeCompare(b.on));
+  let balance = debt.balance; let next = 0;
+  for (let month = 1, months = fullMonths(since, today); month <= months; month++) {
+    balance = afterMonth(balance, rate);
+    for (const end = addMonths(since, month); next < payments.length && payments[next].on <= end; next++) balance = Math.max(0, balance - payments[next].amount);
+  }
+  for (; next < payments.length; next++) balance = Math.max(0, balance - payments[next].amount);
+  return Math.round(balance);
+}
+
+type DebtBook = Pick<MoneyBundle, "settings" | "debtPaid" | "debtLog" | "loans">;
+/** `debtLeft` for a debt of this bundle (position date, dated payments and the rate all come from it). */
+export const debtLeftIn = (bundle: DebtBook, debt: MoneyDebt, today?: string) => debtLeft(debt, bundle.debtPaid, { asOf: bundle.settings.position?.asOf, log: bundle.debtLog, today });
+
+/**
+ * The one definition of what the family owes and is owed: ledger loans net out, Tình hình debts count what is left
+ * of them (`debtLeftIn`). Tình hình, the Nợ tab, the Money header and the agent all read this.
+ */
+export const debtTotals = (bundle: DebtBook, today?: string) => debtOverview(bundle.loans ?? { borrowed: 0, repaid: 0, lent: 0, collected: 0 }, bundle.settings.position?.debts ?? [], (debt) => debtLeftIn(bundle, debt, today));
+
+/** Months until a debt is paid off paying `monthly` each month (same model as `debtLeft`); undefined = never. */
 export function monthsToPayOff(left: number, monthly?: number, ratePct?: number): number | undefined {
   if (!monthly || monthly <= 0 || left <= 0) return left <= 0 ? 0 : undefined;
-  const r = ratePct ? ratePct / 100 / 12 : 0;
-  if (!r) return Math.ceil(left / monthly);
-  if (monthly <= left * r) return undefined; // payment never covers the interest
-  return Math.ceil(-Math.log(1 - (r * left) / monthly) / Math.log(1 + r));
+  const rate = monthlyRate(ratePct);
+  if (!rate) return Math.ceil(left / monthly);
+  if (monthly <= left * rate) return undefined; // payment never covers the interest
+  let balance = left;
+  for (let months = 1; months <= MAX_MONTHS; months++) { balance = afterMonth(balance, rate, monthly); if (balance <= 0) return months; }
+  return undefined;
 }
 
 export interface PositionSummary {
@@ -72,7 +125,7 @@ const short = (amount: number) => amount >= 1_000_000 ? `${(amount / 1_000_000).
  * The numbers on the Tình hình tab. Income for ratios: fixed monthly income, else this month's logged income,
  * else the onboarding estimate. Debt payments are counted once even when they also sit in the recurring list.
  */
-export function positionSummary(bundle: Pick<MoneyBundle, "settings" | "recurring" | "debtPaid">, balances: { cash: number; savings: number }, loggedIncome = 0, estimatedIncome = 0): PositionSummary {
+export function positionSummary(bundle: DebtBook & Pick<MoneyBundle, "recurring">, balances: { cash: number; savings: number }, loggedIncome = 0, estimatedIncome = 0, today?: string): PositionSummary {
   const position = bundle.settings.position;
   const debts = position?.debts ?? [];
   const active = bundle.recurring.filter((item: MoneyRecurring) => item.active);
@@ -82,7 +135,7 @@ export function positionSummary(bundle: Pick<MoneyBundle, "settings" | "recurrin
   // Debt payments not already posted through a recurring item still weigh on the month.
   const unlinkedDebt = debts.filter((debt) => !debt.recurringId || !active.some((item) => item.id === debt.recurringId)).reduce((sum, debt) => sum + (debt.monthlyPayment ?? 0), 0);
   const fixed = fixedExpense + unlinkedDebt;
-  const owes = debts.reduce((sum, debt) => sum + debtLeft(debt, bundle.debtPaid), 0);
+  const owes = debtTotals(bundle, today).owed;
   const income = fixedIncome || loggedIncome || estimatedIncome;
   const summary: PositionSummary = {
     has: balances.cash + balances.savings, cash: balances.cash, savings: balances.savings, owes, debtMonthly,

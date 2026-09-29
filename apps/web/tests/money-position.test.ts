@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { allocationFrom, allocationTotal, customFramework, unassigned } from "../src/lib/money/allocation.ts";
 import { frameworkProgress } from "../src/lib/money/frameworks.ts";
-import { monthsToPayOff, positionSummary, sumUntil, withPosition } from "../src/lib/money/position.ts";
+import { debtLeft, debtLeftIn, debtTotals, monthsToPayOff, positionSummary, sumUntil, withPosition } from "../src/lib/money/position.ts";
 import { summarizeMonth } from "../src/lib/money/summary.ts";
 import { DEFAULT_CATEGORIES, type MoneyBundle, type MoneyPosition, type MoneyTransaction } from "../src/lib/money/types.ts";
 import { validSettings } from "../src/lib/money/validate.ts";
@@ -32,7 +32,7 @@ test("position summary: owes, fixed spend, ratios and notes", () => {
     { id: id(21), name: "Tiền nhà", category: "Gia đình", kind: "expense" as const, amount: 6_000_000, dayOfMonth: 1, active: true },
     { id: id(5), name: "Trả Vay mua xe", category: "Tiền trả góp", kind: "expense" as const, amount: 8_200_000, dayOfMonth: 15, active: true },
   ];
-  const summary = positionSummary({ settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, position }, recurring, debtPaid: { [id(4)]: 8_200_000 } }, { cash: 31_500_000, savings: 150_000_000 });
+  const summary = positionSummary({ settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, position }, recurring, debtPaid: { [id(4)]: 8_200_000 } }, { cash: 31_500_000, savings: 150_000_000 }, 0, 0, "2026-09-30");
   assert.equal(summary.owes, 391_800_000);
   assert.equal(summary.fixedExpense, 14_200_000); // debt payment counted once
   assert.equal(summary.fixedIncome, 30_000_000);
@@ -127,4 +127,49 @@ test("an amount typed for a part is kept exactly, not rebuilt from a rounded per
   const saved = validSettings({ openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, allocation: own })!.allocation!;
   assert.deepEqual(frameworkProgress(customFramework(saved), 51_280_271, []).map((b) => b.target), [23_600_000, 7_000_000]);
   assert.equal(Math.round(saved.buckets[1].share * 1000) / 10, 22.9);
+});
+
+test("debtLeft without a rate: balance minus payments, whatever the date", () => {
+  const debt = { id: "d", name: "Vay em gái", balance: 20_000_000, asOf: "2026-01-01" };
+  assert.equal(debtLeft(debt, { d: 5_000_000 }, { today: "2027-06-01" }), 15_000_000);
+  assert.equal(debtLeft(debt, { d: 30_000_000 }, { today: "2027-06-01" }), 0);
+});
+
+test("debtLeft with a rate: monthly interest for each full month since the date, payments come off in order", () => {
+  const debt = { id: "d", name: "Vay", balance: 10_000_000, asOf: "2026-01-15", ratePct: 12 }; // 1% a month
+  assert.equal(debtLeft(debt, {}, { today: "2026-02-14" }), 10_000_000, "not a full month yet");
+  assert.equal(debtLeft(debt, {}, { today: "2026-02-15" }), 10_100_000);
+  assert.equal(debtLeft(debt, {}, { today: "2026-04-20" }), 10_303_010);
+  // 2tr on 10/02 comes off after February's interest: 10,1tr − 2tr, then two more months of interest.
+  const paid = { d: 2_000_000 };
+  assert.equal(debtLeft(debt, paid, { today: "2026-04-20", log: { d: [{ on: "2026-02-10", amount: 2_000_000 }] } }), 8_262_810);
+  // The same 2tr paid on 18/04 (after the last full month) only reduces the balance.
+  assert.equal(debtLeft(debt, paid, { today: "2026-04-20", log: { d: [{ on: "2026-04-18", amount: 2_000_000 }] } }), 8_303_010);
+  // Only totals known: paid as of today.
+  assert.equal(debtLeft(debt, paid, { today: "2026-04-20" }), 8_303_010);
+  // The date comes from the position when the debt has none; clamped month ends count (31/01 → 28/02).
+  assert.equal(debtLeft({ ...debt, asOf: undefined }, {}, { asOf: "2026-01-15", today: "2026-02-15" }), 10_100_000);
+  assert.equal(debtLeft({ ...debt, asOf: "2026-01-31" }, {}, { today: "2026-02-28" }), 10_100_000);
+});
+
+test("debtLeft and monthsToPayOff share one model: paying the estimated months' worth clears the debt", () => {
+  const debt = { id: "d", name: "Vay mua xe", balance: 100_000_000, asOf: "2026-01-15", ratePct: 9 };
+  const monthly = 5_000_000;
+  const months = monthsToPayOff(debt.balance, monthly, debt.ratePct)!;
+  assert.ok(months > 20 && months < 25, String(months));
+  const on = (k: number) => new Date(Date.UTC(2026, k, 15)).toISOString().slice(0, 10); // month k after January = 15th
+  const log = (count: number) => ({ d: Array.from({ length: count }, (_, i) => ({ on: on(i + 1), amount: monthly })) });
+  assert.equal(debtLeft(debt, {}, { today: on(months), log: log(months) }), 0);
+  assert.ok(debtLeft(debt, {}, { today: on(months - 1), log: log(months - 1) }) > 0);
+  assert.equal(monthsToPayOff(0, monthly, 9), 0);
+  assert.equal(monthsToPayOff(100_000_000, 500_000, 12), undefined);
+});
+
+test("one definition of total debt: Tình hình, Nợ tab and the header read debtTotals", () => {
+  const debts = [{ id: id(4), name: "Vay mua xe", balance: 380_000_000, monthlyPayment: 8_200_000, dueDay: 15, ratePct: 8.5, recurringId: id(5) }, { id: id(6), name: "Vay em gái", balance: 20_000_000, asOf: "2026-09-24" }];
+  const bundle = { settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, position: { ...position, debts } }, recurring: [], loans: { borrowed: 5_000_000, repaid: 2_000_000, lent: 4_000_000, collected: 1_000_000 }, debtPaid: { [id(6)]: 3_000_000 }, debtLog: { [id(6)]: [{ on: "2026-09-26", amount: 3_000_000 }] } };
+  const totals = debtTotals(bundle, "2026-09-30");
+  assert.equal(debtLeftIn(bundle, debts[1], "2026-09-30"), 17_000_000);
+  assert.deepEqual(totals, { owed: 3_000_000 + 380_000_000 + 17_000_000, ledgerOwed: 3_000_000, bigOwed: 397_000_000, lent: 3_000_000 });
+  assert.equal(positionSummary(bundle, { cash: 0, savings: 0 }, 0, 0, "2026-09-30").owes, totals.owed);
 });

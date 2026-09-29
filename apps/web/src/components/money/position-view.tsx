@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
-import { debtLeft, monthsToPayOff, positionSummary } from "@/lib/money/position";
+import { debtLeftIn, monthsToPayOff, positionSummary } from "@/lib/money/position";
 import { parsePosition } from "@/lib/money/position-parse";
 import { type MonthSummary } from "@/lib/money/summary";
 import { ACCOUNT_TYPES, ACCOUNT_TYPE_LABELS, MONEY_KIND_LABELS, type AccountType, type MoneyBundle, type MoneyDebt, type MoneyPosition, type MoneyRecurring } from "@/lib/money/types";
@@ -34,7 +34,7 @@ const accountRows = (position?: MoneyPosition, fallback?: { cash: number; saving
     { id: uid(), type: "cash", name: "Tiền mặt", amount: "" },
     ...(fallback?.savings ? [{ id: uid(), type: "saving" as const, name: "Tiết kiệm", amount: groupAmountTyping(String(fallback.savings)) }] : []),
   ];
-const debtRows = (debts: MoneyDebt[], paid: Record<string, number> = {}): DebtRow[] => debts.map((debt) => ({ id: debt.id, name: debt.name, balance: groupAmountTyping(String(debtLeft(debt, paid))), monthly: debt.monthlyPayment ? groupAmountTyping(String(debt.monthlyPayment)) : "", day: debt.dueDay ? String(debt.dueDay) : "", rate: debt.ratePct !== undefined ? String(debt.ratePct) : "", recurringId: debt.recurringId, asOf: debt.asOf, shown: debtLeft(debt, paid), stored: debt.balance }));
+const debtRows = (debts: MoneyDebt[], left: (debt: MoneyDebt) => number): DebtRow[] => debts.map((debt) => ({ id: debt.id, name: debt.name, balance: groupAmountTyping(String(left(debt))), monthly: debt.monthlyPayment ? groupAmountTyping(String(debt.monthlyPayment)) : "", day: debt.dueDay ? String(debt.dueDay) : "", rate: debt.ratePct !== undefined ? String(debt.ratePct) : "", recurringId: debt.recurringId, asOf: debt.asOf, shown: left(debt), stored: debt.balance }));
 
 /** Accounts → validated list, or an error message. */
 function readAccounts(rows: AccountRow[]): MoneyPosition["accounts"] | string {
@@ -144,7 +144,7 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
   const [later, setLater] = useState(false);
   const [editing, setEditing] = useState<"accounts" | "debts" | null>(null);
   const [accounts, setAccounts] = useState<AccountRow[]>(() => accountRows(position, summary.balances));
-  const [debts, setDebts] = useState<DebtRow[]>(() => debtRows(position?.debts ?? [], bundle.debtPaid));
+  const [debts, setDebts] = useState<DebtRow[]>(() => debtRows(position?.debts ?? [], (debt) => debtLeftIn(bundle, debt)));
   const [pendingFixed, setPendingFixed] = useState<FixedRow[]>([]);
   const [story, setStory] = useState("");
   const [filled, setFilled] = useState("");
@@ -226,10 +226,10 @@ export function PositionView({ bundle, summary, estimatedIncome, onSavePosition,
     </section>
 
     <section className="situ-sec">
-      <header><h2>Khoản nợ</h2><small>{view.owes ? `Tổng ${vnd(view.owes)} · ` : ""}<button type="button" className="ledger-link" onClick={() => { setDebts(debtRows(position.debts, bundle.debtPaid)); setEditing("debts"); }}>{position.debts.length ? "Sửa" : "Thêm khoản nợ"}</button></small></header>
+      <header><h2>Khoản nợ</h2><small>{view.owes ? `Tổng ${vnd(view.owes)} · ` : ""}<button type="button" className="ledger-link" onClick={() => { setDebts(debtRows(position.debts, (debt) => debtLeftIn(bundle, debt))); setEditing("debts"); }}>{position.debts.length ? "Sửa" : "Thêm khoản nợ"}</button></small></header>
       {editing === "debts" ? <div className="app-card"><DebtsForm rows={debts} setRows={setDebts} /><div className="setup-actions"><button type="button" className="app-btn ghost" onClick={() => setEditing(null)}>Hủy</button><button type="button" className="app-btn" disabled={busy} onClick={() => void save({ debts }).then((ok) => { if (ok) setEditing(null); })}>Lưu khoản nợ</button></div></div>
         : position.debts.length ? <div className="app-card app-rows">{position.debts.map((debt) => {
-          const left = debtLeft(debt, bundle.debtPaid); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct);
+          const left = debtLeftIn(bundle, debt); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct);
           const parts = [debt.monthlyPayment ? `Trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay} hằng tháng` : "Chưa có lịch trả", debt.ratePct !== undefined ? `lãi ${debt.ratePct.toLocaleString("vi-VN")}%/năm` : "", months ? `còn khoảng ${months} tháng` : debt.monthlyPayment && left > 0 && months === undefined ? "số trả chưa đủ lãi" : ""].filter(Boolean);
           return <div key={debt.id}><span><b>{debt.name}</b><small>{parts.join(" · ")}{bundle.debtPaid?.[debt.id] ? ` · đã trả ${vnd(bundle.debtPaid[debt.id])} từ ${dayLabel(debt.asOf ?? position.asOf)}` : ""}</small></span><span className="row-actions"><b>{vnd(left)}</b></span></div>;
         })}</div> : <p className="app-sub">Không có khoản nợ nào.</p>}

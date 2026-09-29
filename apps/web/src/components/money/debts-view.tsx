@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { loadLoans } from "@/lib/money/client";
-import { debtLinkIds, debtOverview, loansByPerson, loanTotals, type PersonLedger } from "@/lib/money/loans";
+import { debtLinkIds, loansByPerson, type PersonLedger } from "@/lib/money/loans";
 import { formatVnDate, parseVnd, todayLocal } from "@/lib/money/parse";
-import { debtLeft, monthsToPayOff } from "@/lib/money/position";
+import { debtLeftIn, debtTotals, monthsToPayOff } from "@/lib/money/position";
 import type { MoneyBundle, MoneyTransaction } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
 import { DateInput } from "./date-input";
@@ -45,7 +45,7 @@ export function DebtsView({ bundle, onSave, onTab }: Props) {
   const debts = bundle.settings.position?.debts ?? [];
   const debtLinks = debtLinkIds(debts);
   const people = loansByPerson(loans ?? [], debtLinks);
-  const overview = debtOverview(loanTotals(loans ?? [], debtLinks), debts, (debt) => debtLeft(debt, bundle.debtPaid));
+  const overview = debtTotals(bundle);
   const lentOpen = people.lent.filter((row) => row.left > 0); const lentDone = people.lent.filter((row) => row.left <= 0);
   const oweOpen = people.owe.filter((row) => row.left > 0); const oweDone = people.owe.filter((row) => row.left <= 0);
 
@@ -104,7 +104,7 @@ export function DebtsView({ bundle, onSave, onTab }: Props) {
       </section>
       <section className="app-card dcard"><h3>Mình đang nợ <small>{vnd(overview.owed)}</small></h3>
         {oweOpen.map((row) => personRow(row, "owe"))}
-        {debts.map((debt) => { const left = debtLeft(debt, bundle.debtPaid); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small></span><b className="owe-c">{vnd(left)}</b></div>; })}
+        {debts.map((debt) => { const left = debtLeftIn(bundle, debt); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small></span><b className="owe-c">{vnd(left)}</b></div>; })}
         {!oweOpen.length && !debts.length && <p className="app-sub">Nhà mình không nợ ai.</p>}
         {oweDone.length > 0 && showDone && oweDone.map((row) => personRow(row, "owe"))}
       </section>
