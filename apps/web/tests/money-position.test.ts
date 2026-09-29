@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { allocationFrom, allocationTotal, customFramework, unassigned } from "../src/lib/money/allocation.ts";
-import { frameworkProgress } from "../src/lib/money/frameworks.ts";
+import { bucketOf, frameworkById, frameworkProgress, FRAMEWORKS, UNPLACED } from "../src/lib/money/frameworks.ts";
 import { debtLeft, debtLeftIn, debtTotals, monthsToPayOff, positionSummary, sumUntil, withPosition } from "../src/lib/money/position.ts";
 import { summarizeMonth } from "../src/lib/money/summary.ts";
 import { DEFAULT_CATEGORIES, type MoneyBundle, type MoneyPosition, type MoneyTransaction } from "../src/lib/money/types.ts";
@@ -51,12 +51,34 @@ test("custom allocation: from a preset, totals, unassigned, progress by category
   assert.ok(split.buckets[0].categories.includes("Ăn uống"));
   assert.ok(split.buckets[2].categories.includes("Tiết kiệm"));
   assert.equal(allocationTotal(split), 1);
-  assert.deepEqual(unassigned(split, categories), []);
+  // A category the family created has no default part: it is left for the family to place, never dumped into "Mong muốn".
+  assert.deepEqual(unassigned(split, categories), ["Sữa & bỉm"]);
   const own = { buckets: [{ key: "a", label: "Thiết yếu", share: 0.6, categories: ["Ăn uống"] }, { key: "b", label: "Cho con", share: 0.2, categories: ["Sữa & bỉm"] }, { key: "c", label: "Để dành", share: 0.2, categories: ["Tiết kiệm"] }] };
   const fw = customFramework(own);
   assert.equal(fw.buckets[2].atLeast, true);
   const progress = frameworkProgress(fw, 30_000_000, [tx(1, "2026-09-02", "expense", 1_000_000), tx(2, "2026-09-03", "expense", 500_000, { category: "Sữa & bỉm" }), tx(3, "2026-09-04", "saving", 5_000_000), tx(4, "2026-09-05", "expense", 700_000, { category: "Giải trí" })]);
-  assert.deepEqual(progress.map((b) => [b.key, b.target, b.actual]), [["a", 18_000_000, 1_000_000], ["b", 6_000_000, 500_000], ["c", 6_000_000, 5_000_000]]);
+  // "Giải trí" is in no part: shown as its own row instead of being dropped.
+  assert.deepEqual(progress.map((b) => [b.key, b.target, b.actual]), [["a", 18_000_000, 1_000_000], ["b", 6_000_000, 500_000], ["c", 6_000_000, 5_000_000], [UNPLACED, undefined, 700_000]]);
+  assert.equal(progress[3].label, "Chưa xếp phần");
+});
+
+test("frameworks with loans as Chi: repayments are essentials or debt, lending is never saving, own categories are unplaced", () => {
+  const line = (category: string, kind: MoneyTransaction["kind"] = "expense") => ({ kind, category, amount: 1 });
+  for (const repay of ["Tiền trả nợ", "Tiền trả nợ quỹ"]) {
+    assert.deepEqual(["jars", "50-30-20", "kakeibo", "baby-steps", "pay-first"].map((id) => bucketOf(id as never, line(repay))), ["nec", "needs", "survival", "debt", "spend"]);
+  }
+  // Lending: "Cho đi" / wants / unexpected / spend — never "Tự do tài chính", "Để dành" or a saving target.
+  assert.deepEqual(["jars", "50-30-20", "kakeibo", "baby-steps", "pay-first"].map((id) => bucketOf(id as never, line("Tiền cho vay"))), ["give", "wants", "unexpected", "spend", "spend"]);
+  assert.equal(bucketOf("jars", line("Chi phí đầu tư")), "ffa");
+  assert.equal(bucketOf("jars", line("Lương", "income")), null);
+  // The family's own category has no default part in frameworks that split spending into kinds; the rest lump it.
+  assert.deepEqual(["jars", "50-30-20", "kakeibo"].map((id) => bucketOf(id as never, line("Sữa & bỉm"))), [UNPLACED, UNPLACED, UNPLACED]);
+  assert.deepEqual(["baby-steps", "pay-first"].map((id) => bucketOf(id as never, line("Sữa & bỉm"))), ["spend", "spend"]);
+  assert.equal(bucketOf("jars", line("Giải trí")), "play");
+  const jars = frameworkById("jars")!;
+  const progress = frameworkProgress(jars, 30_000_000, [tx(1, "2026-09-02", "expense", 5_000_000, { category: "Tiền cho vay" }), tx(2, "2026-09-03", "expense", 2_000_000, { category: "Tiền trả nợ" }), tx(3, "2026-09-04", "expense", 400_000, { category: "Sữa & bỉm" }), tx(4, "2026-09-05", "income", 20_000_000, { category: "Vay cá nhân" })]);
+  assert.deepEqual(progress.filter((row) => row.actual).map((row) => [row.key, row.actual]), [["nec", 2_000_000], ["give", 5_000_000], [UNPLACED, 400_000]]);
+  assert.ok(FRAMEWORKS.every((fw) => fw.buckets.every((bucket) => bucket.key !== UNPLACED)));
 });
 
 test("settings validation keeps position, allocation and memory; rejects bad shapes", () => {
