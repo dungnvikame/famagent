@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import { chatJson, isAiConfigured, visionProviders } from "@/lib/ai/llm";
 import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
-import { todayLocal } from "@/lib/money/parse";
 import { loadItems } from "@/lib/shopping/item-store-server";
 import { validItem } from "@/lib/shopping/item-validate";
-import type { ShoppingItem } from "@/lib/shopping/items";
+import { vnToday, type ShoppingItem } from "@/lib/shopping/items";
 import { isImageDataUrl, isReceipt, RECEIPT_SCHEMA, RECEIPT_SYSTEM, receiptDrafts, type Receipt } from "@/lib/shopping/receipt";
 import { authenticated, authConfigured } from "@/lib/supabase/server";
 
@@ -53,6 +52,6 @@ export async function POST(request: Request) {
     vision: true,
   });
   if (!result) return NextResponse.json({ error: "Chưa đọc được ảnh này. Thử ảnh rõ hơn, hoặc gõ một câu vào ô ghi nhanh." }, { status: 422 });
-  const drafts = receiptDrafts(result.data, items, todayLocal());
+  const drafts = receiptDrafts(result.data, items, vnToday());
   return drafts.length ? NextResponse.json({ drafts }) : NextResponse.json({ error: "Không thấy dòng hàng nào có số tiền trong ảnh." }, { status: 422 });
 }

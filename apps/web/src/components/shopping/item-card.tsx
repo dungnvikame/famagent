@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import type { ChildProfile } from "@/lib/experience/types";
+import { findPath } from "@/lib/shopping/find-href";
 import { cadenceDays, unitPrices, unitPriceTrend } from "@/lib/shopping/insights";
 import { CATEGORY_LABELS, type ItemEstimate, type ShoppingItem } from "@/lib/shopping/items";
 import type { Purchase } from "@/lib/shopping/purchases";
@@ -20,10 +21,7 @@ const dayLabel = (iso: string) => `${Number(iso.slice(8))}/${Number(iso.slice(5,
 export function findHref(item: ShoppingItem, children: ChildProfile[]): string | null {
   if (item.category !== "diapers") return null;
   const child = children.find((entry) => entry.id === item.childId) ?? children[0];
-  const query = new URLSearchParams();
-  if (child?.weightKg) query.set("weightKg", String(child.weightKg));
-  if (child?.diaperSize) query.set("size", child.diaperSize);
-  return `/shopping/find${query.size ? `?${query}` : ""}`;
+  return findPath(child);
 }
 
 /** Price per unit over the purchases (inline SVG), the latest change and the buying rhythm. */

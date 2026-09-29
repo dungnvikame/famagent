@@ -32,6 +32,9 @@ export interface ProductVariant {
   size: string;
   quantity: number;
   quantityUnit: "piece";
+  /** Per-variant weight range; absent means the product's range applies (see variantWeightRange). */
+  minWeightKg?: number;
+  maxWeightKg?: number;
   offers: ProductOffer[];
 }
 

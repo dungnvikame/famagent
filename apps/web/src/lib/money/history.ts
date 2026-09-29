@@ -1,4 +1,3 @@
-import { isLoanEntry } from "./loans.ts";
 import type { MoneyKind, MoneyTransaction } from "./types.ts";
 
 /** One month of totals for trend charts and "vs. earlier months" comparisons. */
@@ -14,7 +13,7 @@ export function monthlyHistory(entries: Entry[], endMonth: string, count = 12): 
   const byMonth = new Map(months.map((month) => [month, { month, income: 0, expense: 0, saving: 0, byCategory: {} as Record<string, number> }]));
   for (const entry of entries) {
     const row = byMonth.get(entry.occurredOn.slice(0, 7));
-    if (!row || isLoanEntry(entry)) continue;
+    if (!row) continue;
     row[entry.kind as MoneyKind] += entry.amount;
     if (entry.kind === "expense") row.byCategory[entry.category] = (row.byCategory[entry.category] ?? 0) + entry.amount;
   }
@@ -28,15 +27,6 @@ export function categoryAverages(history: MonthTotals[], month: string, span = 3
   const sums: Record<string, number> = {};
   for (const row of earlier) for (const [name, amount] of Object.entries(row.byCategory)) sums[name] = (sums[name] ?? 0) + amount;
   return Object.fromEntries(Object.entries(sums).map(([name, total]) => [name, Math.round(total / earlier.length)]));
-}
-
-/** Cash after each entry, oldest first from `opening` (entries may arrive newest first; ties keep their order). */
-export function runningBalances(entries: Array<Pick<MoneyTransaction, "id" | "kind" | "amount" | "occurredOn">>, opening: number): Map<string, number> {
-  const ordered = entries.map((entry, index) => ({ entry, index })).sort((a, b) => a.entry.occurredOn.localeCompare(b.entry.occurredOn) || b.index - a.index);
-  const out = new Map<string, number>();
-  let cash = opening;
-  for (const { entry } of ordered) { cash += entry.kind === "income" ? entry.amount : -entry.amount; out.set(entry.id, cash); }
-  return out;
 }
 
 /** After each entry: the savings fund, what was spent beyond cash ("tiêu lẹm", owed to the fund) and the account total. */

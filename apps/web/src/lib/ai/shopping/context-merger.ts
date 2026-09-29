@@ -55,7 +55,9 @@ export function mergeIntent(extraction: ShoppingExtraction, profile: FamilyProfi
   const stated = msgWeight !== null || msgSize !== null;
   const prevStated = samePrevious?.requiredAttributes.weightKg !== undefined || samePrevious?.requiredAttributes.sizeLabel !== undefined;
   const weightKg = pick(evidence, "weightKg", [msg(msgWeight), ...(stated ? [] : [prev(samePrevious?.requiredAttributes.weightKg), ...(prevStated ? [] : [fam(child?.weightKg)])])]);
-  const sizeLabel = pick(evidence, "sizeLabel", [msg(msgSize), ...(stated ? [] : [prev(samePrevious?.requiredAttributes.sizeLabel), ...(prevStated ? [] : [fam(child?.diaperSize)])])]);
+  // Weight is the current fact; a saved/earlier size is only a fallback when no weight is known
+  // (a stale profile size next to a fresh weight could empty the result).
+  const sizeLabel = pick(evidence, "sizeLabel", [msg(msgSize), ...(stated || weightKg !== undefined ? [] : [prev(samePrevious?.requiredAttributes.sizeLabel), ...(prevStated ? [] : [fam(child?.diaperSize)])])]);
   const nightUse = pick(evidence, "nightUse", [msg(extraction.nightUse), prev(samePrevious?.requiredAttributes.nightUse), fam(profile?.mainConcern === "night" ? true : undefined)]);
   const leakProtection = pick(evidence, "leakProtection", [msg(extraction.leakProtection), prev(samePrevious?.requiredAttributes.leakProtection), fam(profile?.mainConcern === "leak" ? true : undefined)]);
   const sensitiveSkin = pick(evidence, "sensitiveSkin", [msg(extraction.sensitiveSkin), prev(samePrevious?.requiredAttributes.sensitiveSkin), fam(child?.sensitivities?.includes("sensitive_skin") || profile?.mainConcern === "sensitive" ? true : undefined)]);

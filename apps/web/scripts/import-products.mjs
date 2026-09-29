@@ -59,6 +59,8 @@ try {
       [row.product_id, Number(row.min_weight_kg), Number(row.max_weight_kg), row.diaper_type, num(row.night_use_score), num(row.absorbency_score), num(row.softness_score), num(row.thickness_score), num(row.sensitive_skin_score), row.attribute_source || null, row.attribute_verified_at ? new Date(row.attribute_verified_at).toISOString() : null],
     );
     await client.query("insert into public.product_variants(id,product_id,name,size,quantity,gtin,sku) values ($1,$2,$3,$4,$5,$6,$7) on conflict(id) do update set name=excluded.name,size=excluded.size,quantity=excluded.quantity,gtin=excluded.gtin,sku=excluded.sku", [row.variant_id, row.product_id, row.variant, row.size.toUpperCase(), Number(row.quantity), row.gtin || null, row.sku || null]);
+    // Per-variant weight range only when the CSV carries the columns (needs migration 202609290019).
+    if ("variant_min_weight_kg" in row) await client.query("update public.product_variants set weight_min_kg=$2, weight_max_kg=$3 where id=$1", [row.variant_id, num(row.variant_min_weight_kg), num(row.variant_max_weight_kg)]);
     // updated_at = when the price was actually observed, so freshness checks (48h) mean something.
     await client.query(
       "insert into public.product_offers(id,product_variant_id,merchant_id,source,price,availability,affiliate_url,seller_rating,shipping_estimate,updated_at) values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) on conflict(id) do update set price=excluded.price,availability=excluded.availability,affiliate_url=excluded.affiliate_url,seller_rating=excluded.seller_rating,shipping_estimate=excluded.shipping_estimate,updated_at=excluded.updated_at",

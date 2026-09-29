@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { applyFilter, isFiltering, monthRange, parseFilterQuery, presetOf, presetRange } from "../src/lib/money/ledger-filter.ts";
-import { monthlyHistory, categoryAverages, runningBalances } from "../src/lib/money/history.ts";
+import { monthlyHistory, categoryAverages } from "../src/lib/money/history.ts";
 import type { MoneyTransaction } from "../src/lib/money/types.ts";
 
 const today = "2026-09-25"; // a Friday
@@ -41,11 +41,7 @@ test("applyFilter combines every field", () => {
   assert.equal(isFiltering({ ...base, text: "x" }, "2026-09"), true);
 });
 
-test("running balance, history and category averages", () => {
-  const balances = runningBalances(entries, 1_000_000);
-  assert.equal(balances.get("1"), -4_000_000);
-  assert.equal(balances.get("3"), 15_100_000);
-  assert.equal(balances.get("5"), 14_595_000);
+test("history and category averages", () => {
   const history = monthlyHistory([...entries, tx("a", "2026-08-12", "expense", 600_000), tx("b", "2026-07-03", "expense", 300_000)], "2026-09", 3);
   assert.deepEqual(history.map((row) => [row.month, row.expense]), [["2026-07", 300_000], ["2026-08", 600_000], ["2026-09", 1_405_000]]);
   assert.deepEqual(categoryAverages(history, "2026-09"), { "Ăn uống": 450_000 });

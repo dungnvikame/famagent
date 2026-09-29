@@ -30,10 +30,13 @@ const MERCHANTS: Array<[RegExp, string]> = [
 ];
 const PACK_WORDS: Record<string, string> = { bich: "bịch", goi: "gói", hop: "hộp", lon: "lon", thung: "thùng", chai: "chai", hu: "hũ", tui: "túi", cuon: "cuộn", loc: "lốc", can: "can", tuyp: "tuýp", vi: "vỉ", lo: "lọ", set: "set", combo: "combo" };
 const PIECE_WORDS: Record<string, string> = { mieng: "miếng", to: "tờ", cai: "cái", vien: "viên" };
+// Matched on the folded text. A bare "ta" is never a diaper ("chúng ta", "anh ta"): only "tã" (checked with its
+// diacritic in guessCategory), "tã dán/quần/lót", or "ta" + a diaper size code/brand typed without diacritics.
 const CATEGORY_WORDS: Array<[RegExp, ItemCategory]> = [
-  [/khan (giay )?uot/, "wipes"], [/\b(bim|ta dan|ta quan|ta)\b/, "diapers"], [/\b(bot an dam|chao|an dam|banh an dam|pure)\b/, "solids"],
+  [/khan (giay )?uot/, "wipes"], [/\b(bim|ta (dan|quan|lot)|ta (nb|s|m|l|xl|xxl|xxxl) ?\d+|ta (bobby|huggies|merries|pampers|moony|goon|molfix))\b/, "diapers"], [/\b(bot an dam|chao|an dam|banh an dam|pure)\b/, "solids"],
+  // Body-care "sữa" (sữa tắm, sữa rửa mặt, sữa dưỡng thể) is hygiene, so it is checked before milk.
+  [/\bsua (tam|rua|duong (the|am|da))|dau goi|kem ham|nuoc giat (xa )?(em be|cho be)|nuoc rua binh|phan rom|bong tam|tam be/, "hygiene"],
   [/\bsua (bot|cong thuc|tuoi|chua)?|\b(meiji|similac|aptamil|enfa|nan|friso|morinaga|glico|vinamilk|nutifood|colosbaby)\b/, "milk"],
-  [/sua tam|dau goi|kem ham|nuoc giat (xa )?(em be|cho be)|nuoc rua binh|phan rom|bong tam|tam be/, "hygiene"],
   [/nuoc giat|nuoc xa|nuoc rua bat|giay ve sinh|khan giay|nuoc lau|tui rac|kem danh rang|xa phong|nuoc rua tay/, "household"],
   [/\b(merries|huggies|bobby|pampers|moony|goon|molfix|genki|mamamy|yubest|unidry|rascal|babydry|caryn|kochi|takato|whito)\b/, "diapers"],
 ];
@@ -87,6 +90,13 @@ function findDate(folded: string, today: string): { on: string; span?: Span } {
   return { on: today };
 }
 
+/** Item category a phrase points at by its words (with or without diacritics), null when none does. */
+export function guessCategory(text: string): ItemCategory | null {
+  if (/(?<![\p{L}\d])tã(?![\p{L}\d])/u.test(text.toLocaleLowerCase("vi"))) return "diapers";
+  const folded = fold(text);
+  return CATEGORY_WORDS.find(([pattern]) => pattern.test(folded))?.[1] ?? null;
+}
+
 /** Parses a purchase sentence into a draft; `items` lets "mua bỉm Merries" restock the family's existing item. */
 export function parsePurchase(text: string, items: ShoppingItem[], today: string): PurchaseDraft {
   const folded = fold(text);
@@ -129,7 +139,7 @@ export function parsePurchase(text: string, items: ShoppingItem[], today: string
   name = name ? name[0].toLocaleUpperCase("vi") + name.slice(1) : "";
 
   const existing = matchItem(name || text, items.filter((item) => item.status !== "outgrown"));
-  const guessed = CATEGORY_WORDS.find(([pattern]) => pattern.test(folded))?.[1] ?? (pieceWord === "miếng" ? "diapers" : "other");
+  const guessed = guessCategory(text) ?? (pieceWord === "miếng" ? "diapers" : "other");
   const category = existing?.category ?? guessed;
   const unit = existing?.unit ?? pieceWord ?? (packWord && !["diapers", "wipes"].includes(category) ? packWord : DEFAULT_UNIT[category]);
   const size = packSize ?? existing?.packSize ?? (!pieceWord && !["diapers", "wipes"].includes(category) ? 1 : undefined);

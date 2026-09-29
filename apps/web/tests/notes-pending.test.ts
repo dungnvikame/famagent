@@ -21,7 +21,7 @@ test("ghi nhận từ hội thoại: hăm với hãng, nơi mua quen, ưu tiên;
 test("không ghi trùng; hãng gây hăm bị tránh khi tư vấn", () => {
   const existing = [{ text: "bé gold bị hăm khi dùng huggies" }];
   assert.equal(newNotes(extractNotes("Gold bị hăm khi dùng Huggies", profile, brands), existing).length, 0);
-  assert.deepEqual(brandsToAvoid([{ kind: "health", brand: "Huggies", text: "Bé Gold bị hăm khi dùng Huggies" }, { kind: "preference", brand: "Merries", text: "x" }]), [{ brand: "Huggies", reason: "Bé Gold bị hăm khi dùng Huggies" }]);
+  assert.deepEqual(brandsToAvoid([{ kind: "health", brand: "Huggies", text: "Bé Gold bị hăm khi dùng Huggies", status: "confirmed" }, { kind: "preference", brand: "Merries", text: "x", status: "confirmed" }]), [{ brand: "Huggies", reason: "Bé Gold bị hăm khi dùng Huggies" }]);
 });
 
 test("câu trả lời ngắn được đọc theo câu hỏi đang chờ", () => {

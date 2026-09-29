@@ -30,8 +30,10 @@ export function FrameworkPanel({ profile, summary, bundle, onChoose, onSaveCusto
   const method = profile.household?.moneyMethod;
   const custom = method === "custom" && bundle.settings.allocation ? customFramework(bundle.settings.allocation) : undefined;
   const fw = custom ?? frameworkById(method);
-  // Targets follow real income this month; before any income is logged, use the onboarding estimate.
-  const income = summary.income || profile.household?.monthlyIncome || 0;
+  // Targets follow real income this month (money borrowed or paid back to us is Thu, but not something to split);
+  // before any income is logged, use the onboarding estimate.
+  const earned = Math.max(0, summary.income - summary.loanFlows.borrowed - summary.loanFlows.collected);
+  const income = earned || profile.household?.monthlyIncome || 0;
   const monthTx = bundle.transactions.filter((tx) => tx.occurredOn.startsWith(summary.month));
 
   function customize(from: FrameworkId | "blank") {

@@ -1,5 +1,5 @@
 // Hard filter + two-level ranking (spec v1 §11). Commission/affiliate data never enters any score.
-import { pricePerPiece } from "../catalog/filter.ts";
+import { eligibleVariants, pricePerPiece, variantFitsWeight, variantWeightRange } from "../catalog/filter.ts";
 import { vnd } from "../catalog/format.ts";
 import { isOfferFresh } from "../catalog/offer-status.ts";
 import type { Product, ProductOffer, ProductVariant } from "../catalog/types.ts";
@@ -13,7 +13,8 @@ const WEIGHTS: Record<keyof ProductScores, number> = { requirementFit: 0.40, hou
 
 export type RejectReason = "category" | "excluded_brand" | "weight" | "size" | "out_of_stock" | "price_total" | "price_unit";
 export interface Rejection { productId: string; reasons: RejectReason[] }
-interface Candidate { product: Product; variant: ProductVariant; offers: ProductOffer[] }
+/** sizeOverridden: the size label asked for, when the child's weight ruled it out and another size was chosen. */
+interface Candidate { product: Product; variant: ProductVariant; offers: ProductOffer[]; sizeOverridden?: string }
 
 const clamp = (value: number) => Math.max(0, Math.min(100, Math.round(value)));
 const lowerSet = (items: string[] | undefined) => new Set((items ?? []).map((item) => item.toLocaleLowerCase("vi")));
@@ -31,10 +32,11 @@ export function hardFilter(products: Product[], intent: ShoppingIntent): { candi
     const reasons = new Set<RejectReason>();
     if (intent.categoryId !== product.category) reasons.add("category");
     if (excluded.has(product.brand.toLocaleLowerCase("vi"))) reasons.add("excluded_brand");
-    if (weightKg !== undefined && (weightKg < product.diaper.minWeightKg || weightKg > product.diaper.maxWeightKg)) reasons.add("weight");
+    // Weight is judged per variant (each size has its own range); weight wins over a conflicting size label.
+    const { variants: sized, sizeDropped } = eligibleVariants(product, { weightKg, size: sizeLabel });
+    if (weightKg !== undefined && !product.variants.some((variant) => variantFitsWeight(product, variant, weightKg))) reasons.add("weight");
+    else if (!sized.length) reasons.add("size");
     let best: Candidate | null = null;
-    const sized = sizeLabel ? product.variants.filter((variant) => variant.size.toUpperCase() === sizeLabel) : product.variants;
-    if (!sized.length) reasons.add("size");
     let inStock = false; let underTotal = false;
     for (const variant of sized) {
       const offers = variant.offers.filter((offer) => {
@@ -49,7 +51,7 @@ export function hardFilter(products: Product[], intent: ShoppingIntent): { candi
       // One variant per product: the one whose cheapest eligible offer has the lowest unit price.
       const unit = Math.min(...offers.map((offer) => pricePerPiece(offer, variant) ?? Infinity));
       const bestUnit = best ? Math.min(...best.offers.map((offer) => pricePerPiece(offer, best!.variant) ?? Infinity)) : Infinity;
-      if (unit < bestUnit) best = { product, variant, offers };
+      if (unit < bestUnit) best = { product, variant, offers, sizeOverridden: sizeDropped ? sizeLabel : undefined };
     }
     // Only the first constraint that empties the size-matching offers is recorded (no-result advice relies on it).
     if (sized.length && !best) reasons.add(!inStock ? "out_of_stock" : !underTotal ? "price_total" : "price_unit");
@@ -108,8 +110,7 @@ export function rankCandidates(candidates: Candidate[], intent: ShoppingIntent, 
   const priority = intent.preferences.priority;
 
   const items = ranked.map(({ candidate, offers }, index): Recommendation => {
-    const { product, variant } = candidate;
-    const offer = offers[0].offer;
+    const { product, variant } = candidate;    const offer = offers[0].offer;
     const unit = units[index];
     const matched: string[] = []; const tradeoffs: string[] = []; const failed: string[] = []; const evidence = [`product:${product.id}`, `variant:${variant.id}`, `offer:${offer.id}`];
 
@@ -143,8 +144,10 @@ export function rankCandidates(candidates: Candidate[], intent: ShoppingIntent, 
 
     const scores: ProductScores = { requirementFit, householdPreferenceFit, evidenceQuality, value, purchaseContinuity: null };
     const { weightKg } = intent.requiredAttributes;
+    const range = variantWeightRange(product, variant);
+    if (candidate.sizeOverridden) tradeoffs.push(`Size ${variant.size} theo cân nặng ${weightKg} kg (bạn nêu size ${candidate.sizeOverridden})`);
     const reasons = [
-      weightKg !== undefined ? `Phù hợp ${weightKg} kg (dải ${product.diaper.minWeightKg}–${product.diaper.maxWeightKg} kg)` : `Dải cân nặng ${product.diaper.minWeightKg}–${product.diaper.maxWeightKg} kg`,
+      weightKg !== undefined ? `Phù hợp ${weightKg} kg (dải ${range.min}–${range.max} kg)` : `Dải cân nặng ${range.min}–${range.max} kg`,
       `Size ${variant.size}, ${variant.quantity} miếng · ${vnd(Math.round(unit))}/miếng`,
       ...(intent.constraints.maxTotalPriceVnd !== undefined ? [`Trong ngân sách ${vnd(intent.constraints.maxTotalPriceVnd)}`] : []),
       ...matched,

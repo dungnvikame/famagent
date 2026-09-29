@@ -2,8 +2,9 @@ import { normalize } from "./quick-add.ts";
 import type { MoneyDebt, MoneyTransaction } from "./types.ts";
 
 /**
- * Borrowing and lending are money changing places, not income or spending. These categories stay out of Thu/Chi,
- * budgets and charts (they still move the account balance) and are tracked on the Nợ tab instead.
+ * Loan flows are ordinary Thu/Chi (like the family's Excel sheet): borrowing and being paid back are income,
+ * repaying and lending are expense, so they count in month totals, budgets, charts and frameworks. This module
+ * only recognises them so the Nợ tab can read them back per person and the month can show "trong đó trả nợ X".
  */
 export const BORROW_IN = ["Vay cá nhân", "Vay ngân hàng"]; // income kind: money we borrowed
 export const REPAY_OUT = ["Tiền trả nợ", "Tiền trả nợ quỹ"]; // expense kind: paying our debts back
@@ -17,17 +18,32 @@ export const loanRole = (tx: Entry): "borrow" | "repay" | "lend" | "collect" | n
 export const isLoanEntry = (tx: Entry) => loanRole(tx) !== null;
 
 export interface LoanTotals { borrowed: number; repaid: number; lent: number; collected: number }
-/** Amounts per role over the given entries; payments of Tình hình debts (their recurring items) are left out. */
-export function loanTotals(entries: Array<Entry & Pick<MoneyTransaction, "amount" | "recurringId">>, debtRecurringIds: Set<string> = new Set()): LoanTotals {
+/** Ids that tie an entry to a Tình hình debt: the debt's own id (`debtId`) and its linked recurring item. */
+export const debtLinkIds = (debts: MoneyDebt[]) => new Set(debts.flatMap((debt) => [debt.id, debt.recurringId]).filter((id): id is string => Boolean(id)));
+type Linkable = Pick<MoneyTransaction, "recurringId" | "debtId">;
+const isLinked = (tx: Linkable, links: Set<string>) => Boolean((tx.recurringId && links.has(tx.recurringId)) || (tx.debtId && links.has(tx.debtId)));
+
+/** Amounts per role over the given entries; payments of Tình hình debts (tagged or posted by their recurring item) are left out. */
+export function loanTotals(entries: Array<Entry & Pick<MoneyTransaction, "amount"> & Linkable>, debtLinks: Set<string> = new Set()): LoanTotals {
   const out = { borrowed: 0, repaid: 0, lent: 0, collected: 0 };
-  for (const tx of entries) { if (tx.recurringId && debtRecurringIds.has(tx.recurringId)) continue; const role = loanRole(tx); if (role === "borrow") out.borrowed += tx.amount; else if (role === "repay") out.repaid += tx.amount; else if (role === "lend") out.lent += tx.amount; else if (role === "collect") out.collected += tx.amount; }
+  for (const tx of entries) { if (isLinked(tx, debtLinks)) continue; const role = loanRole(tx); if (role === "borrow") out.borrowed += tx.amount; else if (role === "repay") out.repaid += tx.amount; else if (role === "lend") out.lent += tx.amount; else if (role === "collect") out.collected += tx.amount; }
+  return out;
+}
+
+/**
+ * Everything a month moved through loans, for "trong đó trả nợ X · vay mới Y" (nothing is left out: these are part
+ * of Thu/Chi). `repaid` also holds payments of Tình hình debts posted under other categories (e.g. Tiền trả góp).
+ */
+export function loanFlows(entries: Array<Entry & Pick<MoneyTransaction, "amount"> & Linkable>, debtLinks: Set<string> = new Set()): LoanTotals {
+  const out = loanTotals(entries);
+  for (const tx of entries) if (tx.kind === "expense" && !loanRole(tx) && isLinked(tx, debtLinks)) out.repaid += tx.amount;
   return out;
 }
 
 /**
  * What we owe and what others owe us. Ledger loans net out (borrowed − repaid, lent − collected); big loans with a
- * schedule come from Tình hình (their remaining balance). Repayments of those big loans are posted by their own
- * recurring item under "Tiền trả góp", so they do not reduce the ledger figure twice.
+ * schedule come from Tình hình (their remaining balance). Repayments of those big loans (tagged with the debt or
+ * posted by its recurring item) come off that balance, so they do not reduce the ledger figure twice.
  */
 export function debtOverview(totals: LoanTotals, debts: MoneyDebt[], debtLeft: (debt: MoneyDebt) => number) {
   const ledgerOwed = Math.max(0, totals.borrowed - totals.repaid);
@@ -66,11 +82,11 @@ export interface PersonLedger { key: string; name: string; given: number; receiv
  * Loans grouped by person, both directions: `lent` = people who owe us (lent − paid back), `owe` = people we owe
  * (borrowed − repaid). Lines without a recognisable name are grouped under "Khác".
  */
-export function loansByPerson(entries: MoneyTransaction[], debtRecurringIds: Set<string> = new Set()): { lent: PersonLedger[]; owe: PersonLedger[] } {
+export function loansByPerson(entries: MoneyTransaction[], debtLinks: Set<string> = new Set()): { lent: PersonLedger[]; owe: PersonLedger[] } {
   const lent = new Map<string, PersonLedger>(); const owe = new Map<string, PersonLedger>();
   for (const tx of [...entries].sort((a, b) => a.occurredOn.localeCompare(b.occurredOn))) {
     const role = loanRole(tx);
-    if (!role || (tx.recurringId && debtRecurringIds.has(tx.recurringId))) continue;
+    if (!role || isLinked(tx, debtLinks)) continue;
     const name = personOf(tx.content) ?? "Khác";
     const key = normalize(name);
     const book = role === "lend" || role === "collect" ? lent : owe;

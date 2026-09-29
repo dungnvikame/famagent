@@ -278,14 +278,23 @@ export function draftsFromImage(lines: ImageLine[], context: QuickContext): Quic
   return lines.filter((line) => line.amount > 0).map((line) => draftFor(line.content, line.amount, line.direction, line.date && line.date <= context.today ? line.date : context.today, line.date ? undefined : "ảnh không ghi ngày, lấy hôm nay", context));
 }
 
-/** Memory after saving: remember lines whose category the family changed (newest wins, at most 300 keys). */
+/** Memory with one more remembered line (newest wins, at most 300 keys); undefined when the text has no usable key. */
+export function rememberCategory(memory: Record<string, string> | undefined, content: string, category: string): Record<string, string> | undefined {
+  const key = memoryKey(content);
+  if (!key) return undefined;
+  const next = { ...(memory ?? {}) };
+  delete next[key]; next[key] = category;
+  const keys = Object.keys(next);
+  for (const old of keys.slice(0, Math.max(0, keys.length - 300))) delete next[old];
+  return next;
+}
+
+/** Memory after saving: remember lines whose category the family changed. */
 export function rememberCorrections(memory: Record<string, string> | undefined, drafts: QuickDraft[]): Record<string, string> | undefined {
   const changed = drafts.filter((draft) => draft.selected && draft.category !== draft.autoCategory && draft.kind !== "saving" && memoryKey(draft.content));
   if (!changed.length) return undefined;
-  const next = { ...(memory ?? {}) };
-  for (const draft of changed) { const key = memoryKey(draft.content); delete next[key]; next[key] = draft.category; }
-  const keys = Object.keys(next);
-  for (const key of keys.slice(0, Math.max(0, keys.length - 300))) delete next[key];
+  let next = memory;
+  for (const draft of changed) next = rememberCategory(next, draft.content, draft.category) ?? next;
   return next;
 }
 

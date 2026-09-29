@@ -2,6 +2,8 @@
 // applies a new one. Pure so the flow is unit-tested; the wizard component only renders and persists.
 import { CHECKUP_RECENCY, NUTRITION_LEVELS, PLAY_TIME, READING_FREQ, SAFETY_MEASURES, SCREEN_TIME, SLEEP_QUALITY, VACCINE_STATUS, BILL_TIMELINESS, DEBT_TYPES, INCOME_STABILITY, INSURANCE_TYPES, LONG_TERM_SAVINGS, PLANNING_LEVELS, CARE_WORRIES, EMERGENCY_LEVELS, HOUSEHOLD_FOCUS, HOUSEHOLD_SETUPS, HOUSING_TYPES, MONEY_PAINS, SAVING_GOALS, TRACKING_METHODS, type ChildProfile, type FamilyProfile, type HouseholdContext, type Sensitivity } from "../experience/types.ts";
 
+import { childAgeMonths } from "../experience/profile-mapper.ts";
+
 export type QuestionGroup = "Mục tiêu" | "Gia đình" | "Các con" | "Nhà ở" | "Tài chính" | "Phân tích";
 export interface Choice { value: string; label: string; hint?: string }
 export interface Question {
@@ -38,8 +40,9 @@ export const WEIGHT_CHOICES: Array<Choice & { min: number; max: number; kg: numb
   { value: "17+", label: "Trên 17 kg", min: 17, max: 30, kg: 18.5 },
 ];
 
-const MONTH = 30.44 * 86_400_000;
-const ageMonthsOf = (child: ChildProfile, now: number) => child.birthDate ? Math.max(0, Math.floor((now - Date.parse(`${child.birthDate}T00:00:00Z`)) / MONTH)) : child.ageMonths;
+const ageMonthsOf = (child: ChildProfile, now: number) => childAgeMonths(child, new Date(now));
+/** Vietnam calendar date (UTC+7) of a timestamp: an age picked at 2am is dated that day, not the UTC day before. */
+const vnDate = (ms: number) => new Date(ms + 7 * 3_600_000).toISOString().slice(0, 10);
 export const childTitle = (child: ChildProfile, index: number, count: number) => child.name ? `bé ${child.name}` : count > 1 ? `bé thứ ${index + 1}` : "bé";
 
 function withChild(profile: FamilyProfile, index: number, patch: (child: ChildProfile) => ChildProfile): FamilyProfile {
@@ -155,8 +158,12 @@ export function buildQuestions(profile: FamilyProfile, newId: () => string = () 
           const match = [...AGE_CHOICES].reverse().find((choice) => value >= Number(choice.value.split(/[-+]/)[0]));
           return match ? [match.value] : [];
         },
-        // A picked age range replaces a stored birth date (the two must not disagree).
-        apply: (p, [value]) => withChild(p, index, (c) => ({ ...c, ageMonths: AGE_CHOICES.find((choice) => choice.value === value)?.months, birthDate: undefined })),
+        // A picked age range replaces a stored birth date (the two must not disagree). The midpoint is dated (ageAsOf)
+        // so the age keeps growing instead of freezing at the midpoint.
+        apply: (p, [value]) => withChild(p, index, (c) => {
+          const months = AGE_CHOICES.find((choice) => choice.value === value)?.months;
+          return { ...c, ageMonths: months, ageAsOf: months === undefined ? undefined : vnDate(now), birthDate: undefined };
+        }),
       },
     );
     // Weight matters for small children (growth); skip it once they are 6+.

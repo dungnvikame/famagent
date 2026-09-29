@@ -32,7 +32,7 @@ test("gia đình nhiều rủi ro: điểm thấp, vấn đề sắp xếp theo 
 
 test("gia đình vững vàng: không có vấn đề", () => {
   const report = financialHealth(base({ monthlyIncome: 40_000_000, monthlySpend: 25_000_000, monthlyDebt: 3_000_000, emergency: "gt6", incomeStability: "stable_both", billTimeliness: "always", debtTypes: ["mortgage"], longTermSavings: ["bank_term", "gold"], insurance: ["public_health", "life_main_earner"], planning: "specific" }, [{ id: "c1", ageMonths: 30 }]));
-  assert.equal(report.tier, "healthy"); assert.equal(report.score, 90); assert.deepEqual(report.problems, []);
+  assert.equal(report.tier, "healthy"); assert.equal(report.score, 100); assert.deepEqual(report.problems, []);
 });
 
 test("assessment dùng số tháng dự phòng theo độ ổn định thu nhập; facts có đủ kết quả sức khỏe tài chính", () => {
