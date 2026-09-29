@@ -1,5 +1,5 @@
 import type { MoneyBundle, MoneyRecurring, MoneyTransaction } from "./types.ts";
-import { debtLinkIds, loanFlows, type LoanTotals } from "./loans.ts";
+import { debtLinkIds, loanFlows, loanRole, type LoanTotals } from "./loans.ts";
 import { vnd } from "../catalog/format.ts";
 
 /**
@@ -24,7 +24,7 @@ export interface MonthSummary {
   /** Planned spend (settings.monthlyPlan) or the sum of category budgets, if any. */
   plan?: number;
   remainingOfPlan?: number;
-  /** Linear pace: spent / daysElapsed × daysInMonth (only for the current month). */
+  /** Month-end forecast (current month only): spent so far + fixed items still to post + the flexible pace for the days left. */
   expectedExpense?: number;
   paceRatio?: number;
   /** Loan money inside income / expense (borrowed, collected / repaid, lent): already counted above, shown as "trong đó". */
@@ -64,6 +64,18 @@ export function upcomingRecurring(recurring: MoneyRecurring[], now: Date, horizo
   return out.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
+/**
+ * Month-end spend: what is already spent, plus the fixed expenses that have not posted yet (they come once, at
+ * their amount), plus the flexible spend's daily pace for the days left. Flexible = expenses that are not from a
+ * recurring item; one-off loan and debt payments are left out of the pace too (a lump is not a daily habit) but
+ * stay in what was spent. So rent posted on the 1st is never multiplied by the days of the month.
+ */
+function forecastExpense(spent: number, inMonth: MoneyTransaction[], recurring: MoneyRecurring[], month: string, elapsed: number, days: number): number {
+  const flexible = inMonth.filter((item) => item.kind === "expense" && !item.recurringId && !item.debtId && !loanRole(item)).reduce((sum, item) => sum + item.amount, 0);
+  const fixedDue = recurring.filter((item) => item.active && item.kind === "expense" && item.lastPostedMonth !== month).reduce((sum, item) => sum + item.amount, 0);
+  return Math.round(spent + fixedDue + flexible / elapsed * (days - elapsed));
+}
+
 export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSummary {
   const { month, transactions, budgets, settings, recurring, totals } = bundle;
   // Loans (borrowing, repaying, lending, being paid back) are ordinary Thu/Chi; loanFlows tells how much of it they are.
@@ -84,7 +96,7 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   const current = monthKey(now) === month;
   const days = daysInMonth(month);
   const elapsed = current ? Math.max(1, now.getDate()) : days;
-  const expectedExpense = current && sums.expense > 0 ? Math.round(sums.expense / elapsed * days) : undefined;
+  const expectedExpense = current && sums.expense > 0 ? forecastExpense(sums.expense, inMonth, recurring, month, elapsed, days) : undefined;
   const paceRatio = plan && expectedExpense ? expectedExpense / plan : undefined;
   const childSpend = inMonth.filter((item) => item.kind === "expense" && item.forChild).reduce((acc, item) => acc + item.amount, 0);
   const upcoming = current ? upcomingRecurring(recurring, now) : [];
