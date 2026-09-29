@@ -60,7 +60,8 @@
 .lt-table th.lt-cat,.lt-table td.lt-cat{width:156px}
 .lt-table th.lt-amount,.lt-table td.lt-amount{width:138px}
 .lt-table th.lt-bal,.lt-table td.lt-bal{width:128px}
-.lt-table th.lt-actions,.lt-table td.lt-actions{width:112px}
+.lt-table th.lt-actions,.lt-table td.lt-actions{width:140px}
+.lt-edit .lt-actions{white-space:normal}
 .lt-table .num{text-align:right;font-variant-numeric:tabular-nums}
 .lt-table .th-sort{background:none;border:0;padding:0;min-height:44px;font:inherit;letter-spacing:inherit;text-transform:inherit;color:inherit;cursor:pointer}
 .lt-table input:not([type=checkbox]),.lt-table select{width:100%;min-width:0;min-height:44px;border:1px solid #cfc8ea;border-radius:12px;padding:0 10px;font:500 14px var(--font-sans),system-ui,sans-serif;background:#fff;color:var(--ink)}
