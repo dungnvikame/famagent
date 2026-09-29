@@ -43,7 +43,7 @@ test("plan figures: income − fixed − saving = flexible, plan = income − sa
   assert.equal(fig.savingPct, 20);
   assert.equal(fig.flex, 13_750_000);
   assert.equal(fig.plan, 20_000_000);
-  assert.equal(fig.perDay, 13_750_000 / 30);
+  assert.equal(fig.perDay, 458_000, "per day is shown in whole thousands");
   assert.equal(fig.setAside, 3_000_000);
   assert.ok(Math.abs(fig.bar.fixed + fig.bar.flex + fig.bar.saving - 100) < 1e-9);
 });

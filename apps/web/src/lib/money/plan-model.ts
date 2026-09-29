@@ -51,7 +51,7 @@ export function planFigures(bundle: Pick<MoneyBundle, "recurring" | "settings" |
   const first = recurring.find((item) => item.active && item.kind === "income" && plannedIncome([item], month, amounts) > 0);
   return {
     income, incomeFrom: first?.name, fixed, saving, savingStored, savingPct: income > 0 ? Math.round(saving / income * 100) : 0,
-    setAside: setAsideMonthly(recurring, amounts), flexRaw: income - fixed - saving, flex, perDay: flex / daysInMonth(month),
+    setAside: setAsideMonthly(recurring, amounts), flexRaw: income - fixed - saving, flex, perDay: Math.round(flex / daysInMonth(month) / 1000) * 1000,
     plan: Math.max(0, income - saving), bar: { fixed: share(fixed), flex: share(flex), saving: share(saving) },
   };
 }
