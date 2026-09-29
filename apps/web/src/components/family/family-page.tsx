@@ -62,7 +62,7 @@ export function FamilyPage() {
   const [money, setMoney] = useState<MonthSummary | null>(null);
   const [stock, setStock] = useState<ItemEstimate[]>([]);
   const [accountOpen, setAccountOpen] = useState(false);
-  const [newChild, setNewChild] = useState({ name: "", birthDate: "" });
+  const [newChild, setNewChild] = useState<{ name: string; birthDate: string; sex?: "male" | "female" }>({ name: "", birthDate: "" });
 
   const original = useRef<FamilyProfile | null>(null);
   const latest = useRef<FamilyProfile | null>(null);
@@ -174,7 +174,7 @@ export function FamilyPage() {
   }
   function addChild() {
     if (p.children.length >= 5) return;
-    const child: ChildProfile = { id: crypto.randomUUID(), name: newChild.name.trim() || undefined, birthDate: newChild.birthDate || undefined };
+    const child: ChildProfile = { id: crypto.randomUUID(), name: newChild.name.trim() || undefined, birthDate: newChild.birthDate || undefined, sex: newChild.sex };
     change({ ...p, children: [...p.children, child] }, true);
     setSelected(child.id); setSheet(null); setNewChild({ name: "", birthDate: "" });
   }
@@ -244,7 +244,7 @@ export function FamilyPage() {
         onTogglePractice={() => void togglePractice(practiceId, !done.includes(practiceId))}
         onEdit={() => setSheet({ kind: "child", id: selectedChild.id })} onEditLook={() => setSheet({ kind: "childLook", id: selectedChild.id })}
         onAddWeight={(date, kg) => addWeight(selectedChild, date, kg)} onDeleteWeight={(point) => removeWeight(selectedChild, point)}
-        onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} />}
+        onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)} />}
     </section>}
     {children.length === 0 && <section className="app-card fam-nokid"><span aria-hidden="true">👶</span><div><b>{p.household?.setup === "expecting" ? "Đang chờ bé chào đời" : "Chưa có hồ sơ bé"}</b><p className="fam-hint">Thêm bé để thấy tuổi, mốc ngày tuổi, biểu đồ cân nặng và gợi ý size bỉm.</p></div><button type="button" className="app-btn" onClick={() => setSheet({ kind: "addChild" })}>＋ Thêm bé</button></section>}
 
@@ -284,6 +284,7 @@ export function FamilyPage() {
     <SideSheet open={sheet?.kind === "addChild"} title="Thêm bé" onClose={() => setSheet(null)}>
       <form className="fam-form" onSubmit={(event) => { event.preventDefault(); addChild(); }}>
         <label className="fam-field"><span className="fam-label">Tên gọi</span><input value={newChild.name} maxLength={80} placeholder="Ví dụ: Bơ" onChange={(event) => setNewChild((value) => ({ ...value, name: event.target.value }))} /></label>
+        <div className="fam-field"><span className="fam-label">Bé trai hay bé gái</span><div className="fam-seg" role="radiogroup" aria-label="Giới tính">{([["male", "👦 Bé trai"], ["female", "👧 Bé gái"]] as const).map(([value, label]) => <button type="button" role="radio" key={value} aria-checked={newChild.sex === value} className={newChild.sex === value ? "on" : ""} onClick={() => setNewChild((current) => ({ ...current, sex: current.sex === value ? undefined : value }))}>{label}</button>)}</div></div>
         <label className="fam-field"><span className="fam-label">Ngày sinh</span><input type="date" max={today} value={newChild.birthDate} onChange={(event) => setNewChild((value) => ({ ...value, birthDate: event.target.value }))} /></label>
         <button className="app-btn" type="submit">Thêm bé</button>
         <p className="fam-hint">Cân nặng, size bỉm, thương hiệu… bổ sung sau trong hồ sơ của bé.</p>

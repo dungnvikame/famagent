@@ -260,3 +260,20 @@ body.fam-sheet-open{overflow:hidden}
 }
 @keyframes fam-in-up{from{transform:translateY(100%)}}
 @media(prefers-reduced-motion:reduce){.fam-page *,.fam-page *::after{animation:none!important;transition:none!important}}
+
+/* WHO weight-for-age view */
+.fam-chart-mode{align-self:flex-start;max-width:100%}
+.fam-who-band{fill:#1f9a74;opacity:.1}
+.fam-who-line{fill:none;stroke-width:1.5}
+.fam-who-line.z0{stroke:#1f9a74;stroke-width:2}
+.fam-who-line.z2,.fam-who-line.zm2{stroke:#1f9a74;stroke-dasharray:5 5;opacity:.8}
+.fam-who-line.z3,.fam-who-line.zm3{stroke:#b4413c;stroke-dasharray:2 5;opacity:.6}
+.fam-who-label{font-size:11px;font-weight:800;fill:#6f6a8a}
+.fam-who-src{font-size:11px;font-weight:700}
+.fam-who-ask{display:grid;gap:6px;justify-items:start;background:#f7f6fb;border-radius:16px;padding:16px}
+.fam-who-ask span{color:var(--muted);font-size:13px}
+.fam-who-sex{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.fam-who-read{display:grid;gap:4px;background:var(--ok-bg);color:var(--ok);border-radius:14px;padding:10px 12px;font-size:14px}
+.fam-who-read span{font-size:13px}
+.fam-who-read.warn{background:var(--warn-bg);color:var(--warn)}
+.fam-label small{font-weight:500}

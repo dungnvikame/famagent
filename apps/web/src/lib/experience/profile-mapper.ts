@@ -18,6 +18,8 @@ function childFromRow(row: Row): ChildProfile {
   return {
     id: row.id as string,
     name: text(row.name),
+    // Key only when set (column from migration 202609290022), so older rows map exactly as before.
+    ...(row.sex === "male" || row.sex === "female" ? { sex: row.sex } : {}),
     birthDate: text(row.birth_date),
     weightKg: row.current_weight_kg === null || row.current_weight_kg === undefined ? undefined : Number(row.current_weight_kg),
     ageMonths: typeof row.age_months === "number" ? row.age_months : undefined,
@@ -83,6 +85,7 @@ export function childRow(child: ChildProfile, familyProfileId: string, position:
     id: child.id,
     family_profile_id: familyProfileId,
     name: child.name || null,
+    sex: child.sex ?? null,
     birth_date: child.birthDate || null,
     current_weight_kg: orNull(child.weightKg),
     age_months: orNull(child.ageMonths),

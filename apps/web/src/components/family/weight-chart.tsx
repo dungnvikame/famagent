@@ -2,15 +2,21 @@
 
 import { useEffect, useId, useRef, useState } from "react";
 import { SIZE_BANDS, bandFor, daysBetween, growthPerMonth, kgText, shortDate, sizeOutlook, type WeightPoint } from "@/lib/family/child-stats";
+import { BAND_TEXT, WHO_MAX_DAYS, bandOf, whoPoints, zTrend, type Sex } from "@/lib/family/who-growth";
+import { WhoChart } from "./who-chart";
+
+/** What the WHO view needs; without sex or birth date it asks for them in place of the chart. */
+export interface WhoOptions { sex?: Sex; birthDate?: string; showSize: boolean; onSex: (sex: Sex) => void; onAddBirth: () => void }
 
 const H = 230, L = 34, R = 40, T = 14, B = 28;
 
 /**
- * Growth line of one child on diaper-size bands (the sizes FamAgent buys by), with the pace of the last months and
- * a dashed projection to the next size. Each weighing can be removed; a new one is one date + one number.
+ * Growth line of one child, two views: on diaper-size bands (the sizes FamAgent buys by, with pace and a dashed
+ * projection to the next size) or on the WHO weight-for-age curves (z-score, percentile, trend). Each weighing can
+ * be removed; a new one is one date + one number.
  */
-export function WeightChart({ series, today, color, name, onAdd, onDelete }: {
-  series: WeightPoint[]; today: string; color: { dot: string; ink: string }; name: string;
+export function WeightChart({ series, today, color, name, who, onAdd, onDelete }: {
+  series: WeightPoint[]; today: string; color: { dot: string; ink: string }; name: string; who: WhoOptions;
   onAdd: (date: string, kg: number) => Promise<void>; onDelete: (point: WeightPoint) => Promise<void>;
 }) {
   const gradientId = useId().replace(/:/g, "");
@@ -35,6 +41,12 @@ export function WeightChart({ series, today, color, name, onAdd, onDelete }: {
   const pace = growthPerMonth(series);
   const outlook = sizeOutlook(series, pace);
   const last = series.at(-1);
+  const [mode, setMode] = useState<"size" | "who">(who.showSize ? "size" : "who");
+  const view = who.showSize ? mode : "who";
+  const ageNowDays = who.birthDate ? daysBetween(who.birthDate, today) : undefined;
+  const whoPts = who.sex && who.birthDate ? whoPoints(series, who.birthDate, who.sex) : [];
+  const whoLast = whoPts.at(-1);
+  const trend = zTrend(whoPts);
 
   async function add(event: React.FormEvent) {
     event.preventDefault();
@@ -46,7 +58,7 @@ export function WeightChart({ series, today, color, name, onAdd, onDelete }: {
   }
 
   let chart = null;
-  if (series.length) {
+  if (view === "size" && series.length) {
     const first = series[0].date;
     const projectionEnd = outlook?.onDate && outlook.nextSize ? outlook.onDate : undefined;
     const endDate = [last!.date, today, projectionEnd].filter((value): value is string => Boolean(value)).sort().at(-1)!;
@@ -87,8 +99,22 @@ export function WeightChart({ series, today, color, name, onAdd, onDelete }: {
 
   const rows = [...series].reverse();
   return <div className="fam-weight" ref={box}>
-    {chart ?? <p className="fam-hint">Chưa có lần cân nào. Ghi cân nặng để thấy {name} lớn lên từng tháng và biết lúc nào cần đổi size bỉm.</p>}
-    {last && <div className="fam-weight-stats">
+    {who.showSize && <div className="fam-seg fam-chart-mode" role="tablist" aria-label="Kiểu biểu đồ">
+      <button type="button" role="tab" aria-selected={view === "size"} className={view === "size" ? "on" : ""} onClick={() => setMode("size")}>🧷 Theo size bỉm</button>
+      <button type="button" role="tab" aria-selected={view === "who"} className={view === "who" ? "on" : ""} onClick={() => setMode("who")}>📈 Chuẩn WHO</button>
+    </div>}
+    {view === "size" && (chart ?? <p className="fam-hint">Chưa có lần cân nào. Ghi cân nặng để thấy {name} lớn lên từng tháng và biết lúc nào cần đổi size bỉm.</p>)}
+    {view === "who" && (!who.birthDate ? <div className="fam-who-ask"><b>Cần ngày sinh của {name}</b><span>Đường chuẩn WHO tính theo tuổi chính xác của bé.</span><button type="button" className="app-btn" onClick={who.onAddBirth}>Thêm ngày sinh</button></div>
+      : !who.sex ? <div className="fam-who-ask"><b>{name} là bé trai hay bé gái?</b><span>WHO có đường chuẩn riêng cho trai và gái. Chỉ dùng cho biểu đồ này.</span><div className="fam-who-sex"><button type="button" className="app-btn ghost" onClick={() => who.onSex("male")}>👦 Bé trai</button><button type="button" className="app-btn ghost" onClick={() => who.onSex("female")}>👧 Bé gái</button></div></div>
+      : ageNowDays !== undefined && ageNowDays > WHO_MAX_DAYS ? <p className="fam-hint">WHO chỉ có chuẩn cân nặng theo tuổi đến 10 tuổi. Với trẻ lớn hơn, bác sĩ dùng chỉ số BMI theo tuổi.</p>
+      : <WhoChart points={whoPts} sex={who.sex} ageNowDays={ageNowDays ?? 0} width={W} color={color} today={today} name={name} />)}
+    {view === "who" && whoLast && <div className="fam-weight-stats">
+      <span><small>Bách phân vị</small><b>P{whoLast.percentile}</b><em>nặng hơn ~{whoLast.percentile}% bé cùng tuổi</em></span>
+      <span><small>Z-score</small><b>{whoLast.z >= 0 ? "+" : "−"}{Math.abs(Math.round(whoLast.z * 100) / 100).toLocaleString("vi-VN")}</b><em>{kgText(whoLast.kg)} · {shortDate(whoLast.date, today)}</em></span>
+      <span><small>Xu hướng</small><b>{!trend ? "—" : trend.kind === "steady" ? "Ổn định" : trend.kind === "up" ? "Đi lên" : "Đi xuống"}</b><em>{!trend ? "cần 2 lần cân cách ≥ 4 tuần" : `${trend.delta >= 0 ? "+" : "−"}${Math.abs(trend.delta).toLocaleString("vi-VN")} SD so với lần trước`}</em></span>
+    </div>}
+    {view === "who" && whoLast && (() => { const band = BAND_TEXT[bandOf(whoLast.z)]; const warn = Boolean(band.advice) || Boolean(trend?.crossing && trend.kind === "down"); return <div className={`fam-who-read${warn ? " warn" : ""}`}><b>{band.label}</b>{band.advice && <span>{band.advice}</span>}{trend?.crossing && <span>{trend.kind === "down" ? `${name} vừa tụt qua hơn một vạch bách phân vị — nên cân lại sau 2–4 tuần, hỏi bác sĩ nếu vẫn giảm.` : `${name} vừa tăng vượt hơn một vạch bách phân vị.`}</span>}</div>; })()}
+    {view === "size" && last && <div className="fam-weight-stats">
       <span><small>Gần nhất</small><b>{kgText(last.kg)}</b><em>{shortDate(last.date, today)}</em></span>
       <span><small>Nhịp tăng</small><b>{pace === null ? "—" : `${pace >= 0 ? "+" : "−"}${Math.abs(Math.round(pace * 100) / 100).toLocaleString("vi-VN")} kg`}</b><em>{pace === null ? "cần ≥ 2 lần cân cách 2 tuần" : "mỗi tháng"}</em></span>
       {outlook && <span><small>Size theo cân</small><b>{outlook.size}</b><em>{outlook.nextSize ? outlook.onDate ? `lên ${outlook.nextSize} ~${shortDate(outlook.onDate, today)}` : `còn ${kgText(outlook.kgToGo!)} lên ${outlook.nextSize}` : "size lớn nhất"}</em></span>}
@@ -102,7 +128,7 @@ export function WeightChart({ series, today, color, name, onAdd, onDelete }: {
     {rows.length > 0 && <details className="fam-weight-log" open={all} onToggle={(event) => setAll((event.target as HTMLDetailsElement).open)}><summary>Các lần cân ({rows.length})</summary>
       <ul>{rows.map((point, index) => { const before = rows[index + 1]; const diff = before ? Math.round((point.kg - before.kg) * 10) / 10 : undefined; return <li key={point.date}><span>{shortDate(point.date)}</span><b>{kgText(point.kg)}</b><em className={diff !== undefined && diff < 0 ? "down" : undefined}>{diff === undefined ? "" : `${diff >= 0 ? "+" : "−"}${Math.abs(diff).toLocaleString("vi-VN")}`}</em>{point.id ? <button type="button" className="ledger-link danger" onClick={() => void onDelete(point).catch((cause: unknown) => setError(cause instanceof Error ? cause.message : "Chưa xóa được."))}>Xóa</button> : <small>từ hồ sơ</small>}</li>; })}</ul>
     </details>}
-    <p className="fam-hint">Vùng màu là khoảng cân của từng size bỉm FamAgent dùng khi gợi ý. Đây không phải biểu đồ tăng trưởng y khoa — hỏi bác sĩ nhi nếu bạn lo về cân nặng của con.</p>
+    <p className="fam-hint">{view === "size" ? "Vùng màu là khoảng cân của từng size bỉm FamAgent dùng khi gợi ý — xem “Chuẩn WHO” để so với trẻ cùng tuổi." : "Theo Chuẩn tăng trưởng trẻ em WHO 2006 (0–5 tuổi) và Tham chiếu WHO 2007 (5–10 tuổi). Vùng xanh là −2 đến +2 SD. Chỉ là cân nặng theo tuổi, không thay khám nhi — bác sĩ còn xem chiều cao và sức khỏe chung."}</p>
   </div>;
 }
 

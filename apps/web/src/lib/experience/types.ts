@@ -6,6 +6,8 @@ export const DELIVERY_PREFERENCES = ["cheapest", "fastest", "balanced"] as const
 export const SENSITIVITIES = ["sensitive_skin", "rash_prone", "fragrance_free"] as const;
 export const WASHING_MACHINES = ["front", "top", "none"] as const;
 export const DIAPER_SIZES = ["NB", "S", "M", "L", "XL", "XXL"] as const;
+/** Only for the WHO growth curves (they differ for boys and girls). */
+export const CHILD_SEXES = ["male", "female"] as const;
 export const FIELD_SOURCES = ["user_entered", "user_confirmed"] as const;
 
 export type PricePreference = (typeof PRICE_PREFERENCES)[number];
@@ -33,6 +35,7 @@ export interface FieldMeta {
 export interface ChildProfile {
   id: string;
   name?: string;
+  sex?: (typeof CHILD_SEXES)[number];
   /** YYYY-MM-DD; preferred over ageMonths when both exist. */
   birthDate?: string;
   weightKg?: number;

@@ -2,7 +2,7 @@
 import type { ChildProfile, FamilyProfile, FieldMeta, FieldSource } from "./types.ts";
 
 const FAMILY_FIELDS = ["familyName", "adultsCount", "pricePreference", "deliveryPreference", "mainConcern", "maxBudget", "preferredBrands", "avoidedIngredients"] as const;
-const CHILD_FIELDS = ["name", "birthDate", "weightKg", "ageMonths", "diaperSize", "sensitivities", "currentBrand", "preferredBrands", "dislikedBrands"] as const;
+const CHILD_FIELDS = ["name", "sex", "birthDate", "weightKg", "ageMonths", "diaperSize", "sensitivities", "currentBrand", "preferredBrands", "dislikedBrands"] as const;
 
 /** Flattens a profile into `path → value` using the same paths as fieldMeta keys. */
 export function profileFieldValues(profile: FamilyProfile): Map<string, unknown> {

@@ -37,6 +37,8 @@ export async function saveProfileForUser(client: SupabaseClient, userId: string,
     let { error: childError } = await client.from("children").upsert(rows);
     // Migration 202609290019 (children.age_as_of) not applied yet: save without it; the age then stays as given.
     if (childError && /age_as_of/.test(childError.message)) ({ error: childError } = await client.from("children").upsert(rows.map((row) => { const copy = { ...row }; delete copy.age_as_of; return copy; })));
+    // Same for migration 202609290022 (children.sex): the WHO chart then just asks again.
+    if (childError && /\bsex\b/.test(childError.message)) ({ error: childError } = await client.from("children").upsert(rows.map((row) => { const copy = { ...row }; delete copy.sex; return copy; })));
     if (childError) return "children_write";
   }
   await logWeights(client, userId, profile, childIds);

@@ -15,11 +15,11 @@ export interface TodayPractice { id: string; title: string; source: string; done
  * One child, age first (Huckleberry/BabyCenter style): the ring counts the way to the next birthday, then what to do
  * with them today, the growth line on diaper sizes, and what to watch for when buying — all from data already known.
  */
-export function ChildSpotlight({ child, name, look, photo, today, series, notes, practice, onTogglePractice, onEdit, onEditLook, onAddWeight, onDeleteWeight, onUseSize }: {
+export function ChildSpotlight({ child, name, look, photo, today, series, notes, practice, onTogglePractice, onEdit, onEditLook, onAddWeight, onDeleteWeight, onUseSize, onSetSex }: {
   child: ChildProfile; name: string; look: { color: AvatarColor; emoji?: string }; photo?: string; today: string;
   series: WeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
   onTogglePractice: () => void; onEdit: () => void; onEditLook: () => void;
-  onAddWeight: (date: string, kg: number) => Promise<void>; onDeleteWeight: (point: WeightPoint) => Promise<void>; onUseSize: (size: string) => void;
+  onAddWeight: (date: string, kg: number) => Promise<void>; onDeleteWeight: (point: WeightPoint) => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
 }) {
   const style = COLOR_STYLES[look.color];
   const months = child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child);
@@ -70,8 +70,9 @@ export function ChildSpotlight({ child, name, look, photo, today, series, notes,
         <small className="fam-hint">Tham khảo theo tuổi — không thay lời khuyên của bác sĩ.</small>
       </div>
 
-      <div className="fam-blk wide"><h3>Cân nặng & size bỉm <span className="sp" /><span className="fam-use">dùng cho: Mua sắm</span></h3>
-        <WeightChart series={series} today={today} name={name} color={{ dot: style.dot, ink: style.ink }} onAdd={onAddWeight} onDelete={onDeleteWeight} />
+      <div className="fam-blk wide"><h3>Cân nặng & tăng trưởng <span className="sp" /><span className="fam-use">dùng cho: size bỉm · so chuẩn WHO</span></h3>
+        <WeightChart series={series} today={today} name={name} color={{ dot: style.dot, ink: style.ink }} onAdd={onAddWeight} onDelete={onDeleteWeight}
+          who={{ sex: child.sex, birthDate: child.birthDate, showSize: usesDiapers, onSex: onSetSex, onAddBirth: onEdit }} />
         {suggestSize && <div className="fam-suggest">Theo cân nặng mới nhất, {name} hợp size <b>{suggestSize}</b> (đang ghi {child.diaperSize}).<button type="button" className="app-btn" onClick={() => onUseSize(suggestSize)}>Đổi sang {suggestSize}</button></div>}
         {!usesDiapers && <small className="fam-hint">{name} đã qua tuổi dùng bỉm nên FamAgent không lập kế hoạch bỉm cho con.</small>}
       </div>
