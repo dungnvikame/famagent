@@ -80,6 +80,14 @@ export const SCREEN_TIME = ["none", "lt1h", "1to2h", "gt2h"] as const;
 export const READING_FREQ = ["daily", "sometimes", "rarely"] as const;
 export const SAFETY_MEASURES = ["stairs", "outlets", "chemicals", "vehicle", "none"] as const;
 export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "schedule"] as const;
+/** Family page: adult roles, avatar colours and cover themes (lib/family/members). */
+export const MEMBER_ROLES = ["dad", "mom", "grandpa", "grandma", "caregiver", "other"] as const;
+export const AVATAR_COLORS = ["sunset", "peach", "lilac", "ocean", "mint", "rose", "sky", "ink"] as const;
+export const COVER_THEMES = ["aurora", "sunrise", "garden", "ocean", "night"] as const;
+/** An adult of the household; `id` "me" = the signed-in account. */
+export interface AdultMember { id: string; name?: string; role?: (typeof MEMBER_ROLES)[number]; emoji?: string; color?: (typeof AVATAR_COLORS)[number] }
+/** How a member is drawn when there is no photo. */
+export interface MemberLook { emoji?: string; color?: (typeof AVATAR_COLORS)[number] }
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
 export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
 
@@ -126,6 +134,11 @@ export interface HouseholdContext {
   careMethod?: (typeof CARE_METHODS)[number];
   /** Money framework the family chose (after the onboarding assessment or in Tiền). */
   moneyMethod?: (typeof MONEY_METHODS)[number];
+  /** Family page: adults of the household (adultsCount follows its length), looks of the children keyed by child id, motto and cover. */
+  members?: AdultMember[];
+  looks?: Record<string, MemberLook>;
+  motto?: string;
+  theme?: (typeof COVER_THEMES)[number];
   /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */
   notes?: Record<string, string>;
 }

@@ -12,3 +12,14 @@ export async function shrinkImage(file: File): Promise<string> {
   bitmap.close();
   return canvas.toDataURL("image/jpeg", 0.82);
 }
+
+/** Centre-cropped square JPEG for avatars (default 256 px, ~15–30 KB), no EXIF. */
+export async function squareAvatar(file: File, side = 256): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const crop = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement("canvas");
+  canvas.width = side; canvas.height = side;
+  canvas.getContext("2d")!.drawImage(bitmap, (bitmap.width - crop) / 2, (bitmap.height - crop) / 2, crop, crop, 0, 0, side, side);
+  bitmap.close();
+  return canvas.toDataURL("image/jpeg", 0.85);
+}

@@ -23,6 +23,7 @@ import "./money-future.css";
 import "./money-due.css";
 import "./financial-health.css";
 import "./family-notes.css";
+import "./family-page.css";
 import "./shopping-plan.css";
 
 // Self-hosted at build time by next/font (no runtime request to Google); Vietnamese subset included.

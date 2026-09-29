@@ -4,7 +4,7 @@
 export const EVENT_NAMES = [
   // Spec §41 + v1 §17 + onboarding funnel (funnel views in migration 202609240005 read these names)
   "homepage_view", "onboarding_started", "onboarding_slot_filled", "onboarding_slot_skipped", "onboarding_completed", "family_profile_update_started",
-  "family_profile_created", "family_profile_updated", "ai_message_sent", "intent_created", "recommendation_generated", "recommendation_viewed",
+  "family_profile_created", "family_profile_updated", "child_weight_logged", "ai_message_sent", "intent_created", "recommendation_generated", "recommendation_viewed",
   "product_clicked", "product_saved", "compare_started", "product_compared", "offer_clicked",
   // Family notes, routine, care
   "family_note_recorded", "daily_task_done", "care_method_chosen",
