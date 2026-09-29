@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { QuickEntryProvider, useQuickEntry } from "@/components/money/quick-entry";
 import { IconAgent, IconBag, IconFamily, IconHome, IconMoney } from "./nav-icons";
 import { useAccount } from "./use-account";
 
@@ -14,7 +15,20 @@ export const SECTIONS = [
   { href: "/family", label: "Gia đình", icon: IconFamily, match: /^\/family/ },
 ] as const;
 
+/** "Ghi khoản" from any page: a button in the sidebar (key N) and a floating button on phones (not over the chat composer). */
+function QuickEntryButtons({ pathname }: { pathname: string }) {
+  const { open } = useQuickEntry();
+  return <>
+    <button type="button" className="app-quick" onClick={open}>＋ Ghi khoản <kbd aria-hidden="true">N</kbd></button>
+    {!pathname.startsWith("/agent") && <button type="button" className="app-fab" onClick={open} aria-label="Ghi khoản">＋</button>}
+  </>;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
+  return <QuickEntryProvider><AppShellFrame>{children}</AppShellFrame></QuickEntryProvider>;
+}
+
+function AppShellFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const account = useAccount();
   const items = SECTIONS.map((section) => {
@@ -26,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return <div className="app-shell">
     <aside className="app-side">
       <Link href="/home" className="app-brand"><span className="app-orb" aria-hidden="true" />FamAgent</Link>
+      <QuickEntryButtons pathname={pathname} />
       <nav className="app-nav" aria-label="Điều hướng chính">{items}</nav>
       <Link href="/family#account" className="app-me" aria-label="Tài khoản & quyền riêng tư">
         {/* eslint-disable-next-line @next/next/no-img-element -- Google avatar; remote host not whitelisted for next/image */}
