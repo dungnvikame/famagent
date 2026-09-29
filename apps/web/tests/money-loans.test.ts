@@ -38,13 +38,31 @@ test("loan totals, overview and people", () => {
   assert.equal(people.lent[0].entries[0].occurredOn, "2026-01-10");
 });
 
-test("Thu/Chi leave loans out; cash change keeps them", async () => {
+test("loans are ordinary Thu/Chi; loanFlows tells how much of the month they are", async () => {
   const { summarizeMonth, sumByKind } = await import("../src/lib/money/summary.ts");
   const { DEFAULT_CATEGORIES } = await import("../src/lib/money/types.ts");
   const list = [tx("2026-09-05", "income", 25_000_000, "Lương", "Lương"), tx("2026-09-06", "income", 6_000_000, "Tiền trả nợ nhận về", "Mẹ trả"), tx("2026-09-07", "expense", 5_000_000, "Tiền cho vay", "Tom vay"), tx("2026-09-08", "expense", 400_000, "Ăn uống", "phở")];
   const summary = summarizeMonth({ month: "2026-09", settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES }, transactions: list, totals: sumByKind(list), budgets: [], recurring: [], goals: [] }, new Date(2026, 8, 25));
-  assert.equal(summary.income, 25_000_000);
-  assert.equal(summary.expense, 400_000);
+  assert.equal(summary.income, 31_000_000);
+  assert.equal(summary.expense, 5_400_000);
   assert.equal(summary.cashChange, 25_600_000);
-  assert.deepEqual(summary.byCategory.map((line) => line.category), ["Ăn uống"]);
+  assert.deepEqual(summary.byCategory.map((line) => line.category), ["Tiền cho vay", "Ăn uống"]);
+  assert.deepEqual(summary.loanFlows, { borrowed: 0, repaid: 0, lent: 5_000_000, collected: 6_000_000 });
+});
+
+test("loanFlows: repaying and borrowing, incl. debt payments posted as Tiền trả góp; charts and reports count loans", async () => {
+  const { summarizeMonth, sumByKind } = await import("../src/lib/money/summary.ts");
+  const { monthlyHistory } = await import("../src/lib/money/history.ts");
+  const { categoryRows, cumulativeSpend, topExpenses } = await import("../src/lib/money/month-report.ts");
+  const { DEFAULT_CATEGORIES } = await import("../src/lib/money/types.ts");
+  const list = [tx("2026-09-02", "income", 20_000_000, "Vay cá nhân", "vay em gái"), tx("2026-09-03", "expense", 8_000_000, "Tiền trả nợ", "trả nợ em gái"), tx("2026-09-15", "expense", 8_200_000, "Tiền trả góp", "Trả Vay mua xe", { recurringId: "r-car" }), tx("2026-09-20", "expense", 300_000, "Ăn uống", "phở")];
+  const position = { asOf: "2026-08-01", accounts: [], debts: [{ id: "d1", name: "Vay mua xe", balance: 380_000_000, recurringId: "r-car" }] };
+  const summary = summarizeMonth({ month: "2026-09", settings: { openingCash: 0, openingSavings: 0, categories: DEFAULT_CATEGORIES, position }, transactions: list, totals: sumByKind(list), budgets: [], recurring: [], goals: [] }, new Date(2026, 8, 25));
+  assert.deepEqual(summary.loanFlows, { borrowed: 20_000_000, repaid: 16_200_000, lent: 0, collected: 0 });
+  assert.equal(summary.expense, 16_500_000);
+  assert.equal(summary.income, 20_000_000);
+  assert.equal(monthlyHistory(list, "2026-09", 1)[0].expense, 16_500_000);
+  assert.deepEqual(categoryRows(list, [], undefined, "2026-09").map((row) => row.name), ["Tiền trả góp", "Tiền trả nợ", "Ăn uống"]);
+  assert.equal(cumulativeSpend(list, "2026-09", 30)[29], 16_500_000);
+  assert.equal(topExpenses(list, "2026-09")[0].category, "Tiền trả góp");
 });
