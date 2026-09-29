@@ -1,4 +1,7 @@
 import type { MoneyBundle, MoneyRecurring, MoneyTransaction } from "./types.ts";
+import { dueEntries, fixedStillDue, type DueEntry } from "./fixed-items.ts";
+import { categoryAverages } from "./history.ts";
+import { budgetLines, effectivePlan, flexibleBudget, flexibleCategories, type BudgetLine } from "./plan.ts";
 import { debtLinkIds, loanFlows, loanRole, type LoanTotals } from "./loans.ts";
 import { vnd } from "../catalog/format.ts";
 
@@ -32,6 +35,14 @@ export interface MonthSummary {
   childSpend: number;
   byCategory: CategoryLine[];
   upcoming: UpcomingItem[];
+  /** Fixed-item periods waiting for an answer (current month only): asking now, coming up, or overdue. */
+  due: DueEntry[];
+  /** Fixed expenses of the month nobody has confirmed yet, at their expected amount: held back from "còn tiêu được". */
+  fixedDue: number;
+  /** plan − spent − fixedDue: what can still be spent freely this month (current month only). */
+  freeToSpend?: number;
+  /** Category budgets in force: the ones the family set, plus the shared ones from the flexible budget. */
+  budgetPlan: BudgetLine[];
   balances: { cash: number; savings: number };
   insights: MoneyInsight[];
   transactionCount: number;
@@ -48,20 +59,9 @@ export function sumByKind(transactions: MoneyTransaction[]) {
   return totals;
 }
 
-/** Recurring items due in the next `horizonDays` from `now` (this month or next), regardless of posting state. */
-export function upcomingRecurring(recurring: MoneyRecurring[], now: Date, horizonDays = 7): UpcomingItem[] {
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const out: UpcomingItem[] = [];
-  for (const item of recurring) {
-    if (!item.active) continue;
-    for (const offset of [0, 1]) {
-      const y = today.getFullYear(); const m = today.getMonth() + offset;
-      const due = new Date(y, m, Math.min(item.dayOfMonth, new Date(y, m + 1, 0).getDate()));
-      const daysLeft = Math.round((due.getTime() - today.getTime()) / 86_400_000);
-      if (daysLeft >= 0 && daysLeft <= horizonDays) { out.push({ id: item.id, name: item.name, amount: item.amount, kind: item.kind, dueOn: localDate(due), daysLeft }); break; }
-    }
-  }
-  return out.sort((a, b) => a.daysLeft - b.daysLeft);
+/** Fixed-item periods asking within a week, in the shape the Brief and the month view already read. */
+export function upcomingFrom(due: DueEntry[]): UpcomingItem[] {
+  return due.filter((entry) => entry.state !== "overdue" && entry.daysToStart <= 7).map((entry) => ({ id: entry.recurringId, name: entry.name, amount: entry.amount, kind: entry.kind, dueOn: entry.from, daysLeft: Math.max(0, entry.daysToStart) }));
 }
 
 /**
@@ -70,14 +70,14 @@ export function upcomingRecurring(recurring: MoneyRecurring[], now: Date, horizo
  * recurring item; one-off loan and debt payments are left out of the pace too (a lump is not a daily habit) but
  * stay in what was spent. So rent posted on the 1st is never multiplied by the days of the month.
  */
-function forecastExpense(spent: number, inMonth: MoneyTransaction[], recurring: MoneyRecurring[], month: string, elapsed: number, days: number): number {
+function forecastExpense(spent: number, inMonth: MoneyTransaction[], fixedDue: number, elapsed: number, days: number): number {
   const flexible = inMonth.filter((item) => item.kind === "expense" && !item.recurringId && !item.debtId && !loanRole(item)).reduce((sum, item) => sum + item.amount, 0);
-  const fixedDue = recurring.filter((item) => item.active && item.kind === "expense" && item.lastPostedMonth !== month).reduce((sum, item) => sum + item.amount, 0);
   return Math.round(spent + fixedDue + flexible / elapsed * (days - elapsed));
 }
 
 export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSummary {
   const { month, transactions, budgets, settings, recurring, totals } = bundle;
+  const periods = bundle.periods ?? []; const amounts = bundle.recurringAmounts;
   // Loans (borrowing, repaying, lending, being paid back) are ordinary Thu/Chi; loanFlows tells how much of it they are.
   const inMonth = transactions.filter((item) => item.occurredOn.startsWith(month));
   const sums = sumByKind(inMonth);
@@ -88,18 +88,28 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
     line.spent += item.amount; if (item.forChild) line.forChild += item.amount;
     byMap.set(item.category, line);
   }
-  for (const budget of budgets) if (budget.month === month) { const line = byMap.get(budget.category) ?? { category: budget.category, spent: 0, forChild: 0 }; line.limit = budget.limitAmount; byMap.set(budget.category, line); }
+  // Budgets the family set for this month stay as typed. Once it plans by saving (monthlySaving) and there is history,
+  // the flexible budget is shared among the other categories by what each usually costs.
+  const overrides: Record<string, number> = {};
+  for (const budget of budgets) if (budget.month === month) overrides[budget.category] = budget.limitAmount;
+  const familyPlan = effectivePlan(settings, recurring, month, amounts);
+  const shared: BudgetLine[] = settings.monthlySaving !== undefined && familyPlan !== undefined && bundle.history?.length
+    ? budgetLines(flexibleBudget(familyPlan, recurring, amounts), categoryAverages(bundle.history, month), flexibleCategories(settings.categories, recurring), overrides)
+    : Object.entries(overrides).map(([category, limit]) => ({ category, limit, source: "set" as const, average: 0 }));
+  for (const budget of shared) { const line = byMap.get(budget.category) ?? { category: budget.category, spent: 0, forChild: 0 }; line.limit = budget.limit; byMap.set(budget.category, line); }
   const byCategory = [...byMap.values()].map((line) => ({ ...line, ratio: line.limit ? line.spent / line.limit : undefined })).sort((a, b) => b.spent - a.spent);
   const budgetTotal = byCategory.reduce((acc, line) => acc + (line.limit ?? 0), 0);
-  const plan = settings.monthlyPlan ?? (budgetTotal || undefined);
+  const plan = familyPlan ?? (budgetTotal || undefined);
 
   const current = monthKey(now) === month;
   const days = daysInMonth(month);
   const elapsed = current ? Math.max(1, now.getDate()) : days;
-  const expectedExpense = current && sums.expense > 0 ? forecastExpense(sums.expense, inMonth, recurring, month, elapsed, days) : undefined;
+  const due = current ? dueEntries(recurring, periods, amounts, now) : [];
+  const fixedDue = current ? fixedStillDue(recurring, periods, amounts, month) : 0;
+  const expectedExpense = current && sums.expense > 0 ? forecastExpense(sums.expense, inMonth, fixedDue, elapsed, days) : undefined;
   const paceRatio = plan && expectedExpense ? expectedExpense / plan : undefined;
   const childSpend = inMonth.filter((item) => item.kind === "expense" && item.forChild).reduce((acc, item) => acc + item.amount, 0);
-  const upcoming = current ? upcomingRecurring(recurring, now) : [];
+  const upcoming = upcomingFrom(due);
   const fromSavings = totals.fromSavings ?? 0;
   const balances = { cash: settings.openingCash + totals.income - (totals.expense - fromSavings) - totals.saving, savings: settings.openingSavings + totals.saving - fromSavings };
   const monthFromSavings = inMonth.filter((item) => item.kind === "expense" && item.paidFrom === "savings").reduce((sum, item) => sum + item.amount, 0);
@@ -115,27 +125,13 @@ export function summarizeMonth(bundle: MoneyBundle, now = new Date()): MonthSumm
   if (childSpend > 0 && sums.expense > 0 && childSpend / sums.expense >= 0.25) insights.push({ id: "child-share", tone: "info", text: `Chi cho con chiếm ${Math.round(childSpend / sums.expense * 100)}% chi tiêu tháng này (${vnd(childSpend)}).`, source: "Từ các khoản đánh dấu “cho con”" });
   if (sums.income > 0 && sums.saving > 0) insights.push({ id: "saving-rate", tone: "ok", text: `Đã chuyển ${vnd(sums.saving)} vào tiết kiệm — ${Math.round(sums.saving / sums.income * 100)}% thu nhập tháng này.`, source: "Từ các khoản tiết kiệm" });
 
-  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: sums.income - (sums.expense - monthFromSavings) - sums.saving, savingsChange: sums.saving - monthFromSavings, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, loanFlows: loanFlows(inMonth, debtLinkIds(settings.position?.debts ?? [])), childSpend, byCategory, upcoming, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
+  return { month, ...sums, net: sums.income - sums.expense - sums.saving, cashChange: sums.income - (sums.expense - monthFromSavings) - sums.saving, savingsChange: sums.saving - monthFromSavings, plan, remainingOfPlan: plan !== undefined ? plan - sums.expense : undefined, expectedExpense, paceRatio, loanFlows: loanFlows(inMonth, debtLinkIds(settings.position?.debts ?? [])), childSpend, byCategory, upcoming, due, fixedDue, freeToSpend: current && plan !== undefined ? plan - sums.expense - fixedDue : undefined, budgetPlan: shared, balances, insights: insights.slice(0, 3), transactionCount: inMonth.length };
 }
 
-/** Recurring items that should be posted into `month` (due day already reached) and have not been yet. */
-export function dueRecurring(recurring: MoneyRecurring[], month: string, now: Date): MoneyRecurring[] {
-  const current = monthKey(now) === month;
-  // Only forward: a month after the last posted one (never back-fill older months, never twice when switching
-  // months); an item never posted starts with the current month.
-  return recurring.filter((item) => item.active && month <= monthKey(now) && (item.lastPostedMonth ? month > item.lastPostedMonth : current) && (!current || item.dayOfMonth <= now.getDate()));
-}
-
-/** Transaction created when a recurring item posts. */
 /**
  * A monthly recurring item made from an entry the family just typed ("Hằng tháng"): the entry itself is this
  * month's posting, so the item counts that month as posted and repeats from the next one.
  */
 export function recurringFor(entry: Pick<MoneyTransaction, "content" | "kind" | "category" | "amount" | "occurredOn">, dayOfMonth: number, id: string): MoneyRecurring {
   return { id, name: entry.content, kind: entry.kind, category: entry.category, amount: Math.abs(entry.amount), dayOfMonth, active: true, lastPostedMonth: entry.occurredOn.slice(0, 7) };
-}
-
-export function postingFor(item: MoneyRecurring, month: string, id: string): MoneyTransaction {
-  const day = Math.min(item.dayOfMonth, daysInMonth(month));
-  return { id, occurredOn: `${month}-${String(day).padStart(2, "0")}`, content: item.name, category: item.category, kind: item.kind, amount: item.amount, forChild: false, source: "recurring", recurringId: item.id };
 }
