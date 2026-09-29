@@ -57,3 +57,13 @@ test("có sổ thu chi: thẻ vượt nhịp + hóa đơn sắp đến hạn tha
   assert.match(brief.attention[0].title, /cao hơn kế hoạch 1[0-9]%/);
   assert.equal(brief.attention[1].tone, "warn"); assert.match(brief.attention[1].title, /Internet 450K đến hạn sau 2 ngày/);
 });
+
+test("lịch cân đo: theo tuổi, tính cả chiều cao khi đã từng đo, tắt được", () => {
+  const measured = { c1: { weight: "2026-09-20", height: "2026-08-01" } };
+  const brief = buildBrief({ profile: profile(), conversations: [], savedCount: 0, measures: measured, now });
+  const card = brief.attention.find((item) => item.id === "stale-c1")!;
+  assert.match(card.title, /Đến lịch đo chiều cao cho bé Gold — đã 54 ngày/);
+  assert.equal(card.cta.href, "/family#fam-kids");
+  const off = buildBrief({ profile: profile({ household: { measureEvery: "off" } }), conversations: [], savedCount: 0, measures: measured, now });
+  assert.equal(off.attention.some((item) => item.id === "stale-c1"), false);
+});

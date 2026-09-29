@@ -8,6 +8,7 @@ import { ageParts, ageText, dayMilestone, nextBirthday, shortDate, sizeOutlook, 
 import { COLOR_STYLES, SENSITIVITY_LABELS, type AvatarColor } from "@/lib/family/members";
 import { MemberAvatar } from "./member-avatar";
 import { GrowthChart, type HeightPoint } from "./growth-chart";
+import { MEASURE_EVERY, MEASURE_EVERY_LABELS, cadenceText, dueLine, type MeasureDue, type MeasureEvery } from "@/lib/family/measure-schedule";
 
 export interface TodayPractice { id: string; title: string; source: string; done: boolean }
 
@@ -15,11 +16,12 @@ export interface TodayPractice { id: string; title: string; source: string; done
  * One child, age first (Huckleberry/BabyCenter style): the ring counts the way to the next birthday, then what to do
  * with them today, the growth line on diaper sizes, and what to watch for when buying — all from data already known.
  */
-export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex }: {
+export function ChildSpotlight({ child, name, look, photo, today, series, heights, notes, practice, onTogglePractice, onEdit, onEditLook, onAddMeasure, onDeleteMeasure, onUseSize, onSetSex, due, every, onEvery }: {
   child: ChildProfile; name: string; look: { color: AvatarColor; emoji?: string }; photo?: string; today: string;
   series: WeightPoint[]; heights: HeightPoint[]; notes: FamilyNote[]; practice?: TodayPractice;
   onTogglePractice: () => void; onEdit: () => void; onEditLook: () => void;
   onAddMeasure: (date: string, values: { kg?: number; cm?: number }) => Promise<void>; onDeleteMeasure: (id: string, field: "kg" | "cm") => Promise<void>; onUseSize: (size: string) => void; onSetSex: (sex: "male" | "female") => void;
+  due: MeasureDue | null; every: MeasureEvery; onEvery: (every: MeasureEvery) => void;
 }) {
   const style = COLOR_STYLES[look.color];
   const months = child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child);
@@ -72,6 +74,12 @@ export function ChildSpotlight({ child, name, look, photo, today, series, height
       </div>
 
       <div className="fam-blk wide"><h3>Cân nặng & tăng trưởng <span className="sp" /><span className="fam-use">dùng cho: size bỉm · so chuẩn WHO</span></h3>
+        <div className={`fam-sched ${due?.state ?? "off"}`} role="status">
+          <span className="fam-sched-ico" aria-hidden="true">{due?.state === "due" ? "⏰" : "📅"}</span>
+          <div><b>{due ? dueLine(due, today) : "Đã tắt nhắc cân đo"}</b><small>{due ? `Ở tuổi này nên cân đo ${cadenceText(due.interval)}. Bật thông báo ở mục Tài khoản để được nhắc lúc 8 giờ sáng.` : "Bật lại để FamAgent nhắc khi đến lịch."}</small></div>
+          <label className="fam-sched-every"><span className="sr-only">Tần suất nhắc</span><select value={every} onChange={(event) => onEvery(event.target.value as MeasureEvery)} aria-label="Tần suất nhắc cân đo">{MEASURE_EVERY.map((value) => <option key={value} value={value}>{MEASURE_EVERY_LABELS[value]}</option>)}</select></label>
+          {due?.state === "due" && <button type="button" className="app-btn" onClick={(event) => { const input = event.currentTarget.closest(".fam-blk")?.querySelector<HTMLInputElement>(".fam-weight-add input[inputmode]"); input?.scrollIntoView({ behavior: "smooth", block: "center" }); input?.focus({ preventScroll: true }); }}>Ghi ngay</button>}
+        </div>
         <GrowthChart weights={series} heights={heights} today={today} name={name} color={{ dot: style.dot, ink: style.ink }} onAdd={onAddMeasure} onDelete={onDeleteMeasure}
           who={{ sex: child.sex, birthDate: child.birthDate, showSize: usesDiapers, onSex: onSetSex, onAddBirth: onEdit }} />
         {suggestSize && <div className="fam-suggest">Theo cân nặng mới nhất, {name} hợp size <b>{suggestSize}</b> (đang ghi {child.diaperSize}).<button type="button" className="app-btn" onClick={() => onUseSize(suggestSize)}>Đổi sang {suggestSize}</button></div>}

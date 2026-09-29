@@ -59,4 +59,15 @@ export async function removeAvatar(memberId: string): Promise<void> {
   write(AVATARS_KEY, next);
 }
 
+/** Last weighing and last height day per child (for the measuring schedule). */
+export function lastMeasureDays(rows: ChildMeasure[]): Record<string, { weight?: string; height?: string }> {
+  const out: Record<string, { weight?: string; height?: string }> = {};
+  for (const row of rows) {
+    const entry = out[row.childId] ??= {};
+    if (row.kg !== undefined && row.kg !== null && (!entry.weight || row.date > entry.weight)) entry.weight = row.date;
+    if (row.cm !== undefined && row.cm !== null && (!entry.height || row.date > entry.height)) entry.height = row.date;
+  }
+  return out;
+}
+
 export function clearLocalFamily() { localStorage.removeItem(WEIGHTS_KEY); localStorage.removeItem(AVATARS_KEY); }

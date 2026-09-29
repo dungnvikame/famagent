@@ -16,6 +16,7 @@ import type { StockCheck as StockCheckRow } from "@/lib/shopping/items";
 import { estimateItems, itemRateResolver, type ItemEstimate } from "@/lib/shopping/items";
 import { DailyTasks } from "./daily-tasks";
 import { localDay } from "@/lib/brief/daily-tasks";
+import { lastMeasureDays, loadMeasures } from "@/lib/family/client";
 
 /** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
 export function FamilyBriefPage() {
@@ -29,6 +30,7 @@ export function FamilyBriefPage() {
   const [stock, setStock] = useState<ItemEstimate[]>([]);
   const [checks, setChecks] = useState<StockCheckRow[]>([]);
   const [shoppingTick, setShoppingTick] = useState(0);
+  const [measures, setMeasures] = useState<Record<string, { weight?: string; height?: string }>>({});
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -44,6 +46,8 @@ export function FamilyBriefPage() {
         setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
         // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
         loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); const today = localDay(new Date()); setLoggedToday(bundle.transactions.some((tx) => tx.occurredOn === today)); }).catch(() => {});
+        // Growth log for "đến lịch cân đo"; without it the card falls back to the profile's weight date.
+        loadMeasures().then((rows) => { if (!cancelled) setMeasures(lastMeasureDays(rows)); }).catch(() => {});
         loadShopping().then((shopping) => { if (!cancelled) { setStock(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks)); setChecks(shopping.checks); } }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
@@ -52,7 +56,7 @@ export function FamilyBriefPage() {
   }, [router, shoppingTick]);
 
   if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
-  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock });
+  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock, measures });
   const known = stock.filter((item) => item.known);
   const candidate = checkCandidate(stock, (itemId) => checks.filter((check) => check.itemId === itemId).map((check) => check.checkedOn).sort().at(-1), localDay(new Date()));
   const child = profile?.children[0];

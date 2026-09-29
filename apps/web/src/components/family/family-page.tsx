@@ -17,7 +17,8 @@ import { clearAllData, getProfile, saveProfile, trackEvent } from "@/lib/experie
 import type { AdultMember, ChildProfile, FamilyProfile, MemberLook } from "@/lib/experience/types";
 import { validProfile } from "@/lib/experience/validate";
 import { ageParts, ageShort, dayMilestone, nextBirthday, shortDate, weightSeries, type WeightPoint } from "@/lib/family/child-stats";
-import { deleteMeasure, loadAvatars, loadMeasures, removeAvatar, saveAvatar, saveMeasure, type ChildMeasure } from "@/lib/family/client";
+import { dueLine, measureDue, type MeasureEvery } from "@/lib/family/measure-schedule";
+import { deleteMeasure, lastMeasureDays, loadAvatars, loadMeasures, removeAvatar, saveAvatar, saveMeasure, type ChildMeasure } from "@/lib/family/client";
 import { adultLook, adultMembers, adultName, childLook, childName, newMemberId, ROLE_LABELS, withChildLook, withMembers, type AvatarColor } from "@/lib/family/members";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
@@ -201,7 +202,12 @@ export function FamilyPage() {
     ...adults.map((member, index): HeroMember => { const look = adultLook(member, index); const name = adultName(member, index, account.name); return { id: member.id, kind: "adult", name, label: member.role ? ROLE_LABELS[member.role] : member.id === "me" ? "Bạn" : name, color: look.color, emoji: look.emoji, photo: photoOf(member.id) }; }),
     ...children.map((child): HeroMember => { const look = childLooks.get(child.id)!; return { id: child.id, kind: "child", name: names.get(child.id)!, label: names.get(child.id)!, color: look.color, emoji: look.emoji, photo: avatars[child.id], selected: children.length > 1 && child.id === selectedChild?.id }; }),
   ];
+  // Measuring schedule per child: last weighing (log or profile) and last height, on the family's cadence.
+  const every: MeasureEvery = p.household?.measureEvery ?? "auto";
+  const lastDays = lastMeasureDays(measures);
+  const dueOf = (child: ChildProfile) => measureDue({ ageMonths: child.birthDate ? ageParts(child.birthDate, today).totalMonths : childAgeMonths(child), lastWeight: series(child).at(-1)?.date, lastHeight: lastDays[child.id]?.height, today, every });
   const lines: TodayLine[] = [];
+  for (const child of children) { const due = dueOf(child); if (due && due.state !== "ok") lines.push({ icon: due.state === "due" ? "⏰" : "📅", text: <><b>{names.get(child.id)}</b>: {dueLine(due, today)}</> }); }
   for (const child of children) {
     if (!child.birthDate) continue;
     const name = names.get(child.id)!;
@@ -249,7 +255,8 @@ export function FamilyPage() {
         onTogglePractice={() => void togglePractice(practiceId, !done.includes(practiceId))}
         onEdit={() => setSheet({ kind: "child", id: selectedChild.id })} onEditLook={() => setSheet({ kind: "childLook", id: selectedChild.id })}
         onAddMeasure={(date, values) => addMeasure(selectedChild, date, values)} onDeleteMeasure={(id, field) => removeMeasure(selectedChild, id, field)}
-        onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)} />}
+        onUseSize={(size) => updateChild(selectedChild.id, { diaperSize: size }, true)} onSetSex={(sex) => updateChild(selectedChild.id, { sex }, true)}
+        due={dueOf(selectedChild)} every={every} onEvery={(value) => { change({ ...p, household: { ...p.household, measureEvery: value === "auto" ? undefined : value } }, true); trackEvent("measure_reminder_set", { every: value }); }} />}
     </section>}
     {children.length === 0 && <section className="app-card fam-nokid"><span aria-hidden="true">👶</span><div><b>{p.household?.setup === "expecting" ? "Đang chờ bé chào đời" : "Chưa có hồ sơ bé"}</b><p className="fam-hint">Thêm bé để thấy tuổi, mốc ngày tuổi, biểu đồ cân nặng và gợi ý size bỉm.</p></div><button type="button" className="app-btn" onClick={() => setSheet({ kind: "addChild" })}>＋ Thêm bé</button></section>}
 

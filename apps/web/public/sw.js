@@ -1,4 +1,4 @@
-// FamAgent service worker: installable app + "sắp hết" push reminders (plans/260924-1431-shopping-plan-redesign, phase 4).
+// FamAgent service worker: installable app + push reminders ("sắp hết" items, "đến lịch cân đo" for the children).
 // No offline caching of family data: pages always come from the network.
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));

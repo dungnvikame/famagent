@@ -86,6 +86,8 @@ export const HOUSEHOLD_FOCUS = ["money", "shopping", "replenish", "care", "sched
 /** Family page: adult roles, avatar colours and cover themes (lib/family/members). */
 export const MEMBER_ROLES = ["dad", "mom", "grandpa", "grandma", "caregiver", "other"] as const;
 export const AVATAR_COLORS = ["sunset", "peach", "lilac", "ocean", "mint", "rose", "sky", "ink"] as const;
+/** How often to remind weighing / measuring the children (lib/family/measure-schedule). */
+export const MEASURE_EVERY = ["auto", "monthly", "bimonthly", "quarterly", "halfyear", "off"] as const;
 export const COVER_THEMES = ["aurora", "sunrise", "garden", "ocean", "night"] as const;
 /** An adult of the household; `id` "me" = the signed-in account. */
 export interface AdultMember { id: string; name?: string; role?: (typeof MEMBER_ROLES)[number]; emoji?: string; color?: (typeof AVATAR_COLORS)[number] }
@@ -142,6 +144,7 @@ export interface HouseholdContext {
   looks?: Record<string, MemberLook>;
   motto?: string;
   theme?: (typeof COVER_THEMES)[number];
+  measureEvery?: (typeof MEASURE_EVERY)[number];
   /** Free-text "Khác" answers keyed by question id (≤ 120 chars each). */
   notes?: Record<string, string>;
 }

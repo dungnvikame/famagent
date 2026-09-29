@@ -3,6 +3,7 @@ import { childAgeMonths } from "../experience/profile-mapper.ts";
 import { formatWeight } from "../onboarding/questions.ts";
 import { shortVnd, type MonthSummary } from "../money/summary.ts";
 import { runningLow, type ItemEstimate } from "../shopping/items.ts";
+import { WHAT_TEXT, cadenceText, measureDue, sinceLast } from "../family/measure-schedule.ts";
 
 /**
  * Family Brief (spec v2 §16–17): what needs attention, built from data the app already has.
@@ -37,6 +38,8 @@ export interface BriefInput {
   money?: MonthSummary | null;
   /** Stock estimates per household item (Shopping side of the event stream). */
   stock?: ItemEstimate[];
+  /** Last weighing / height day per child from the growth log (YYYY-MM-DD); weight falls back to the profile's date. */
+  measures?: Record<string, { weight?: string; height?: string }>;
   now?: Date;
 }
 
@@ -49,8 +52,6 @@ export function diaperSizeFor(weightKg: number): string {
   return "XXL";
 }
 
-const DAY_MS = 86_400_000;
-const WEIGHT_STALE_DAYS = 60;
 const weekday = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
 
 export function greetingFor(now: Date, name?: string): string {
@@ -59,7 +60,10 @@ export function greetingFor(now: Date, name?: string): string {
   return name ? `${part}, ${name}` : part;
 }
 
-export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], now = new Date() }: BriefInput): FamilyBrief {
+/** Vietnam calendar day of a time (the family's day, whatever the device timezone). */
+const vnDay = (time: number) => new Date(time + 7 * 3_600_000).toISOString().slice(0, 10);
+
+export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], measures = {}, now = new Date() }: BriefInput): FamilyBrief {
   const attention: BriefCard[] = [];
   const insights: BriefInsight[] = [];
   const children = profile?.children ?? [];
@@ -78,13 +82,16 @@ export function buildBrief({ profile, conversations, savedCount, displayName, mo
       attention.push({ id: `weight-${child.id}`, tone: "warn", badge: "?", title: `Chưa có cân nặng của ${who}`, detail: "Cân nặng quyết định size bỉm — thiếu thì FamAgent chỉ gợi ý được chung chung.", cta: { label: "Bổ sung", href: "/family" } });
       continue;
     }
+    const months = childAgeMonths(child, now);
+    // Regular weighing / measuring on the age cadence (lib/family/measure-schedule), not a fixed 60 days.
     const observed = profile?.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt;
-    const ageDays = observed ? Math.floor((now.getTime() - new Date(observed).getTime()) / DAY_MS) : null;
-    if (ageDays !== null && ageDays >= WEIGHT_STALE_DAYS) {
-      attention.push({ id: `stale-${child.id}`, tone: "info", badge: `${ageDays}d`, title: `Cân nặng của ${who} đã ${ageDays} ngày chưa cập nhật`, detail: `Đang dùng ${formatWeight(child.weightKg)}. Bé lớn nhanh — kiểm tra lại để không mua sai size.`, cta: { label: "Cập nhật", href: "/family" } });
+    const today = vnDay(now.getTime());
+    const due = measureDue({ ageMonths: months, lastWeight: measures[child.id]?.weight ?? (observed ? vnDay(Date.parse(observed)) : undefined), lastHeight: measures[child.id]?.height, today, every: profile?.household?.measureEvery });
+    if (due?.state === "due") {
+      const since = sinceLast(due, today);
+      attention.push({ id: `stale-${child.id}`, tone: "info", badge: since !== undefined ? `${since}d` : "📏", title: `Đến lịch ${WHAT_TEXT[due.what]} cho ${who}${since !== undefined ? ` — đã ${since} ngày` : ""}`, detail: `Ở tuổi này nên cân đo ${cadenceText(due.interval)}${due.what !== "height" ? `. Đang dùng ${formatWeight(child.weightKg)} để chọn size bỉm` : ""} — ghi lại để so với chuẩn WHO.`, cta: { label: "Ghi lại", href: "/family#fam-kids" } });
     }
     const size = diaperSizeFor(child.weightKg);
-    const months = childAgeMonths(child, now);
     if (child.diaperSize && !size.split("/").includes(child.diaperSize)) {
       insights.push({ text: `${who[0].toUpperCase()}${who.slice(1)} ${formatWeight(child.weightKg)} thường hợp size ${size}, hồ sơ đang ghi size ${child.diaperSize}. Nếu bé hay tràn, thử lên size.`, source: "Từ cân nặng và size trong hồ sơ", href: "/family" });
     } else {

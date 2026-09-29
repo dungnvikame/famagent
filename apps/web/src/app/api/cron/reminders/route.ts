@@ -2,7 +2,8 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import pg from "pg";
 import webpush from "web-push";
-import { profileFromRow } from "@/lib/experience/profile-mapper";
+import { childAgeMonths, profileFromRow } from "@/lib/experience/profile-mapper";
+import { measureDue, measurePush } from "@/lib/family/measure-schedule";
 import { remindersFor } from "@/lib/push/reminders";
 import { checkFromRow, itemFromRow } from "@/lib/shopping/item-store-server";
 import { estimateItems, itemRateResolver } from "@/lib/shopping/items";
@@ -22,9 +23,15 @@ const sameSecret = (given: string | null, expected: string) => { const a = Buffe
 
 type Sub = { id: string; user_id: string; endpoint: string; p256dh: string; auth: string };
 
+/** Measuring reminders per family per day (the rest wait for tomorrow). */
+const MEASURE_LIMIT = 2;
+const vnDayOf = (iso?: string) => iso && !Number.isNaN(Date.parse(iso)) ? new Date(Date.parse(iso) + 7 * 3_600_000).toISOString().slice(0, 10) : undefined;
+
 /**
- * Daily "sắp hết" reminders (Vercel cron, vercel.json). For every family with a push subscription: estimate stock with
- * the same code as the app (Vietnam date), push items at ≤3 days left once per item per day, drop gone subscriptions.
+ * Daily reminders (Vercel cron, vercel.json), for every family with a push subscription:
+ * - "sắp hết": estimate stock with the same code as the app (Vietnam date), push items at ≤3 days left once per item per day;
+ * - "đến lịch cân đo": children due for weighing / measuring on the family's cadence, at most once a week per child.
+ * Gone subscriptions are dropped.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -57,22 +64,50 @@ export async function GET(request: Request) {
       const recent = new Map<string, number>();
       for (const row of log.rows) recent.set(row.item_id, (recent.get(row.item_id) ?? 0) + 1);
       const reminders = remindersFor(estimates, new Set(log.rows.filter((row) => row.day === today).map((row) => row.item_id)), 2, recent);
-      const devices = subs.filter((sub) => sub.user_id === userId);
+      let devices = subs.filter((sub) => sub.user_id === userId);
+      /** Sends to every device of the family; drops subscriptions the push service says are gone. */
+      async function deliver(payload: object): Promise<number> {
+        const results = await Promise.allSettled(devices.map((sub) => webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(payload), { TTL: 12 * 3600, timeout: SEND_TIMEOUT_MS })));
+        let delivered = 0;
+        const gone = new Set<string>();
+        for (const [index, result] of results.entries()) {
+          if (result.status === "fulfilled") { delivered++; continue; }
+          const status = (result.reason as { statusCode?: number }).statusCode;
+          if (status === 404 || status === 410) { await client.query("delete from public.push_subscriptions where id = $1", [devices[index].id]); gone.add(devices[index].id); removed++; }
+          else console.warn("[push]", JSON.stringify({ status: status ?? "error" }));
+        }
+        devices = devices.filter((sub) => !gone.has(sub.id));
+        sent += delivered;
+        return delivered;
+      }
       for (const reminder of reminders) {
         // Claim the (user, item, day) slot first so parallel runs never push twice; release it if no device got it.
         const claimed = await client.query("insert into public.push_log (user_id, item_id, day) values ($1, $2, $3) on conflict do nothing", [userId, reminder.itemId, today]);
         if (!claimed.rowCount) continue;
-        const results = await Promise.allSettled(devices.map((sub) => webpush.sendNotification({ endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } }, JSON.stringify(reminder), { TTL: 12 * 3600, timeout: SEND_TIMEOUT_MS })));
-        let delivered = 0;
-        for (const [index, result] of results.entries()) {
-          if (result.status === "fulfilled") { delivered++; continue; }
-          const status = (result.reason as { statusCode?: number }).statusCode;
-          if (status === 404 || status === 410) { await client.query("delete from public.push_subscriptions where id = $1", [devices[index].id]); removed++; }
-          else console.warn("[push]", JSON.stringify({ status: status ?? "error" }));
-        }
-        sent += delivered;
-        if (!delivered) await client.query("delete from public.push_log where user_id = $1 and item_id = $2 and day = $3", [userId, reminder.itemId, today]);
+        if (!await deliver(reminder)) await client.query("delete from public.push_log where user_id = $1 and item_id = $2 and day = $3", [userId, reminder.itemId, today]);
       }
+
+      // Measuring reminders; kept apart so a problem here (e.g. migration 0024 missing) never blocks the stock ones.
+      if (!profile?.children.length || !devices.length) return;
+      try {
+        const [lastMeasured, lastPushed] = await Promise.all([
+          client.query<{ child_id: string; weight: string | null; height: string | null }>("select child_id, max(measured_on) filter (where weight_kg is not null) as weight, max(measured_on) filter (where height_cm is not null) as height from public.child_weights where user_id = $1 group by child_id", [userId]),
+          client.query<{ child_id: string; day: string }>("select child_id, max(day) as day from public.measure_push_log where user_id = $1 group by child_id", [userId]),
+        ]);
+        const measured = new Map(lastMeasured.rows.map((row) => [row.child_id, row]));
+        const pushed = new Map(lastPushed.rows.map((row) => [row.child_id, row.day]));
+        const pushes = profile.children.flatMap((child, index) => {
+          const last = measured.get(child.id);
+          const due = measureDue({ ageMonths: childAgeMonths(child, now), lastWeight: last?.weight ?? vnDayOf(profile.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt), lastHeight: last?.height ?? undefined, today, every: profile.household?.measureEvery });
+          const push = measurePush(child.id, child.name || `bé ${index + 1}`, due, today, pushed.get(child.id));
+          return push ? [push] : [];
+        }).slice(0, MEASURE_LIMIT);
+        for (const push of pushes) {
+          const claimed = await client.query("insert into public.measure_push_log (user_id, child_id, day) values ($1, $2, $3) on conflict do nothing", [userId, push.childId, today]);
+          if (!claimed.rowCount) continue;
+          if (!await deliver(push)) await client.query("delete from public.measure_push_log where user_id = $1 and child_id = $2 and day = $3", [userId, push.childId, today]);
+        }
+      } catch (cause) { console.warn("[cron reminders] measure", cause instanceof Error ? cause.message : "error"); }
     }
 
     for (let index = 0; index < users.length; index += FAMILY_BATCH) {

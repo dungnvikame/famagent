@@ -293,3 +293,13 @@ body.fam-sheet-open{overflow:hidden}
 .fam-x:hover{background:#fdeceb}
 .fam-chart-mode button{white-space:nowrap}
 @media(max-width:640px){.fam-chart-mode{overflow-x:auto;scrollbar-width:none;align-self:stretch}.fam-weight-log li{grid-template-columns:64px 1fr 1fr!important}}
+
+/* measuring schedule */
+.fam-sched{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f7f6fb;border-radius:14px;padding:10px 12px}
+.fam-sched.due{background:var(--warn-bg);color:var(--warn)}
+.fam-sched.soon{background:var(--mint);color:var(--primary-ink)}
+.fam-sched-ico{font-size:20px;flex:none}
+.fam-sched>div{flex:1 1 220px;display:grid;gap:2px;min-width:0}
+.fam-sched b{font-size:14px}
+.fam-sched small{font-size:12px;color:var(--muted)}
+.fam-sched select{min-height:40px;border-radius:12px;border:1px solid #cfc8ea;background:#fff;padding:0 10px;font:inherit;font-size:13px;color:var(--ink)}
