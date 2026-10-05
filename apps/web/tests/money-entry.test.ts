@@ -9,7 +9,7 @@ const id = () => "new-id";
 test("typed text becomes an entry with the amount parsed and the content trimmed", () => {
   const result = buildEntry(base, id);
   assert.ok("entry" in result);
-  assert.deepEqual(result.entry, { id: "new-id", occurredOn: "2026-09-29", content: "ăn sáng", category: "Ăn uống", kind: "expense", amount: 35_000, paidFrom: undefined, forChild: false, childId: undefined, note: undefined, source: "manual", recurringId: undefined });
+  assert.deepEqual(result.entry, { id: "new-id", occurredOn: "2026-09-29", content: "ăn sáng", category: "Ăn uống", kind: "expense", amount: 35_000, paidFrom: undefined, forChild: false, childId: undefined, note: undefined, source: "manual", recurringId: undefined, debtId: undefined });
 });
 
 test("empty content and bad amounts give the message, negatives only for savings", () => {
@@ -40,6 +40,22 @@ test("editing keeps the id, source and recurring link", () => {
   assert.equal(result.entry.id, "old");
   assert.equal(result.entry.source, "recurring");
   assert.equal(result.entry.recurringId, "r1");
+});
+
+test("editing keeps the debt link while the entry stays a repayment", () => {
+  const repay: EntryInput = { ...base, content: "Trả nợ ngân hàng", category: "Tiền trả nợ", existing: { id: "old", source: "manual", debtId: "d1" } };
+  const kept = buildEntry(repay, id);
+  assert.ok("entry" in kept && kept.entry.debtId === "d1");
+  // Recategorised away from a repayment (or no longer an expense): it stops paying the debt down.
+  const moved = buildEntry({ ...repay, category: "Ăn uống" }, id);
+  assert.ok("entry" in moved && moved.entry.debtId === undefined);
+  const income = buildEntry({ ...repay, kind: "income", category: "Tiền trả nợ nhận về" }, id);
+  assert.ok("entry" in income && income.entry.debtId === undefined);
+  // The family's own choice wins: a picked debt replaces the old one, null removes it.
+  const picked = buildEntry({ ...repay, debtId: "d2" }, id);
+  assert.ok("entry" in picked && picked.entry.debtId === "d2");
+  const removed = buildEntry({ ...repay, debtId: null }, id);
+  assert.ok("entry" in removed && removed.entry.debtId === undefined);
 });
 
 test("compact money: k / tr / tỷ, trimmed decimals", () => {
