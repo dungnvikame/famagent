@@ -68,7 +68,7 @@ export function DebtAddForm({ hasPosition, onAdd, onTab }: Props) {
 
   return <section className="app-card debt-add">
     <form id={`${uid}-form`} className="debt-add-form" onSubmit={(event) => { event.preventDefault(); void save(); }}>
-      <p className="debt-add-note wide">Đây là số còn nợ tính đến hôm nay — không ghi vào sổ thu chi, nên không làm sai số dư. Từ hôm nay, mỗi lần trả ghi vào sổ sẽ làm giảm khoản này.</p>
+      <p className="debt-add-note wide">Khoản này không ghi vào sổ thu chi, nên không làm sai số dư. Mỗi lần trả ghi vào sổ — và khoản cũ trong sổ bạn gắn vào nợ này (Sửa → Trừ vào khoản nợ) — sẽ làm giảm nó, nên nhập số còn nợ trước các khoản đó.</p>
       <div className="f"><label htmlFor={`${uid}-name`}>Nợ ai / ngân hàng nào</label><input id={`${uid}-name`} value={form.name} maxLength={60} autoComplete="off" required placeholder="Thẻ Sacombank" onChange={(event) => set({ name: event.target.value })} /></div>
       <div className="f"><label htmlFor={`${uid}-balance`}>Còn nợ</label><AmountInput id={`${uid}-balance`} value={form.balance} required placeholder="15tr" onChange={(event) => set({ balance: event.target.value })} /></div>
       <div className="f"><label htmlFor={`${uid}-monthly`}>Trả mỗi tháng <small>(tuỳ chọn)</small></label><AmountInput id={`${uid}-monthly`} value={form.monthly} placeholder="1,5tr" onChange={(event) => set({ monthly: event.target.value })} /></div>

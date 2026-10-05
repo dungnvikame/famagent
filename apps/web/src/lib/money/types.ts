@@ -121,7 +121,7 @@ export interface MoneyBundle {
   debtPaid?: Record<string, number>;
   /** The same payments with dates, oldest first (interest depends on when they were made). */
   debtLog?: Record<string, DebtPayment[]>;
-  /** Borrowed / repaid / lent / collected over all entries (payments of Tình hình debts excluded). */
+  /** Borrowed / repaid / lent / collected over all entries naming a person (payments of Tình hình debts excluded). */
   loans?: { borrowed: number; repaid: number; lent: number; collected: number };
   /** The 12 months ending with `month` (oldest first): totals and expense per category, for trends. */
   history?: Array<{ month: string; income: number; expense: number; saving: number; byCategory: Record<string, number> }>;

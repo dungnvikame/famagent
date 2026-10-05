@@ -25,9 +25,10 @@ export function anchorFromPosition(position: MoneyPosition, untilAsOf: Totals): 
 type PaidEntry = Pick<MoneyTransaction, "recurringId" | "occurredOn" | "amount" | "kind" | "debtId">;
 
 /**
- * Payments toward each debt (by debt id), dated, oldest first: expenses dated after the debt's own date that are
- * tagged with the debt (`debtId`) or were posted by its linked recurring item (each entry counts once). Entries
- * dated on or before the debt's date are already inside its balance and never count.
+ * Payments toward each debt (by debt id), dated, oldest first: expenses tagged with the debt (`debtId`) or posted
+ * by its linked recurring item (each entry counts once). A hand-tagged payment counts whatever its date — tagging
+ * it is the family saying "this reduces that debt". A recurring-posted one only counts after the debt's own date,
+ * because earlier periods are already inside the balance the family typed.
  */
 export function debtPaymentLog(debts: MoneyDebt[], asOf: string, transactions: PaidEntry[]): Record<string, DebtPayment[]> {
   const byRecurring = new Map(debts.filter((debt) => debt.recurringId).map((debt) => [debt.recurringId!, debt.id]));
@@ -35,8 +36,10 @@ export function debtPaymentLog(debts: MoneyDebt[], asOf: string, transactions: P
   const log: Record<string, DebtPayment[]> = {};
   for (const tx of transactions) {
     if (tx.kind !== "expense") continue;
-    const debtId = tx.debtId && since.has(tx.debtId) ? tx.debtId : tx.recurringId ? byRecurring.get(tx.recurringId) : undefined;
-    if (debtId && tx.occurredOn > since.get(debtId)!) (log[debtId] ??= []).push({ on: tx.occurredOn, amount: tx.amount });
+    const tagged = tx.debtId && since.has(tx.debtId) ? tx.debtId : undefined;
+    const viaItem = !tagged && tx.recurringId ? byRecurring.get(tx.recurringId) : undefined;
+    const debtId = tagged ?? (viaItem && tx.occurredOn > since.get(viaItem)! ? viaItem : undefined);
+    if (debtId) (log[debtId] ??= []).push({ on: tx.occurredOn, amount: tx.amount });
   }
   for (const list of Object.values(log)) list.sort((a, b) => a.on.localeCompare(b.on));
   return log;
@@ -80,6 +83,8 @@ export function debtLeft(debt: MoneyDebt, paid: Record<string, number> = {}, opt
   // Without dated payments (callers holding only totals) assume they were made today, after the interest accrued.
   const payments = [...(options.log?.[debt.id] ?? (total > 0 ? [{ on: today, amount: total }] : []))].sort((a, b) => a.on.localeCompare(b.on));
   let balance = debt.balance; let next = 0;
+  // Hand-tagged payments dated on/before the debt's date come straight off the balance, before any interest.
+  for (; next < payments.length && payments[next].on <= since; next++) balance = Math.max(0, balance - payments[next].amount);
   for (let month = 1, months = fullMonths(since, today); month <= months; month++) {
     balance = afterMonth(balance, rate);
     for (const end = addMonths(since, month); next < payments.length && payments[next].on <= end; next++) balance = Math.max(0, balance - payments[next].amount);

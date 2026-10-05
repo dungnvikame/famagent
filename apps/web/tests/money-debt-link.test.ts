@@ -14,18 +14,19 @@ const car: MoneyDebt = { id: id(1), name: "Vay mua xe", balance: 380_000_000, re
 const sister: MoneyDebt = { id: id(3), name: "Vay em gái", balance: 20_000_000 };
 const card: MoneyDebt = { id: id(4), name: "Thẻ VIB", balance: 10_000_000, asOf: "2026-09-10" };
 
-test("every repayment tagged with a debt (or posted by its recurring item) lowers it, once, only after the debt's date", () => {
+test("every repayment tagged with a debt lowers it whatever its date; recurring-posted ones only after the debt's date", () => {
   const entries = [
     tx("2026-09-20", "expense", 8_000_000, "Tiền trả nợ", "Trả nợ em gái", { debtId: sister.id }),
     tx("2026-09-15", "expense", 8_200_000, "Tiền trả góp", "Trả Vay mua xe", { recurringId: id(2), debtId: car.id }), // tagged AND recurring: one payment
     tx("2026-10-15", "expense", 8_200_000, "Tiền trả góp", "Trả Vay mua xe", { recurringId: id(2) }),
-    tx("2026-09-05", "expense", 1_000_000, "Tiền trả nợ", "Trả nợ em gái", { debtId: sister.id }), // before the position date: already in the balance
-    tx("2026-09-10", "expense", 500_000, "Tiền trả nợ", "Trả thẻ", { debtId: card.id }), // on the debt's own date: not counted either
+    tx("2026-09-01", "expense", 8_200_000, "Tiền trả góp", "Trả Vay mua xe", { recurringId: id(2) }), // recurring-posted before the position date: already in the balance
+    tx("2026-09-05", "expense", 1_000_000, "Tiền trả nợ", "Trả nợ em gái", { debtId: sister.id }), // hand-tagged before the position date: still counts
+    tx("2026-09-10", "expense", 500_000, "Tiền trả nợ", "Trả thẻ", { debtId: card.id }), // hand-tagged on the debt's own date: counts too
     tx("2026-09-12", "expense", 700_000, "Tiền trả nợ", "Trả thẻ", { debtId: card.id }),
     tx("2026-09-13", "income", 999, "Lương", "x", { debtId: sister.id }), // only expenses pay debts
     tx("2026-09-14", "expense", 300_000, "Ăn uống", "phở", { debtId: id(99) }), // unknown debt
   ];
-  assert.deepEqual(debtPayments([car, sister, card], "2026-09-08", entries), { [sister.id]: 8_000_000, [car.id]: 16_400_000, [card.id]: 700_000 });
+  assert.deepEqual(debtPayments([car, sister, card], "2026-09-08", entries), { [sister.id]: 9_000_000, [car.id]: 16_400_000, [card.id]: 1_200_000 });
 });
 
 test("debt-linked payments leave the Nợ tab's own loan books alone", () => {
@@ -57,7 +58,7 @@ test("validTransaction keeps a debt id on expenses only", () => {
   assert.equal(validTransaction({ ...base, kind: "income", debtId: sister.id })?.debtId, undefined);
 });
 
-test("ledger rows dated before the position date never change today's balances or debts", () => {
+test("ledger rows dated before the position date never change today's balances; hand-tagged ones still pay their debt", () => {
   const position: MoneyPosition = { asOf: "2026-09-24", accounts: [{ id: id(10), name: "VCB", type: "bank", amount: 30_000_000 }, { id: id(11), name: "Sổ", type: "saving", amount: 100_000_000 }], debts: [{ ...sister }] };
   const after = [tx("2026-09-25", "expense", 1_000_000, "Ăn uống", "phở"), tx("2026-09-26", "expense", 2_000_000, "Tiền trả nợ", "Trả nợ em gái", { debtId: sister.id })];
   const before = [tx("2026-01-05", "income", 50_000_000, "Vay cá nhân", "vay em gái"), tx("2026-03-10", "expense", 9_000_000, "Tiền trả nợ", "Trả nợ em gái", { debtId: sister.id }), tx("2026-06-01", "saving", 5_000_000, "Tiết kiệm", "gửi"), tx("2026-08-01", "expense", 700_000, "Tiền cho vay", "Cho Tom vay"), tx("2026-09-23", "expense", 400_000, "Ăn uống", "cơm")];
@@ -66,7 +67,10 @@ test("ledger rows dated before the position date never change today's balances o
     const anchored = withPosition(bundle, entries);
     return { balances: summarizeMonth(anchored, new Date(2026, 8, 28)).balances, debtPaid: anchored.debtPaid, debtLog: anchored.debtLog };
   };
-  assert.deepEqual(view([...after, ...before]), view(after));
+  assert.deepEqual(view([...after, ...before]).balances, view(after).balances);
   assert.deepEqual(view(after).balances, { cash: 30_000_000 - 1_000_000 - 2_000_000, savings: 100_000_000 });
   assert.deepEqual(view(after).debtPaid, { [sister.id]: 2_000_000 });
+  // The March payment was tagged by hand, so it comes off the debt (oldest first in the log) — balances above stay put.
+  assert.deepEqual(view([...after, ...before]).debtPaid, { [sister.id]: 11_000_000 });
+  assert.deepEqual(view([...after, ...before]).debtLog?.[sister.id]?.map((p) => p.on), ["2026-03-10", "2026-09-26"]);
 });

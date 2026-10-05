@@ -30,6 +30,11 @@ export function loanTotals(entries: Array<Entry & Pick<MoneyTransaction, "amount
   return out;
 }
 
+/** `loanTotals` over only the lines that name a person: the Nợ tab's books. Unnamed loan lines are plain Thu/Chi
+ * (the family asked for no auto-collected "Khác" person, 05/10) — month flows (`loanFlows`) still count them. */
+export const personLoanTotals = (entries: Array<Entry & Pick<MoneyTransaction, "amount" | "content"> & Linkable>, debtLinks: Set<string> = new Set()) =>
+  loanTotals(entries.filter((tx) => !loanRole(tx) || personOf(tx.content)), debtLinks);
+
 /**
  * Everything a month moved through loans, for "trong đó trả nợ X · vay mới Y" (nothing is left out: these are part
  * of Thu/Chi). `repaid` also holds payments of Tình hình debts posted under other categories (e.g. Tiền trả góp).
@@ -80,14 +85,16 @@ export interface PersonLedger { key: string; name: string; given: number; receiv
 
 /**
  * Loans grouped by person, both directions: `lent` = people who owe us (lent − paid back), `owe` = people we owe
- * (borrowed − repaid). Lines without a recognisable name are grouped under "Khác".
+ * (borrowed − repaid). Lines without a recognisable name are not anyone's loan, so they are left out (the family
+ * asked for no auto-collected "Khác" person, 05/10); they still count in month totals like any Thu/Chi.
  */
 export function loansByPerson(entries: MoneyTransaction[], debtLinks: Set<string> = new Set()): { lent: PersonLedger[]; owe: PersonLedger[] } {
   const lent = new Map<string, PersonLedger>(); const owe = new Map<string, PersonLedger>();
   for (const tx of [...entries].sort((a, b) => a.occurredOn.localeCompare(b.occurredOn))) {
     const role = loanRole(tx);
     if (!role || isLinked(tx, debtLinks)) continue;
-    const name = personOf(tx.content) ?? "Khác";
+    const name = personOf(tx.content);
+    if (!name) continue;
     const key = normalize(name);
     const book = role === "lend" || role === "collect" ? lent : owe;
     const row = book.get(key) ?? { key, name, given: 0, received: 0, left: 0, last: tx.occurredOn, entries: [] };

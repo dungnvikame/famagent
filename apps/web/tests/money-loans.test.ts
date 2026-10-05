@@ -38,6 +38,15 @@ test("loan totals, overview and people", () => {
   assert.equal(people.lent[0].entries[0].occurredOn, "2026-01-10");
 });
 
+test("loan lines without a recognisable person stay out of the Nợ books (no auto 'Khác'); month flows keep them", async () => {
+  const { personLoanTotals } = await import("../src/lib/money/loans.ts");
+  const entries = [tx("2026-09-01", "expense", 1_000_000, "Tiền cho vay", "chuyển khoản lẻ"), tx("2026-09-02", "income", 300_000, "Tiền trả nợ nhận về", "nhận lại")];
+  const people = loansByPerson(entries);
+  assert.deepEqual([people.lent.length, people.owe.length], [0, 0]);
+  assert.deepEqual(personLoanTotals(entries), { borrowed: 0, repaid: 0, lent: 0, collected: 0 });
+  assert.deepEqual(loanTotals(entries), { borrowed: 0, repaid: 0, lent: 1_000_000, collected: 300_000 });
+});
+
 test("loans are ordinary Thu/Chi; loanFlows tells how much of the month they are", async () => {
   const { summarizeMonth, sumByKind } = await import("../src/lib/money/summary.ts");
   const { DEFAULT_CATEGORIES } = await import("../src/lib/money/types.ts");

@@ -2,7 +2,7 @@
 // so API routes stay thin; the same shapes are used by the local (browser-only) store.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { monthlyHistory } from "./history.ts";
-import { BORROW_IN, debtLinkIds, isLoanEntry, LEND_OUT, loanTotals, REPAID_IN, REPAY_OUT } from "./loans.ts";
+import { BORROW_IN, debtLinkIds, isLoanEntry, LEND_OUT, personLoanTotals, REPAID_IN, REPAY_OUT } from "./loans.ts";
 import { sumUntil, withPosition } from "./position.ts";
 import { todayVn } from "../time/vn-date.ts";
 import { mergePeriods, periodsFromEntries, recurringAmountsFrom } from "./fixed-items.ts";
@@ -55,7 +55,7 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
   const all = entriesFromRows(totals.data ?? []);
   const loadedSettings = settingsFromRow(settings.data);
   const debtLinks = debtLinkIds(loadedSettings.position?.debts ?? []);
-  return withPosition({ history: monthlyHistory(all, month, 12), loans: loanTotals(all, debtLinks), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow), periods: mergePeriods((periods.data ?? []).map(periodFromRow), periodsFromEntries(all)), recurringAmounts: recurringAmountsFrom(all) }, all);
+  return withPosition({ history: monthlyHistory(all, month, 12), loans: personLoanTotals(all, debtLinks), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow), periods: mergePeriods((periods.data ?? []).map(periodFromRow), periodsFromEntries(all)), recurringAmounts: recurringAmountsFrom(all) }, all);
 }
 
 
@@ -65,7 +65,7 @@ const PAGE = 1000; // PostgREST returns at most this many rows per request by de
 async function allEntries(client: SupabaseClient, userId: string): Promise<{ data: Row[] | null; error: unknown }> {
   const rows: Row[] = [];
   for (let from = 0; from < 200_000; from += PAGE) {
-    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
+    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id,content").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
     if (error) return { data: null, error };
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;
@@ -73,7 +73,7 @@ async function allEntries(client: SupabaseClient, userId: string): Promise<{ dat
   return { data: rows, error: null };
 }
 
-const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined, debtId: str(row.debt_id) }));
+const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined, debtId: str(row.debt_id), content: String(row.content ?? "") }));
 
 /** Entries dated from..to (inclusive, newest first) and the cash balance just before `from` (position anchor applied). */
 export async function loadRange(client: SupabaseClient, userId: string, from: string, to: string): Promise<MoneyRange | null> {
