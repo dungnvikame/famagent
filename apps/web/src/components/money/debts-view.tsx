@@ -122,7 +122,28 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
       </section>
       <section className="app-card dcard"><h3>Mình đang nợ <small>{vnd(overview.owed)}</small></h3>
         {oweOpen.map((row) => personRow(row, "owe"))}
-        {debtRows.map(({ debt, left }) => { const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); const paid = bundle.debtPaid?.[debt.id] ?? 0; const since = bundle.debtLog?.[debt.id]?.[0]?.on; return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · {left > 0 && <><button type="button" className="ledger-link" onClick={() => { setForm({ role: "repay", name: debt.name, amount: (debt.monthlyPayment || left).toLocaleString("vi-VN"), date: todayLocal() }); setDebtChoice(debt.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Ghi khoản trả nợ</button> · </>}<button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small>{paid > 0 && since && <small>Đã trả {vnd(paid)} từ {formatVnDate(since)}</small>}</span><b className="owe-c">{vnd(left)}</b></div>; })}
+        {/* Big Tình hình loans read like the person rows: tap to unfold the payment history (owner ask 05/10). */}
+        {debtRows.map(({ debt, left }) => {
+          const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct);
+          const paid = bundle.debtPaid?.[debt.id] ?? 0;
+          const log = bundle.debtLog?.[debt.id] ?? [];
+          const key = `debt:${debt.id}`;
+          return <div key={debt.id} className="prow-wrap">
+            <button type="button" className="prow" aria-expanded={open === key} onClick={() => setOpen(open === key ? null : key)}>
+              <span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""}{paid > 0 ? ` · đã trả ${vnd(paid)}` : ""}</small></span>
+              <span className="left owe-c">{left > 0 ? vnd(left) : "Đã trả hết"}</span>
+              {paid > 0 && <span className="pbar-s"><span style={{ width: `${Math.min(100, paid / (paid + left) * 100)}%` }} /></span>}
+            </button>
+            {open === key && <div className="tl">
+              {[...log].reverse().map((payment, index) => <div key={`${payment.on}:${index}`}><span>{formatVnDate(payment.on)} · Trả nợ</span><b className="owe-c">−{vnd(payment.amount)}</b></div>)}
+              {!log.length && <div><span>Chưa có khoản trả nào — ghi vào sổ và chọn khoản nợ này, hoặc bấm nút dưới.</span></div>}
+              <div className="tl-act">
+                {left > 0 && <button type="button" className="ledger-link" onClick={() => { setForm({ role: "repay", name: debt.name, amount: (debt.monthlyPayment || left).toLocaleString("vi-VN"), date: todayLocal() }); setDebtChoice(debt.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Ghi khoản trả nợ</button>}
+                <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button>
+              </div>
+            </div>}
+          </div>;
+        })}
         {!oweOpen.length && !debts.length && <p className="app-sub">Nhà mình không nợ ai.</p>}
         {oweDone.length > 0 && showDone && oweDone.map((row) => personRow(row, "owe"))}
       </section>
