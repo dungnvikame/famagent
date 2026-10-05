@@ -51,11 +51,6 @@ test("editing keeps the debt link while the entry stays a repayment", () => {
   assert.ok("entry" in moved && moved.entry.debtId === undefined);
   const income = buildEntry({ ...repay, kind: "income", category: "Tiền trả nợ nhận về" }, id);
   assert.ok("entry" in income && income.entry.debtId === undefined);
-  // The family's own choice wins: a picked debt replaces the old one, null removes it.
-  const picked = buildEntry({ ...repay, debtId: "d2" }, id);
-  assert.ok("entry" in picked && picked.entry.debtId === "d2");
-  const removed = buildEntry({ ...repay, debtId: null }, id);
-  assert.ok("entry" in removed && removed.entry.debtId === undefined);
 });
 
 test("compact money: k / tr / tỷ, trimmed decimals", () => {

@@ -11,7 +11,7 @@ import { deleteMoneyItem, loadMoney, loadRange, saveMoneyItem, saveMoneySettings
 import { categoryAverages, potsOf, runningPots } from "@/lib/money/history";
 import { applyFilter, monthRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
-import { debtTotals, syncDebtRecurring } from "@/lib/money/position";
+import { debtLeftIn, debtTotals, syncDebtRecurring } from "@/lib/money/position";
 import { autoDebtId } from "@/lib/money/debt-link";
 import { saveNewEntry } from "@/lib/money/save-entry";
 import { guessCategory, rememberCorrections, type QuickDraft } from "@/lib/money/quick-add";
@@ -128,6 +128,8 @@ export function MoneyPage() {
   })();
 
   const debtRecurringIds = new Set((bundle?.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
+  // The "Trừ vào khoản nợ nào?" picker on the ledger's repayment rows: each Tình hình debt with what is left of it.
+  const debtPickOptions = bundle ? (bundle.settings.position?.debts ?? []).map((debt) => ({ id: debt.id, name: debt.name, left: debtLeftIn(bundle, debt) })) : [];
 
   /**
    * One ledger entry + its "Hằng tháng" choice: on = create (or re-enable and update) the linked monthly item,
@@ -147,10 +149,13 @@ export function MoneyPage() {
     return saveTransaction({ ...item, recurringId });
   }
 
-  /** Writes one entry; a repayment whose wording names exactly one Tình hình debt is tagged with it so that debt goes down. */
+  /**
+   * Writes one entry; a repayment whose wording names exactly one Tình hình debt is tagged with it so that debt goes
+   * down. `debtId` "" = the family picked "không trừ nợ nào" in a picker, so the wording is never guessed from again.
+   */
   async function saveTransaction(item: MoneyTransaction): Promise<{ answered: string | null }> {
-    const debtId = item.debtId ?? autoDebtId(item, bundle?.settings.position?.debts ?? []);
-    const entry = debtId ? { ...item, debtId } : item;
+    const debtId = item.debtId === "" ? undefined : item.debtId ?? autoDebtId(item, bundle?.settings.position?.debts ?? []);
+    const entry = { ...item, debtId };
     // A new manual entry that matches a waiting fixed item answers that period instead of adding a second entry.
     if (bundle && !source.some((tx) => tx.id === entry.id)) return { answered: (await saveNewEntry(bundle, entry)).answered?.name ?? null };
     await saveMoneyItem("transactions", entry);
@@ -228,7 +233,7 @@ export function MoneyPage() {
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
         <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} balanceHidden={!showBalance} />
         {firstNegative && balanceOpen && <div className="banner warn-banner"><span>Số dư tài khoản âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
-        <LedgerTable guessContext={quickContext} transactions={shown} balances={balances} showBalance={showBalance} balanceOpen={balanceOpen} onBalanceOpen={setBalanceOpen} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
+        <LedgerTable guessContext={quickContext} transactions={shown} balances={balances} showBalance={showBalance} balanceOpen={balanceOpen} onBalanceOpen={setBalanceOpen} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} debts={debtPickOptions} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} />}

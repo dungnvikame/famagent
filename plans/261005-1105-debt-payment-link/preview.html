@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Preview: chọn khoản nợ khi ghi trả nợ</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --line:#e5e7eb; --ink:#111827; --sub:#6b7280; --brand:#2563eb; --good:#047857; --warn:#b45309; --owe:#b91c1c; --new:#fef3c7; --new-line:#f59e0b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; padding:24px 16px 64px; }
+  main { max-width:860px; margin:0 auto; display:grid; gap:28px; }
+  h1 { font-size:21px; margin:0; }
+  h2 { font-size:16px; margin:0 0 4px; }
+  p.lead { color:var(--sub); margin:4px 0 0; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:18px; }
+  .hint { color:var(--sub); font-size:13px; margin:0 0 12px; }
+  .new { background:var(--new); outline:2px dashed var(--new-line); outline-offset:2px; border-radius:8px; }
+  .tag-new { display:inline-block; background:var(--new-line); color:#fff; font-size:11px; font-weight:700; border-radius:999px; padding:1px 8px; vertical-align:2px; margin-left:6px; }
+  select,input { font:inherit; padding:6px 8px; border:1px solid var(--line); border-radius:8px; background:#fff; max-width:100%; }
+  label { font-size:13px; color:var(--sub); display:block; margin-bottom:4px; }
+  table { border-collapse:collapse; width:100%; font-size:14px; }
+  th,td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--sub); font-size:12.5px; font-weight:600; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .exp { color:var(--owe); }
+  .pill { display:inline-block; font-size:11.5px; border-radius:999px; padding:1px 8px; margin-left:6px; background:#eef2ff; color:#3730a3; white-space:nowrap; }
+  .details { background:#fafafa; }
+  .details td { padding:10px; }
+  .inline { display:flex; flex-wrap:wrap; gap:14px; align-items:end; }
+  .qform { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .btn { font:inherit; padding:7px 14px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:default; }
+  .btn.primary { background:var(--brand); border-color:var(--brand); color:#fff; }
+  .link { background:none; border:none; color:var(--brand); font:inherit; font-size:13px; padding:0; cursor:default; text-decoration:underline; }
+  .loan { display:flex; justify-content:space-between; gap:12px; border:1px solid var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; }
+  .loan small { display:block; color:var(--sub); }
+  .owe-amt { color:var(--owe); font-weight:700; white-space:nowrap; }
+  .note { font-size:13px; color:var(--good); margin:8px 0 0; }
+  .muted { color:var(--sub); }
+  ul { margin:6px 0 0 18px; padding:0; color:var(--sub); font-size:13.5px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Chọn khoản nợ khi ghi trả nợ — mọi chỗ ghi đều trừ đúng khoản</h1>
+    <p class="lead">Hiện chỉ sheet "Ghi khoản" (phím N) có ô chọn khoản nợ. Preview này thêm ô chọn vào <b>2 chỗ còn thiếu</b>: bảng Sổ và tab Nợ. Phần nền vàng viền cam là phần mới.</p>
+  </header>
+
+  <!-- ============ 1. Sổ ============ -->
+  <section class="card">
+    <h2>1 · Sổ thu chi — thêm / sửa một khoản</h2>
+    <p class="hint">Khi Loại = Chi và Nhóm là <b>Tiền trả nợ · Tiền trả nợ quỹ · Tiền trả góp</b>, hàng chi tiết (nút ⋯) tự mở và có thêm ô chọn khoản nợ. App vẫn tự đoán từ nội dung ("Trả nợ ngân hàng" → Vay ngân hàng mua nhà), mình đổi được.</p>
+    <table aria-label="Sổ thu chi (mô phỏng)">
+      <thead><tr><th>Ngày</th><th>Loại</th><th>Nội dung</th><th>Nhóm</th><th style="text-align:right">Số tiền</th><th></th></tr></thead>
+      <tbody>
+        <tr>
+          <td>05/10</td>
+          <td><select><option>Chi</option><option>Thu</option><option>TK</option></select></td>
+          <td><input value="Trả nợ ngân hàng tháng 10" size="22"></td>
+          <td><select><option>Tiền trả nợ</option></select></td>
+          <td class="num"><input value="12.000.000" size="9" style="text-align:right"></td>
+          <td><button class="btn">Thêm ⏎</button> <button class="btn">⋯</button></td>
+        </tr>
+        <tr class="details">
+          <td colspan="6">
+            <div class="inline">
+              <div><label>Trả từ</label><span class="muted">Tiền tiêu · Tiết kiệm</span></div>
+              <div class="new" style="padding:6px 10px 8px;">
+                <label>Trừ vào khoản nợ nào? <span class="tag-new">MỚI</span></label>
+                <select>
+                  <option selected>Vay ngân hàng mua nhà — còn 820tr</option>
+                  <option>Trả góp xe máy — còn 14tr</option>
+                  <option>Khoản khác (không trừ nợ nào)</option>
+                </select>
+              </div>
+            </div>
+            <p class="note">✓ Sau khi ghi: <b>Vay ngân hàng mua nhà</b> còn 820tr → <b>808tr</b></p>
+          </td>
+        </tr>
+        <tr>
+          <td>02/10</td><td><span class="exp">−</span></td>
+          <td>Trả góp xe máy <span class="pill">↓ Trả góp xe máy</span></td>
+          <td>Tiền trả góp</td>
+          <td class="num exp">−2.350.000</td>
+          <td><button class="link">Sửa</button></td>
+        </tr>
+        <tr>
+          <td>01/10</td><td><span class="exp">−</span></td>
+          <td>Ăn sáng</td><td>Ăn uống</td>
+          <td class="num exp">−35.000</td>
+          <td><button class="link">Sửa</button></td>
+        </tr>
+      </tbody>
+    </table>
+    <ul>
+      <li>Khoản đã gắn nợ hiện nhãn <span class="pill">↓ tên khoản nợ</span> ngay trong Sổ.</li>
+      <li>Bấm Sửa một khoản trả nợ: ô chọn hiện đúng khoản nợ đang gắn, đổi hoặc bỏ gắn được. (Lỗi "sửa xong mất link nợ" đã vá sẵn.)</li>
+    </ul>
+  </section>
+
+  <!-- ============ 2. Tab Nợ ============ -->
+  <section class="card">
+    <h2>2 · Tab Nợ — form ghi nhanh + nút trên khoản vay lớn</h2>
+    <p class="hint">Chọn loại "Trả nợ" thì form hiện thêm ô chọn khoản nợ (các khoản vay lớn ở Tình hình). Chọn "Người ngoài" thì như cũ — chỉ trừ nợ theo người.</p>
+    <div class="qform">
+      <select><option selected>Trả nợ</option><option>Cho vay</option><option>Thu nợ về</option><option>Vay vào</option></select>
+      <input placeholder="Người (Tom, chị Hà…)" value="Ngân hàng" size="14">
+      <span class="new" style="padding:4px 8px 6px;">
+        <label style="margin:0 0 2px">Trừ vào khoản nợ <span class="tag-new">MỚI</span></label>
+        <select>
+          <option selected>Vay ngân hàng mua nhà — còn 820tr</option>
+          <option>Trả góp xe máy — còn 14tr</option>
+          <option>Không trừ khoản nào (nợ người ngoài)</option>
+        </select>
+      </span>
+      <input value="12.000.000" size="10" style="text-align:right">
+      <input value="05/10/2026" size="9">
+      <button class="btn primary">Ghi</button>
+    </div>
+
+    <h2 style="margin-top:22px">Mình đang nợ</h2>
+    <div class="loan">
+      <span><b>Vay ngân hàng mua nhà</b>
+        <small>Khoản vay lớn · trả 12tr ngày 5 · còn khoảng 74 tháng · Đã trả 96tr từ 01/01/2026</small>
+        <small class="new" style="display:inline-block;padding:2px 8px;margin-top:4px;">
+          <button class="link">Ghi khoản trả nợ</button> <span class="tag-new">MỚI</span> — điền sẵn form trên: 12tr, trừ đúng khoản này
+        </small>
+      </span>
+      <span class="owe-amt">820.000.000₫</span>
+    </div>
+    <div class="loan">
+      <span><b>Trả góp xe máy</b><small>Khoản vay lớn · trả 2,35tr ngày 2</small>
+        <small class="new" style="display:inline-block;padding:2px 8px;margin-top:4px;"><button class="link">Ghi khoản trả nợ</button> <span class="tag-new">MỚI</span></small>
+      </span>
+      <span class="owe-amt">14.000.000₫</span>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Không đổi gì khác</h2>
+    <ul>
+      <li>Sheet "Ghi khoản" (phím N / nút ＋) giữ nguyên — đã có ô chọn nợ.</li>
+      <li>Khoản cố định gắn nợ ("Đã trả?") vẫn tự trừ như trước.</li>
+      <li>Không đổi database — cột <code>debt_id</code> đã có sẵn.</li>
+    </ul>
+  </section>
+</main>
+</body>
+</html>

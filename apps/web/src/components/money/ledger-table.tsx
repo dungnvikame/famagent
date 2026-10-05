@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
+import { autoDebtId, REPAYMENT_CATEGORIES } from "@/lib/money/debt-link";
 import { buildEntry } from "@/lib/money/entry";
+import { vndCompact } from "@/lib/money/format-vnd";
 import { formatVnDate, groupAmountTyping, todayLocal } from "@/lib/money/parse";
 import type { PotBalance } from "@/lib/money/history";
 import { guessEntry, type QuickContext } from "@/lib/money/quick-add";
@@ -28,6 +30,8 @@ interface Props {
   recurring: MoneyRecurring[];
   /** Recurring items owned by a debt (managed in Tình hình → Khoản nợ, not toggled here). */
   debtRecurringIds: Set<string>;
+  /** Tình hình debts for the "Trừ vào khoản nợ" picker on repayment rows, with what is left of each. */
+  debts: Array<{ id: string; name: string; left: number }>;
   /** Saves the entry; `repeat.on` also makes it (or keeps it) a monthly recurring item on `repeat.day`. */
   onSave: (item: MoneyTransaction, repeat: { on: boolean; day: number }) => Promise<{ answered: string | null } | void>;
   onDelete: (id: string) => Promise<void>;
@@ -36,15 +40,15 @@ interface Props {
 }
 
 /** `picked`: the family chose the category (or is editing a saved entry), so typing never overrides it. `unsure`: weak guess, highlighted. */
-type Draft = { occurredOn: string; content: string; category: string; kind: MoneyKind; amount: string; forChild: boolean; note: string; repeat: boolean; repeatDay: string; fromSavings: boolean; picked: boolean; unsure: boolean };
-const blank = (month: string): Draft => ({ occurredOn: todayLocal().startsWith(month) ? todayLocal() : `${month}-01`, content: "", category: "", kind: "expense", amount: "", forChild: false, note: "", repeat: false, repeatDay: "", fromSavings: false, picked: false, unsure: false });
-const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: groupAmountTyping(String(item.amount)), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "", fromSavings: item.paidFrom === "savings", picked: true, unsure: false });
+type Draft = { occurredOn: string; content: string; category: string; kind: MoneyKind; amount: string; forChild: boolean; note: string; repeat: boolean; repeatDay: string; fromSavings: boolean; picked: boolean; unsure: boolean; /** Debt the repayment pays down: null = follow the guess, "" = none. */ debtId: string | null };
+const blank = (month: string): Draft => ({ occurredOn: todayLocal().startsWith(month) ? todayLocal() : `${month}-01`, content: "", category: "", kind: "expense", amount: "", forChild: false, note: "", repeat: false, repeatDay: "", fromSavings: false, picked: false, unsure: false, debtId: null });
+const toDraft = (item: MoneyTransaction, rec?: MoneyRecurring): Draft => ({ occurredOn: item.occurredOn, content: item.content, category: item.category, kind: item.kind, amount: groupAmountTyping(String(item.amount)), forChild: item.forChild, note: item.note ?? "", repeat: Boolean(rec?.active), repeatDay: rec ? String(rec.dayOfMonth) : "", fromSavings: item.paidFrom === "savings", picked: true, unsure: false, debtId: item.debtId ?? "" });
 const dayOf = (iso: string) => String(Number(iso.slice(8, 10)) || 1);
 const KIND_MARK: Record<MoneyKind, string> = { expense: "−", income: "+", saving: "→" };
 const amountText = (item: MoneyTransaction) => `${item.kind === "saving" && item.amount < 0 ? "+" : KIND_MARK[item.kind]}${vnd(Math.abs(item.amount))}`;
 
 /** Ledger like the household Excel: one row per entry; the top row adds an entry (Enter saves), any row edits in place. */
-export function LedgerTable({ transactions, categories, familyChildren, month, balances, showBalance = true, balanceOpen, onBalanceOpen, emptyText, recurring, debtRecurringIds, onSave, onDelete, guessContext }: Props) {
+export function LedgerTable({ transactions, categories, familyChildren, month, balances, showBalance = true, balanceOpen, onBalanceOpen, emptyText, recurring, debtRecurringIds, debts, onSave, onDelete, guessContext }: Props) {
   const [draft, setDraft] = useState<Draft>(blank(month));
   const [editing, setEditing] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -60,6 +64,13 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
   const lastFromSavings = (category: string, kind: MoneyKind) => kind === "expense" && transactions.find((tx) => tx.kind === "expense" && tx.category === (category || options(kind)[0]))?.paidFrom === "savings";
   const recurringOf = (item: MoneyTransaction) => item.recurringId ? recurring.find((rec) => rec.id === item.recurringId) : undefined;
   const options = (kind: MoneyKind) => kind === "saving" ? SAVING_CATEGORIES : categories.filter((item) => item.kind === kind && !item.archived).map((item) => item.name);
+  // A repayment row gets the "Trừ vào khoản nợ" picker (guessed from the wording like quick entry, changeable).
+  const catOf = (d: Draft) => d.category || options(d.kind)[0] || "Khác";
+  const repaying = (d: Draft) => debts.length > 0 && d.kind === "expense" && REPAYMENT_CATEGORIES.includes(catOf(d));
+  const debtGuess = repaying(draft) ? autoDebtId({ kind: "expense", category: catOf(draft), content: draft.content, debtId: undefined, recurringId: undefined }, debts) ?? "" : "";
+  const debtLocked = (item?: MoneyTransaction) => Boolean(item?.recurringId && debtRecurringIds.has(item.recurringId));
+  // Turning into a repayment opens the details row so the debt picker is seen.
+  const apply = (next: Draft) => { if (repaying(next) && !repaying(draft)) setDetailsOpen(true); setDraft(next); };
   // Same rules as quick add (memory → earlier entries → own categories → keywords); savings are left to the family.
   const withGuess = (next: Draft): Draft => {
     if (next.kind === "saving" || !guessContext) return next;
@@ -80,7 +91,9 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
     if (draft.repeat && (built.entry.amount <= 0 || !(Number.isInteger(day) && day >= 1 && day <= 31))) { setError(built.entry.amount <= 0 ? "Khoản rút tiết kiệm không đặt lặp lại được." : "Ngày lặp lại cần từ 1 đến 31."); return; }
     setBusy(true); setError(""); setNotice("");
     try {
-      const saved = await onSave(built.entry, { on: draft.repeat, day });
+      // The picker's value is saved exactly as shown ("" = the family chose no debt, never guessed from again).
+      const entry = repaying(draft) && !debtLocked(existing) ? { ...built.entry, debtId: draft.debtId ?? debtGuess } : built.entry;
+      const saved = await onSave(entry, { on: draft.repeat, day });
       if (saved && saved.answered) setNotice(`✓ Khớp khoản cố định “${saved.answered}” — đã đánh dấu ${built.entry.kind === "income" ? "Đã nhận" : "Đã trả"}, không tạo trùng.`);
       const name = built.entry.content;
       const wasOn = existing ? Boolean(recurringOf(existing)?.active) : false;
@@ -94,9 +107,9 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
   const cancel = () => { setEditing(null); setDraft(blank(month)); setDetailsOpen(false); };
   const fields = (existing?: MoneyTransaction) => <>
     <td className="lt-date" data-label="Ngày"><DateInput aria-label="Ngày" value={draft.occurredOn} onChange={(occurredOn) => setDraft({ ...draft, occurredOn })} /></td>
-    <td className="lt-type" data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => setDraft(withGuess({ ...draft, kind: event.target.value as MoneyKind, category: "", picked: false, unsure: false }))}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{kind === "saving" ? "TK" : MONEY_KIND_LABELS[kind]}</option>)}</select></td>
-    <td className="lt-content" data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus={Boolean(existing)} onChange={(event) => setDraft(withGuess({ ...draft, content: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
-    <td className="lt-cat" data-label="Nhóm"><select aria-label="Nhóm" className={draft.unsure && !draft.picked ? "unsure" : undefined} title={draft.unsure && !draft.picked ? "Chưa chắc nhóm này — kiểm tra lại" : undefined} value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value, picked: true, unsure: false, fromSavings: lastFromSavings(event.target.value, draft.kind) })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
+    <td className="lt-type" data-label="Loại"><select aria-label="Loại" value={draft.kind} onChange={(event) => apply(withGuess({ ...draft, kind: event.target.value as MoneyKind, category: "", picked: false, unsure: false }))}>{(Object.keys(MONEY_KIND_LABELS) as MoneyKind[]).map((kind) => <option key={kind} value={kind}>{kind === "saving" ? "TK" : MONEY_KIND_LABELS[kind]}</option>)}</select></td>
+    <td className="lt-content" data-label="Nội dung"><input aria-label="Nội dung" placeholder="Ăn sáng, tiền điện…" value={draft.content} maxLength={120} autoFocus={Boolean(existing)} onChange={(event) => apply(withGuess({ ...draft, content: event.target.value }))} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
+    <td className="lt-cat" data-label="Nhóm"><select aria-label="Nhóm" className={draft.unsure && !draft.picked ? "unsure" : undefined} title={draft.unsure && !draft.picked ? "Chưa chắc nhóm này — kiểm tra lại" : undefined} value={draft.category} onChange={(event) => apply({ ...draft, category: event.target.value, picked: true, unsure: false, fromSavings: lastFromSavings(event.target.value, draft.kind) })}><option value="">{options(draft.kind)[0] ?? "Khác"}</option>{options(draft.kind).slice(1).map((name) => <option key={name}>{name}</option>)}</select></td>
     <td className="lt-amount" data-label="Số tiền"><AmountInput aria-label="Số tiền" inputMode="decimal" placeholder={draft.kind === "saving" ? "5tr / -698k" : "350k"} value={draft.amount} onChange={(event) => setDraft({ ...draft, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void submit(existing); }} /></td>
     {withBalance && <><td className="lt-bal" /><td className="lt-bal" /></>}
     <td className="lt-actions">
@@ -107,6 +120,11 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
   </>;
   const details = (existing?: MoneyTransaction) => detailsOpen && <tr className="lt-details"><td colSpan={withBalance ? 8 : 6}>
     {draft.kind === "expense" && <div className="paid-from" role="group" aria-label="Trả từ"><span>Trả từ</span><button type="button" className={!draft.fromSavings ? "on" : undefined} onClick={() => setDraft({ ...draft, fromSavings: false })}>Tiền tiêu</button><button type="button" className={draft.fromSavings ? "on" : undefined} onClick={() => setDraft({ ...draft, fromSavings: true })}>Tiết kiệm</button></div>}
+    {repaying(draft) && !debtLocked(existing) && <span className="debt-pick"><label htmlFor="lt-debt">Trừ vào khoản nợ</label>
+      <select id="lt-debt" value={draft.debtId ?? debtGuess} onChange={(event) => setDraft({ ...draft, debtId: event.target.value })}>
+        {debts.map((debt) => <option key={debt.id} value={debt.id}>{debt.name} — còn {vndCompact(debt.left)}</option>)}
+        <option value="">Khoản khác (không trừ nợ nào)</option>
+      </select></span>}
     {existing?.recurringId && debtRecurringIds.has(existing.recurringId) ? <small className="repeat-locked">↻ Từ khoản nợ</small>
       : <label className="repeat"><input type="checkbox" checked={draft.repeat} onChange={(event) => setDraft({ ...draft, repeat: event.target.checked, repeatDay: draft.repeatDay || dayOf(draft.occurredOn) })} /> <span>Hằng tháng</span></label>}
     {draft.repeat && <span className="repeat-day">ngày <input type="number" min={1} max={31} aria-label="Ngày lặp lại mỗi tháng" value={draft.repeatDay} onChange={(event) => setDraft({ ...draft, repeatDay: event.target.value })} /> mỗi tháng</span>}
@@ -127,12 +145,12 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
         </tr></thead>
         <tbody>
           {!editing && <><tr className="lt-add">{fields()}</tr>{details()}</>}
-          {rows.map((item) => editing === item.id ? <>
-            <tr className="lt-edit" key={item.id}>{fields(item)}</tr>{details(item)}
-          </> : <tr key={item.id} className={`lt-row kind-${item.kind}`}>
+          {rows.map((item) => editing === item.id ? <Fragment key={item.id}>
+            <tr className="lt-edit">{fields(item)}</tr>{details(item)}
+          </Fragment> : <tr key={item.id} className={`lt-row kind-${item.kind}`}>
             <td className="lt-date" data-label="Ngày">{formatVnDate(item.occurredOn)}</td>
             <td className="lt-type" data-label="Loại"><span className={`lt-kind ${item.kind}`} role="img" aria-label={MONEY_KIND_LABELS[item.kind]}>{KIND_MARK[item.kind]}</span></td>
-            <td className="lt-content" data-label="Nội dung"><span className="ledger-content">{item.content}</span>{item.paidFrom === "savings" && <span className="src-pill">từ tiết kiệm</span>}{recurringOf(item)?.active ? <span className="rec-pill">↻ Hằng tháng · ngày {recurringOf(item)!.dayOfMonth}</span> : item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
+            <td className="lt-content" data-label="Nội dung"><span className="ledger-content">{item.content}</span>{item.paidFrom === "savings" && <span className="src-pill">từ tiết kiệm</span>}{item.debtId && debts.some((debt) => debt.id === item.debtId) && <span className="debt-pill" title="Khoản này trừ vào khoản nợ">↓ {debts.find((debt) => debt.id === item.debtId)!.name}</span>}{recurringOf(item)?.active ? <span className="rec-pill">↻ Hằng tháng · ngày {recurringOf(item)!.dayOfMonth}</span> : item.source === "recurring" && <span className="app-pill">Định kỳ</span>}{item.source === "purchase" && <span className="app-pill">Mua sắm</span>}{item.note && <small>{item.note}</small>}</td>
             <td className="lt-cat" data-label="Nhóm"><span className="lt-catchip">{item.category}</span></td>
             <td className={`num lt-amount ${item.kind}`} data-label="Số tiền">{amountText(item)}</td>
             {withBalance && (() => { const pot = balanceAfter.get(item.id); return <>
@@ -142,7 +160,7 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
             <td className="lt-actions">
               <button type="button" className="lt-menu" aria-expanded={menuFor === item.id} aria-label={`Thao tác cho ${item.content}`} onClick={() => setMenuFor(menuFor === item.id ? null : item.id)}>⋯</button>
               <span className={`lt-buttons${menuFor === item.id ? " open" : ""}`}>
-                <button type="button" className="lt-link" onClick={() => { setEditing(item.id); setDraft(toDraft(item, recurringOf(item))); setDetailsOpen(Boolean(recurringOf(item)) || item.paidFrom === "savings"); setError(""); setNotice(""); }}>Sửa</button>
+                <button type="button" className="lt-link" onClick={() => { const next = toDraft(item, recurringOf(item)); setEditing(item.id); setDraft(next); setDetailsOpen(Boolean(recurringOf(item)) || item.paidFrom === "savings" || (repaying(next) && !debtLocked(item))); setError(""); setNotice(""); }}>Sửa</button>
                 <button type="button" className="lt-link danger" onClick={() => { if (window.confirm(`Xóa “${item.content}”?`)) void onDelete(item.id); }}>Xóa</button>
               </span>
             </td>

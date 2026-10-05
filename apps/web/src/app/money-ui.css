@@ -88,7 +88,7 @@
 .lt-content{overflow:hidden}
 .lt-content .ledger-content{display:inline;font-weight:600}
 .lt-content small{display:block;color:var(--mu-muted);font-size:12px}
-.lt-content .app-pill,.lt-content .rec-pill,.lt-content .src-pill{margin-left:6px;vertical-align:middle}
+.lt-content .app-pill,.lt-content .rec-pill,.lt-content .src-pill,.lt-content .debt-pill{margin-left:6px;vertical-align:middle}
 .lt-catchip{display:inline-flex;align-items:center;min-height:28px;max-width:100%;padding:0 10px;border-radius:99px;background:var(--mint);color:var(--primary-ink);font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .lt-amount{font-weight:700;white-space:nowrap}
 .lt-amount.income{color:var(--ok)}.lt-amount.saving{color:var(--primary-ink)}

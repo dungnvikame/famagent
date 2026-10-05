@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
 import { loadLoans } from "@/lib/money/client";
+import { autoDebtId } from "@/lib/money/debt-link";
+import { vndCompact } from "@/lib/money/format-vnd";
 import { debtLinkIds, loansByPerson, type PersonLedger } from "@/lib/money/loans";
 import { formatVnDate, parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeftIn, debtTotals, monthsToPayOff } from "@/lib/money/position";
@@ -40,12 +42,17 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
   const [open, setOpen] = useState<string | null>(null);
   const [showDone, setShowDone] = useState(false);
   const [form, setForm] = useState({ role: "lend" as Role, name: "", amount: "", date: todayLocal() });
+  // The debt a "Trả nợ" line pays down: null = follow the guess from the name typed, "" = none.
+  const [debtChoice, setDebtChoice] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => { try { setLoans(await loadLoans()); setError(""); } catch (cause) { setError(cause instanceof Error ? cause.message : "Không tải được các khoản nợ."); } }, []);
   useEffect(() => { void refresh(); }, [refresh, bundle]);
 
   const debts = bundle.settings.position?.debts ?? [];
+  const debtRows = debts.map((debt) => ({ debt, left: debtLeftIn(bundle, debt) }));
+  const repayGuess = form.role === "repay" && debts.length ? autoDebtId({ kind: "expense", category: LINE.repay.category, content: LINE.repay.content(form.name.trim()), debtId: undefined, recurringId: undefined }, debts) ?? "" : "";
+  const repayDebt = debtChoice ?? repayGuess;
   const debtLinks = debtLinkIds(debts);
   const people = loansByPerson(loans ?? [], debtLinks);
   const overview = debtTotals(bundle);
@@ -59,7 +66,8 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
     const line = LINE[form.role];
     setBusy(true); setError("");
     try {
-      await onSave({ id: crypto.randomUUID(), occurredOn: form.date, content: line.content(form.name.trim()), category: line.category, kind: line.kind, amount, forChild: false, source: "manual" });
+      // "Trả nợ" carries the picked debt ("" = the family chose none, so the wording is never guessed from again).
+      await onSave({ id: crypto.randomUUID(), occurredOn: form.date, content: line.content(form.name.trim()), category: line.category, kind: line.kind, amount, forChild: false, source: "manual", debtId: form.role === "repay" && debts.length ? repayDebt : undefined });
       setForm({ ...form, amount: "" });
       await refresh();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa ghi được."); }
@@ -92,9 +100,14 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
     </div>
 
     <section className="app-card"><div className="qform">
-      <select aria-label="Loại" value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as Role })}>{ROLES.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select>
+      <select aria-label="Loại" value={form.role} onChange={(event) => { setForm({ ...form, role: event.target.value as Role }); setDebtChoice(null); }}>{ROLES.map((role) => <option key={role.id} value={role.id}>{role.label}</option>)}</select>
       <input aria-label="Người" placeholder="Người (Tom, chị Hà…)" value={form.name} maxLength={40} onChange={(event) => setForm({ ...form, name: event.target.value })} list="debt-people" />
       <datalist id="debt-people">{[...people.lent, ...people.owe].filter((row) => row.name !== "Khác").map((row) => <option key={`${row.key}`} value={row.name} />)}</datalist>
+      {form.role === "repay" && debts.length > 0 && <div className="debt-pick"><label htmlFor="dv-debt">Trừ vào khoản nợ</label>
+        <select id="dv-debt" value={repayDebt} onChange={(event) => setDebtChoice(event.target.value)}>
+          {debtRows.map(({ debt, left }) => <option key={debt.id} value={debt.id}>{debt.name} — còn {vndCompact(left)}</option>)}
+          <option value="">Không trừ khoản nào (nợ người ngoài)</option>
+        </select></div>}
       <AmountInput aria-label="Số tiền" placeholder="Số tiền" value={form.amount} onChange={(event) => setForm({ ...form, amount: event.target.value })} onKeyDown={(event) => { if (event.key === "Enter") void record(); }} />
       <DateInput aria-label="Ngày" value={form.date} onChange={(date) => setForm({ ...form, date })} />
       <button type="button" className="app-btn" disabled={busy} onClick={() => void record()}>{busy ? "Đang ghi…" : "Ghi"}</button>
@@ -109,7 +122,7 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
       </section>
       <section className="app-card dcard"><h3>Mình đang nợ <small>{vnd(overview.owed)}</small></h3>
         {oweOpen.map((row) => personRow(row, "owe"))}
-        {debts.map((debt) => { const left = debtLeftIn(bundle, debt); const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); const paid = bundle.debtPaid?.[debt.id] ?? 0; const since = debt.asOf ?? bundle.settings.position?.asOf; return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small>{paid > 0 && since && <small>Đã trả {vnd(paid)} từ {formatVnDate(since)}</small>}</span><b className="owe-c">{vnd(left)}</b></div>; })}
+        {debtRows.map(({ debt, left }) => { const months = monthsToPayOff(left, debt.monthlyPayment, debt.ratePct); const paid = bundle.debtPaid?.[debt.id] ?? 0; const since = debt.asOf ?? bundle.settings.position?.asOf; return <div key={debt.id} className="big-loan"><span><b>{debt.name}</b><small>Khoản vay lớn{debt.monthlyPayment ? ` · trả ${vnd(debt.monthlyPayment)} ngày ${debt.dueDay}` : ""}{months ? ` · còn khoảng ${months} tháng` : ""} · {left > 0 && <><button type="button" className="ledger-link" onClick={() => { setForm({ role: "repay", name: debt.name, amount: (debt.monthlyPayment || left).toLocaleString("vi-VN"), date: todayLocal() }); setDebtChoice(debt.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Ghi khoản trả nợ</button> · </>}<button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button></small>{paid > 0 && since && <small>Đã trả {vnd(paid)} từ {formatVnDate(since)}</small>}</span><b className="owe-c">{vnd(left)}</b></div>; })}
         {!oweOpen.length && !debts.length && <p className="app-sub">Nhà mình không nợ ai.</p>}
         {oweDone.length > 0 && showDone && oweDone.map((row) => personRow(row, "owe"))}
       </section>

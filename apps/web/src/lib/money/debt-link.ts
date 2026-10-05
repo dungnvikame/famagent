@@ -11,7 +11,7 @@ export const REPAYMENT_CATEGORIES = [...REPAY_OUT, "Tiền trả góp"];
  * when its normalized name appears in the content ("Trả Vay mua xe tháng 9") or both name the same person
  * ("Vay em gái" ↔ "Trả nợ em gái"). Never guesses between two debts.
  */
-export function autoDebtId(entry: Pick<MoneyTransaction, "kind" | "category" | "content" | "debtId" | "recurringId">, debts: MoneyDebt[]): string | undefined {
+export function autoDebtId(entry: Pick<MoneyTransaction, "kind" | "category" | "content" | "debtId" | "recurringId">, debts: Array<Pick<MoneyDebt, "id" | "name" | "recurringId">>): string | undefined {
   if (entry.kind !== "expense" || entry.debtId || !REPAYMENT_CATEGORIES.includes(entry.category)) return undefined;
   if (entry.recurringId && debts.some((debt) => debt.recurringId === entry.recurringId)) return undefined;
   const text = ` ${normalize(entry.content)} `;
