@@ -5,6 +5,7 @@ import { vnd } from "@/lib/catalog/format";
 import type { DueEntry } from "@/lib/money/fixed-items";
 import { vndCompact } from "@/lib/money/format-vnd";
 import type { PotBalance } from "@/lib/money/history";
+import { doneWord } from "@/lib/money/recurring-form";
 import type { MonthSummary } from "@/lib/money/summary";
 
 interface HeroProps {
@@ -17,6 +18,8 @@ interface HeroProps {
   /** 1-based day of the month today, and days in the month (for the bar marker). */
   today: { day: number; days: number };
   onPlan: () => void;
+  /** Opens the ledger filtered to savings entries ("Quỹ tiết kiệm" tile). */
+  onSavings?: () => void;
 }
 
 /** Trạng thái nhịp chi so với kế hoạch, from the forecast the summary already computed. */
@@ -32,7 +35,7 @@ function paceOf(summary: MonthSummary): { tone: "ok" | "warn"; text: string } | 
  * month it is plan − spent − fixed expenses nobody has confirmed yet, so rent or an instalment due next week is already
  * held back. Debts, lending and the total sit behind "Xem thêm số dư", so the first screen stays readable.
  */
-export function MoneyHero({ summary, pots, debts, current, today, onPlan }: HeroProps) {
+export function MoneyHero({ summary, pots, debts, current, today, onPlan, onSavings }: HeroProps) {
   const [more, setMore] = useState(false);
   const hasPlan = summary.plan !== undefined;
   const heldBack = current ? summary.fixedDue : 0;
@@ -75,7 +78,9 @@ export function MoneyHero({ summary, pots, debts, current, today, onPlan }: Hero
     </div>
     <div className="mh-pots">
       <div className="mh-pot"><span>Tiền tiêu</span><b className={pots.cash < 0 ? "neg" : undefined}>{vnd(pots.cash)}</b></div>
-      <div className="mh-pot"><span>Quỹ tiết kiệm</span><b>{vnd(pots.savings)}</b></div>
+      {onSavings
+        ? <button type="button" className="mh-pot mh-pot-btn" title="Xem các lần gửi / rút tiết kiệm trong Sổ" onClick={onSavings}><span>Quỹ tiết kiệm ›</span><b>{vnd(pots.savings)}</b></button>
+        : <div className="mh-pot"><span>Quỹ tiết kiệm</span><b>{vnd(pots.savings)}</b></div>}
       <button type="button" className="mh-link" aria-expanded={more} onClick={() => setMore(!more)}>{more ? "Ẩn bớt ▴" : "Xem thêm số dư ▾"}</button>
       {more && <ul className="mh-extra">{extras.map((item) => <li key={item.label} className={item.tone}><span>{item.label}</span><b>{item.value}</b></li>)}</ul>}
     </div>
@@ -91,7 +96,7 @@ export function DueStrip({ items, onPay }: { items: DueEntry[]; onPay: (entry: D
     <h2>Đến hạn <em>{items.length} khoản</em></h2>
     <ul>{items.map((entry) => <li key={`${entry.recurringId}:${entry.period}`} className={entry.state}>
       <div><b>{entry.name}</b><span>{entry.estimated ? "~" : ""}{vndCompact(entry.amount)} · {entry.label}</span><em className={`due-tag ${entry.state}`}>{STATE_LABEL[entry.state]}</em></div>
-      <button type="button" className={entry.state === "soon" ? "alt" : undefined} onClick={() => onPay(entry)}>{entry.kind === "income" ? "Đã nhận?" : "Đã trả?"}</button>
+      <button type="button" className={entry.state === "soon" ? "alt" : undefined} onClick={() => onPay(entry)}>{doneWord(entry.kind)}?</button>
     </li>)}</ul>
   </section>;
 }

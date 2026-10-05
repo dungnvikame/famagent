@@ -37,8 +37,8 @@ export function FixedItemsPanel({ bundle, summary, month, onRecurring, onDeleteR
         const { amount, estimated } = expectedAmount(item, bundle.recurringAmounts);
         const status = itemStatus(item, month, bundle.periods ?? [], summary.due, today);
         return <li key={item.id} className={`pl-item${item.active ? "" : " off"}`}>
-          <div className="pl-item-main"><b>{item.name}{estimated && <span className="pl-est">ước lượng</span>}</b><small>{scheduleText(item)} · {item.kind === "income" ? "Thu" : "Chi"}</small></div>
-          <div className="pl-item-amt">{item.kind === "income" ? "+" : ""}{estimated ? "~" : ""}{vnd(amount)}</div>
+          <div className="pl-item-main"><b>{item.name}{estimated && <span className="pl-est">ước lượng</span>}</b><small>{scheduleText(item)} · {item.kind === "income" ? "Thu" : item.kind === "saving" ? "Tiết kiệm" : "Chi"}</small></div>
+          <div className="pl-item-amt">{item.kind === "income" ? "+" : item.kind === "saving" ? "→ " : ""}{estimated ? "~" : ""}{vnd(amount)}</div>
           <span className={`pl-tag ${status.tone}`}>{status.label}</span>
           <div className="pl-item-acts">
             <button type="button" className="pl-link" aria-label={`Sửa ${item.name}`} onClick={() => { setError(""); setEditing(item.id); }}>Sửa</button>

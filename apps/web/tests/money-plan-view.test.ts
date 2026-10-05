@@ -77,10 +77,10 @@ test("item status this month: paid with date and amount, skipped, waiting states
   assert.deepEqual(itemStatus({ ...net, active: false }, "2026-09", periods, [due("net", "due")], "2026-09-29"), { tone: "paused", label: "Tạm dừng" });
 });
 
-test("list order: income first, running before paused, savings left out", () => {
+test("list order: income first, then savings, then expenses; running before paused", () => {
   const paused = { ...salary, id: "old", name: "Thưởng", active: false };
   const saving = item({ id: "sv", name: "Quỹ", kind: "saving" });
-  assert.deepEqual(listedItems([net, paused, rent, saving, salary]).map((entry) => entry.id), ["salary", "rent", "net", "old"]);
+  assert.deepEqual(listedItems([net, paused, rent, saving, salary]).map((entry) => entry.id), ["salary", "sv", "rent", "net", "old"]);
 });
 
 test("budget rows merge the plan with what was spent; balance says what is not shared out yet", () => {

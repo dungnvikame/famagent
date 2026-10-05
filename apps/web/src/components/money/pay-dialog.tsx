@@ -62,7 +62,7 @@ export function PayDialog({ entry, history, debt, onConfirm, onSkip, onClose }: 
       {value !== null && value > 0 && entry.estimated && average && Math.abs(value - average) > average * 0.3 && <p className="pd-note warn">Khác nhiều so với trung bình {vnd(average)} — kiểm tra lại số tiền.</p>}
       {error && <p className="pd-error" role="alert">{error}</p>}
       <div className="pd-actions">
-        <button type="button" className="pd-btn primary" disabled={busy || !value || value <= 0} onClick={() => value && void run(() => onConfirm({ occurredOn: date, amount: value }))}>{busy ? "Đang ghi…" : income ? "Ghi đã nhận" : "Ghi vào sổ"}</button>
+        <button type="button" className="pd-btn primary" disabled={busy || !value || value <= 0} onClick={() => value && void run(() => onConfirm({ occurredOn: date, amount: value }))}>{busy ? "Đang ghi…" : income ? "Ghi đã nhận" : entry.kind === "saving" ? "Ghi đã gửi" : "Ghi vào sổ"}</button>
         <button type="button" className="pd-btn" disabled={busy} onClick={() => void run(onSkip)}>Bỏ qua kỳ này</button>
         <button type="button" className="pd-btn" disabled={busy} onClick={onClose}>Để sau</button>
       </div>

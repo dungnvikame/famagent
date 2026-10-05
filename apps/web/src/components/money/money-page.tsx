@@ -128,6 +128,13 @@ export function MoneyPage() {
   })();
 
   const debtRecurringIds = new Set((bundle?.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
+
+  /** "Xem các lần đã gửi": the Sổ filtered to savings entries over the last 12 months (one deposit per month reads as a short list). */
+  function openSavingsLedger() {
+    setFilter({ kinds: ["saving"], categories: [], ...monthRange(month), from: `${shiftMonth(month, -11)}-01`, text: "" });
+    setTab("ledger");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   // The "Trừ vào khoản nợ nào?" picker on the ledger's repayment rows: each Tình hình debt with what is left of it.
   const debtPickOptions = bundle ? (bundle.settings.position?.debts ?? []).map((debt) => ({ id: debt.id, name: debt.name, left: debtLeftIn(bundle, debt) })) : [];
 
@@ -223,7 +230,7 @@ export function MoneyPage() {
 
     {error && <p className="form-error" role="alert">{error}{!cloudEnabled ? "" : " "}<Link href="/sign-in">{error.includes("đăng nhập") ? "Đăng nhập" : ""}</Link></p>}
     {!bundle || !summary || !quickContext ? <div className="app-card" aria-busy="true"><p className="app-sub">Đang tải sổ thu chi…</p></div> : <>
-      {tab !== "month" && pots && <MoneyHero summary={summary} pots={pots} debts={debts} current={month === monthKey(new Date())} today={{ day: new Date().getDate(), days: new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate() }} onPlan={() => setTab("plan")} />}
+      {tab !== "month" && pots && <MoneyHero summary={summary} pots={pots} debts={debts} current={month === monthKey(new Date())} today={{ day: new Date().getDate(), days: new Date(Number(month.slice(0, 4)), Number(month.slice(5)), 0).getDate() }} onPlan={() => setTab("plan")} onSavings={openSavingsLedger} />}
       {tab !== "month" && <DueFlow bundle={bundle} summary={summary} onChanged={() => reload()} />}
       <div className="app-tabs" role="tablist">{TABS.map((item) => <a key={item.id} role="tab" href={`#${item.id}`} aria-selected={tab === item.id} className={tab === item.id ? "on" : undefined} onClick={(event) => { event.preventDefault(); setTab(item.id); }}>{item.label}{item.id === "ledger" && summary.transactionCount ? ` · ${summary.transactionCount}` : ""}</a>)}</div>
       {tab === "situ" && <SavingsBackfill recurring={bundle.recurring} onDone={() => reload()} />}
@@ -237,7 +244,7 @@ export function MoneyPage() {
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} />}
-      {tab === "plan" && <PlanView bundle={bundle} summary={summary} month={month}
+      {tab === "plan" && <PlanView bundle={bundle} summary={summary} month={month} onOpenSavings={openSavingsLedger}
         onSettings={async (settings) => { await act("money_saving_set")(() => saveMoneySettings(settings)); }}
         onRecurring={async (item) => { await act("money_recurring_saved")(() => saveMoneyItem("recurring", item)); }}
         onDeleteRecurring={async (id) => { await act("money_recurring_deleted")(() => deleteMoneyItem("recurring", id)); }}

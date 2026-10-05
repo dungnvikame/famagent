@@ -1,5 +1,6 @@
 import { scheduleOf, windowLabel, type DueEntry } from "./fixed-items.ts";
 import { fixedMonthly, flexibleBudget, plannedIncome, setAsideMonthly } from "./plan.ts";
+import { doneWord } from "./recurring-form.ts";
 import { daysInMonth, type MonthSummary } from "./summary.ts";
 import type { MoneyBudget, MoneyBundle, MoneyRecurring, RecurringPeriod } from "./types.ts";
 import { vndCompact } from "./format-vnd.ts";
@@ -79,17 +80,17 @@ export function itemStatus(item: MoneyRecurring, month: string, periods: Recurri
   if (!item.active) return { tone: "paused", label: "Tạm dừng" };
   const answer = periods.find((period) => period.recurringId === item.id && period.period === month);
   if (answer?.status === "skipped") return { tone: "skipped", label: "Bỏ qua kỳ này" };
-  if (answer) return { tone: "paid", label: `${item.kind === "income" ? "Đã nhận" : "Đã trả"}${answer.paidOn ? ` ${dayMonth(answer.paidOn)}` : ""}${answer.amount ? ` · ${vndCompact(answer.amount)}` : ""}` };
+  if (answer) return { tone: "paid", label: `${doneWord(item.kind)}${answer.paidOn ? ` ${dayMonth(answer.paidOn)}` : ""}${answer.amount ? ` · ${vndCompact(answer.amount)}` : ""}` };
   const waiting = due.find((entry) => entry.recurringId === item.id && entry.period === month);
   if (waiting) return waiting.state === "overdue" ? { tone: "overdue", label: "Quá hạn" } : waiting.state === "due" ? { tone: "due", label: "Tới hạn" } : { tone: "soon", label: "Sắp tới" };
-  if (item.lastPostedMonth && month <= item.lastPostedMonth) return { tone: "paid", label: item.kind === "income" ? "Đã nhận" : "Đã xong" };
+  if (item.lastPostedMonth && month <= item.lastPostedMonth) return { tone: "paid", label: item.kind === "expense" ? "Đã xong" : doneWord(item.kind) };
   return { tone: "later", label: month < today.slice(0, 7) ? "Chưa ghi nhận" : "Chưa tới" };
 }
 
-/** Income first, then expenses; running items before paused ones; earlier days first. Savings items are not listed here. */
+/** Income first, then savings, then expenses; running items before paused ones; earlier days first. */
 export function listedItems(recurring: MoneyRecurring[]): MoneyRecurring[] {
-  const rank = (item: MoneyRecurring) => (item.active ? 0 : 2) + (item.kind === "income" ? 0 : 1);
-  return recurring.filter((item) => item.kind !== "saving").sort((a, b) => rank(a) - rank(b) || a.dayOfMonth - b.dayOfMonth || a.name.localeCompare(b.name, "vi"));
+  const rank = (item: MoneyRecurring) => (item.active ? 0 : 3) + (item.kind === "income" ? 0 : item.kind === "saving" ? 1 : 2);
+  return [...recurring].sort((a, b) => rank(a) - rank(b) || a.dayOfMonth - b.dayOfMonth || a.name.localeCompare(b.name, "vi"));
 }
 
 // ---------- category budgets ----------

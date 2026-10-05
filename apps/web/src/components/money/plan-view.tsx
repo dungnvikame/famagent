@@ -16,6 +16,8 @@ export interface PlanViewProps {
   onDeleteRecurring: (id: string) => Promise<void>;
   onBudget: (item: MoneyBudget) => Promise<void>;
   onDeleteBudget: (id: string) => Promise<void>;
+  /** Opens the Sổ filtered to savings entries (the plan's "Xem các lần đã gửi"). */
+  onOpenSavings: () => void;
   /** Rendered inside the collapsed "Cách chia tiền" fold. */
   frameworkSlot?: ReactNode;
   /** Rendered last (savings goals). */
@@ -28,9 +30,9 @@ const seeItems = () => {
 };
 
 /** The "Kế hoạch" tab: the month plan (derived), the fixed items behind it, category budgets, money split, goals. */
-export function PlanView({ bundle, summary, month, onSettings, onRecurring, onDeleteRecurring, onBudget, onDeleteBudget, frameworkSlot, goalsSlot }: PlanViewProps) {
+export function PlanView({ bundle, summary, month, onSettings, onRecurring, onDeleteRecurring, onBudget, onDeleteBudget, onOpenSavings, frameworkSlot, goalsSlot }: PlanViewProps) {
   return <div className="plan-view">
-    <PlanSummary bundle={bundle} month={month} onSettings={onSettings} onSeeItems={seeItems} />
+    <PlanSummary bundle={bundle} month={month} onSettings={onSettings} onSeeItems={seeItems} onRecurring={onRecurring} onOpenSavings={onOpenSavings} />
     <FixedItemsPanel bundle={bundle} summary={summary} month={month} onRecurring={onRecurring} onDeleteRecurring={onDeleteRecurring} />
     <BudgetPlan bundle={bundle} summary={summary} month={month} onBudget={onBudget} onDeleteBudget={onDeleteBudget} />
     {frameworkSlot && <details className="fold pl-fold"><summary>Cách chia tiền</summary><div className="pl-fold-body">{frameworkSlot}</div></details>}

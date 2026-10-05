@@ -2,16 +2,21 @@
 
 import { useState } from "react";
 import { vnd } from "@/lib/catalog/format";
+import { isMonthly } from "@/lib/money/fixed-items";
 import { vndCompact } from "@/lib/money/format-vnd";
-import { groupAmountTyping, parseVnd } from "@/lib/money/parse";
+import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
 import { planFigures, stepSaving } from "@/lib/money/plan-model";
-import type { MoneyBundle, MoneySettings } from "@/lib/money/types";
+import type { MoneyBundle, MoneyRecurring, MoneySettings } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
 
 interface Props {
   bundle: MoneyBundle; month: string;
   onSettings: (settings: MoneySettings) => Promise<void>;
   onSeeItems: () => void;
+  /** Creates or updates the monthly "Gửi tiết kiệm" reminder item. */
+  onRecurring: (item: MoneyRecurring) => Promise<void>;
+  /** Opens the Sổ filtered to savings entries. */
+  onOpenSavings: () => void;
 }
 
 /** No fixed income yet: ask for one, and keep the old way (type the monthly plan) so nothing is lost. */
@@ -44,11 +49,14 @@ function NoIncome({ settings, onSettings, monthNo, onSeeItems }: { settings: Mon
  * "Kế hoạch tháng N": planned income − monthly fixed items − saving = what is left for day-to-day spending.
  * The family only moves the saving stepper; everything else comes from its fixed items.
  */
-export function PlanSummary({ bundle, month, onSettings, onSeeItems }: Props) {
+export function PlanSummary({ bundle, month, onSettings, onSeeItems, onRecurring, onOpenSavings }: Props) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [reminderDay, setReminderDay] = useState("5");
   const monthNo = Number(month.slice(5));
   const fig = planFigures(bundle, month);
+  // The monthly "Gửi tiết kiệm" reminder behind the stepper (asked "Đã gửi?" each month; confirming grows the fund).
+  const savingItem = bundle.recurring.find((item) => item.active && item.kind === "saving" && isMonthly(item));
   if (fig.income <= 0) return <NoIncome settings={bundle.settings} onSettings={onSettings} monthNo={monthNo} onSeeItems={onSeeItems} />;
 
   async function step(direction: 1 | -1) {
@@ -56,6 +64,18 @@ export function PlanSummary({ bundle, month, onSettings, onSeeItems }: Props) {
     try { await onSettings({ ...bundle.settings, monthlySaving: stepSaving(fig.saving, direction, fig.income) }); }
     catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được."); }
     finally { setBusy(false); }
+  }
+
+  async function run(task: () => Promise<void>) {
+    setBusy(true); setError("");
+    try { await task(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa lưu được."); } finally { setBusy(false); }
+  }
+  function createReminder() {
+    const day = Number(reminderDay);
+    if (!Number.isInteger(day) || day < 1 || day > 31) { setError("Ngày nhắc cần từ 1 đến 31."); return; }
+    const today = todayLocal();
+    // A day already past this month counts as settled, so the new reminder starts asking from next month.
+    void run(() => onRecurring({ id: crypto.randomUUID(), name: "Gửi tiết kiệm", kind: "saving", category: "Tiết kiệm", amount: fig.saving, dayOfMonth: day, active: true, amountMode: "fixed", lastPostedMonth: month === today.slice(0, 7) && day <= Number(today.slice(8, 10)) ? month : undefined }));
   }
   const short = fig.flexRaw < 0;
   const notes = [`${fig.savingPct}% thu`, ...(fig.savingStored ? [] : ["gợi ý 20%: bấm − hoặc ＋ để lưu"]), ...(fig.setAside > 0 ? [`Khoản quý/năm chia đều ≈ ${vndCompact(fig.setAside)}/tháng: nên nằm trong tiết kiệm`] : [])];
@@ -80,6 +100,17 @@ export function PlanSummary({ bundle, month, onSettings, onSeeItems }: Props) {
       <i className="k-fixed" style={share(fig.bar.fixed)} /><i className="k-flex" style={share(fig.bar.flex)} /><i className="k-save" style={share(fig.bar.saving)} />
     </div>
     <div className="pl-key"><span><i className="k-fixed" />Cố định</span><span><i className="k-flex" />Linh hoạt</span><span><i className="k-save" />Tiết kiệm</span></div>
+    {fig.savingStored && fig.saving > 0 && <p className="pl-hint pl-save-cta">
+      {!savingItem
+        ? <>Chưa có nhắc gửi hằng tháng — app sẽ hỏi “Đã gửi?” như khoản cố định, xác nhận thì quỹ tiết kiệm tăng.{" "}
+          <span className="pl-save-day">ngày <input aria-label="Ngày nhắc gửi tiết kiệm" inputMode="numeric" maxLength={2} value={reminderDay} onChange={(event) => setReminderDay(event.target.value.replace(/\D/g, ""))} /></span>{" "}
+          <button type="button" className="pl-inline-link" disabled={busy} onClick={createReminder}>Tạo nhắc gửi {vndCompact(fig.saving)}/tháng</button></>
+        : savingItem.amount !== fig.saving
+          ? <>↻ Nhắc “{savingItem.name}” đang {vndCompact(savingItem.amount)} —{" "}
+            <button type="button" className="pl-inline-link" disabled={busy} onClick={() => void run(() => onRecurring({ ...savingItem, amount: fig.saving }))}>cập nhật theo kế hoạch {vndCompact(fig.saving)}</button></>
+          : <>↻ Nhắc “{savingItem.name}” ngày {savingItem.dayOfMonth} hằng tháng — tới kỳ app hỏi “Đã gửi?”.</>}
+      {" · "}<button type="button" className="pl-inline-link" onClick={onOpenSavings}>Xem các lần đã gửi →</button>
+    </p>}
     {!short && <p className="pl-hint pl-sum">{fig.savingStored
       ? <>Kế hoạch chi tháng = cố định + linh hoạt = <b>{vnd(fig.plan)}</b> — đây là số ở ô “Còn tiêu được”.</>
       : <>Đây mới là gợi ý: ô “Còn tiêu được” chỉ theo kế hoạch này khi bạn lưu mức tiết kiệm (bấm − hoặc ＋).</>}</p>}

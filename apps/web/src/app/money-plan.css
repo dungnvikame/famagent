@@ -33,6 +33,10 @@
 .pl-bar{display:flex;height:14px;border-radius:99px;overflow:hidden;background:var(--mint);margin:16px 0 8px}
 .pl-bar i{display:block;height:100%}
 .pl-key{display:flex;gap:6px 14px;flex-wrap:wrap;font-size:12px;color:var(--mu-muted)}
+/* The savings-reminder line under the plan bar (05/10) */
+.pl-save-cta{margin:10px 0 0}
+.pl-save-day{white-space:nowrap}
+.pl-save-day input{width:44px;min-height:30px;padding:2px 6px;border:1px solid var(--line);border-radius:8px;font:inherit;text-align:center}
 .pl-key span{display:inline-flex;align-items:center;gap:6px}
 .pl-key i{width:12px;height:12px;border-radius:4px;display:inline-block}
 .k-fixed{background:#7a5cff}.k-flex{background:#6fd7b5}.k-save{background:#ffb18f}

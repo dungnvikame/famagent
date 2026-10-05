@@ -23,6 +23,9 @@
 .mh-pot{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-height:64px;display:flex;flex-direction:column;justify-content:center}
 .mh-pot span{font-size:13px;color:var(--mu-muted)}
 .mh-pot b{font-size:20px;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+/* "Quỹ tiết kiệm" as a button: opens the Sổ filtered to savings entries (05/10) */
+.mh-pot-btn{font:inherit;text-align:left;cursor:pointer;align-items:flex-start}
+.mh-pot-btn:hover{background:#f7f5ff}
 .mh-link{min-height:44px;padding:0 4px;border:0;background:none;color:var(--primary-ink);font:700 13px var(--font-sans),system-ui,sans-serif;text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
 .mh-extra{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .mh-extra li{display:flex;justify-content:space-between;gap:10px;font-size:13px;background:#ffffffb0;border-radius:12px;padding:8px 12px;color:var(--mu-muted)}

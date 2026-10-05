@@ -1,6 +1,9 @@
 import { scheduleOf, windowIn } from "./fixed-items.ts";
 import { parseVnd } from "./parse.ts";
-import type { MoneyRecurring, RecurringSchedule } from "./types.ts";
+import type { MoneyKind, MoneyRecurring, RecurringSchedule } from "./types.ts";
+
+/** "Đã nhận" / "Đã gửi" / "Đã trả" — how a settled period of this kind reads. */
+export const doneWord = (kind: MoneyKind) => kind === "income" ? "Đã nhận" : kind === "saving" ? "Đã gửi" : "Đã trả";
 
 /** The add/edit form of a fixed item as typed text, and its way back to a validated MoneyRecurring (pure, tested). */
 
@@ -12,7 +15,7 @@ const MAX_VND = 100_000_000_000;
 export interface RecurringForm {
   schedule: RecurringSchedule["kind"];
   name: string;
-  kind: "expense" | "income";
+  kind: MoneyKind;
   category: string;
   /** First day of the window (or the day itself). */
   day: string;
@@ -31,7 +34,7 @@ export const emptyForm = (category: string): RecurringForm => ({ schedule: "mont
 export function formFromItem(item: MoneyRecurring): RecurringForm {
   const schedule = scheduleOf(item);
   return {
-    schedule: schedule.kind, name: item.name, kind: item.kind === "income" ? "income" : "expense", category: item.category,
+    schedule: schedule.kind, name: item.name, kind: item.kind, category: item.category,
     day: schedule.kind === "eom" ? "1" : String(item.dayOfMonth), to: "to" in schedule && schedule.to ? String(schedule.to) : "",
     yearMonth: schedule.kind === "year" ? String(schedule.month) : "12", mode: item.amountMode === "estimate" ? "estimate" : "fixed", amount: String(item.amount),
   };
@@ -80,5 +83,5 @@ export function previewText(form: RecurringForm): { name: string; rest: string }
   const when = { month: `hằng tháng vào ngày ${day}`, range: `hằng tháng, nhắc từ ngày ${day} đến ${to || "…"}`, eom: "vào cuối mỗi tháng", quarter: `mỗi quý (tháng 1, 4, 7, 10), ${range}`, year: `mỗi năm vào tháng ${form.yearMonth.trim() || "…"}, ${range}` }[form.schedule];
   const parsed = parseVnd(form.amount); const money = parsed && parsed > 0 ? Math.round(parsed).toLocaleString("vi-VN") + "đ" : "…";
   const how = form.mode === "estimate" ? `Số tiền ước lượng ~${money} lần đầu, sau đó tự lấy trung bình 3 kỳ gần nhất.` : `Số tiền cố định ${money}.`;
-  return { name: form.name.trim() || "Khoản này", rest: `${when}. Không tự ghi: tới kỳ app hỏi “${form.kind === "income" ? "Đã nhận?" : "Đã trả?"}”. ${how}` };
+  return { name: form.name.trim() || "Khoản này", rest: `${when}. Không tự ghi: tới kỳ app hỏi “${doneWord(form.kind)}?”. ${how}` };
 }
