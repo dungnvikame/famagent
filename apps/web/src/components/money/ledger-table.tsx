@@ -37,6 +37,8 @@ interface Props {
   onDelete: (id: string) => Promise<void>;
   /** Categories, memory and the whole ledger: the add row guesses the category from the content as it is typed. */
   guessContext?: Omit<QuickContext, "today">;
+  /** Totals under the table (like the household Excel's sum row); `strong` marks the closing line. */
+  totals?: Array<{ label: string; value: string; strong?: boolean }>;
 }
 
 /** `picked`: the family chose the category (or is editing a saved entry), so typing never overrides it. `unsure`: weak guess, highlighted. */
@@ -48,7 +50,7 @@ const KIND_MARK: Record<MoneyKind, string> = { expense: "−", income: "+", savi
 const amountText = (item: MoneyTransaction) => `${item.kind === "saving" && item.amount < 0 ? "+" : KIND_MARK[item.kind]}${vnd(Math.abs(item.amount))}`;
 
 /** Ledger like the household Excel: one row per entry; the top row adds an entry (Enter saves), any row edits in place. */
-export function LedgerTable({ transactions, categories, familyChildren, month, balances, showBalance = true, balanceOpen, onBalanceOpen, emptyText, recurring, debtRecurringIds, debts, onSave, onDelete, guessContext }: Props) {
+export function LedgerTable({ transactions, categories, familyChildren, month, balances, showBalance = true, balanceOpen, onBalanceOpen, emptyText, recurring, debtRecurringIds, debts, onSave, onDelete, guessContext, totals }: Props) {
   const [draft, setDraft] = useState<Draft>(blank(month));
   const [editing, setEditing] = useState<string | null>(null);
   const [detailsOpen, setDetailsOpen] = useState(false);
@@ -167,6 +169,14 @@ export function LedgerTable({ transactions, categories, familyChildren, month, b
           </tr>)}
           {!transactions.length && <tr className="lt-empty-row"><td colSpan={colCount} className="ledger-empty">{emptyText ?? "Chưa có khoản nào trong tháng này. Bấm “＋ Ghi khoản” hoặc gõ vào dòng trên rồi Enter."}</td></tr>}
         </tbody>
+        {totals && totals.length > 0 && transactions.length > 0 && <tfoot className="lt-foot">
+          {totals.map((line) => <tr key={line.label} className={`lt-total${line.strong ? " strong" : ""}`}>
+            <td className="lt-total-label" colSpan={4}>{line.label}</td>
+            <td className="num lt-amount">{line.value}</td>
+            {withBalance && <><td className="lt-bal" /><td className="lt-bal" /></>}
+            <td className="lt-actions" />
+          </tr>)}
+        </tfoot>}
       </table>
     </div>
     {error && <p className="form-error" role="alert">{error}</p>}

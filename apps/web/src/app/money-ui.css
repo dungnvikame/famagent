@@ -58,6 +58,14 @@
 .lt-table th{text-align:left;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--mu-muted);padding:12px 10px 8px;border-bottom:1px solid var(--line);font-weight:800}
 .lt-table td{padding:6px 10px;border-bottom:1px solid var(--line);vertical-align:middle;height:56px}
 .lt-table tbody tr:last-child td{border-bottom:0}
+/* Sum rows under the table, like the household Excel (06/10) */
+.lt-foot td{height:38px;padding:4px 10px;border-bottom:0;border-top:0}
+.lt-foot tr:first-child td{border-top:2px solid var(--line)}
+.lt-total .lt-total-label{text-align:right;font-size:13px;color:var(--mu-muted)}
+.lt-total .lt-amount{font-weight:700;font-variant-numeric:tabular-nums}
+.lt-total.strong .lt-total-label{color:var(--ink);font-weight:700}
+.lt-total.strong .lt-amount{font-weight:800;font-size:15px}
+.lt-total.strong td{border-top:1px solid var(--line)}
 .lt-table th.lt-date,.lt-table td.lt-date{width:140px}
 .lt-table th.lt-type,.lt-table td.lt-type{width:84px}
 .lt-table th.lt-cat,.lt-table td.lt-cat{width:156px}
@@ -111,6 +119,10 @@
   .lt-tools{display:none}
   .lt-wrap{background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none;overflow:visible}
   .lt-table,.lt-table tbody,.lt-table tr,.lt-table td{display:block;width:auto!important;min-width:0!important}
+  .lt-foot{display:block;border-top:2px solid var(--line);margin-top:4px}
+  .lt-total{display:flex!important;justify-content:space-between;align-items:center;gap:8px;padding:5px 4px}
+  .lt-total td{padding:0;border:0!important;height:auto}
+  .lt-total .lt-actions,.lt-total .lt-bal{display:none!important}
   .lt-table thead,.lt-add,.lt-bal,.lt-table th{display:none!important}
   .lt-row{display:grid!important;grid-template-columns:40px auto minmax(0,1fr) auto;grid-template-areas:"kind content content amount" "kind date cat cat" "acts acts acts acts";column-gap:8px;align-items:center;padding:10px 4px;border-bottom:1px solid var(--line);position:relative}
   .lt-row td{padding:0;border:0;height:auto;background:transparent}

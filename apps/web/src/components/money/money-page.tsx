@@ -109,6 +109,28 @@ export function MoneyPage() {
   const inRange = source.filter((tx) => tx.occurredOn >= filter.from && tx.occurredOn <= filter.to);
   const monthlyIds = new Set((bundle?.recurring ?? []).filter((item) => item.active).map((item) => item.id));
   const shown = applyFilter(source, filter, monthlyIds);
+  // The sum rows under the table. Fund view: opening balance → deposits − spends/withdrawals → closing balance
+  // (so the Tình hình opening money, which is no ledger row, is visible too). Otherwise: a total per kind shown.
+  const fundView = filter.kinds.includes("saving");
+  const ledgerTotals = (() => {
+    if (fundView) {
+      const deposits = shown.reduce((total, tx) => total + (tx.kind === "saving" && tx.amount > 0 ? tx.amount : 0), 0);
+      const fundOut = shown.reduce((total, tx) => total + (tx.kind === "saving" && tx.amount < 0 ? -tx.amount : tx.kind === "expense" && tx.paidFrom === "savings" ? tx.amount : 0), 0);
+      return [
+        { label: `Quỹ đầu kỳ (${formatVnDate(filter.from)})`, value: vnd(openingSavings) },
+        { label: "＋ Gửi vào quỹ", value: `+${vnd(deposits)}` },
+        { label: "− Dùng / rút từ quỹ", value: `−${vnd(fundOut)}` },
+        { label: `＝ Quỹ cuối kỳ (${formatVnDate(filter.to)})`, value: vnd(openingSavings + deposits - fundOut), strong: true },
+      ];
+    }
+    const sumKind = (kind: MoneyTransaction["kind"]) => shown.reduce((total, tx) => total + (tx.kind === kind ? tx.amount : 0), 0);
+    const expense = sumKind("expense"); const income = sumKind("income"); const saving = sumKind("saving");
+    return [
+      ...(expense ? [{ label: "Tổng chi", value: `−${vnd(expense)}` }] : []),
+      ...(income ? [{ label: "Tổng thu", value: `+${vnd(income)}` }] : []),
+      ...(saving ? [{ label: "Tiết kiệm (gửi − rút)", value: `→ ${vnd(saving)}` }] : []),
+    ];
+  })();
   // The running balance only reads right when no entry between two rows is hidden (a date range alone is fine).
   const showBalance = !filter.kinds.length && !filter.categories.length && !filter.text.trim() && !filter.forChild && !filter.monthly && filter.min === undefined && filter.max === undefined;
   // Only meaningful once the family has said where it stands (a position): before that, a negative balance just means no opening balance yet.
@@ -242,7 +264,7 @@ export function MoneyPage() {
         <QuickAddPanel context={quickContext} aiConsent={Boolean(profile?.aiConsent)} onSave={saveQuick} onCreateCategory={addCategory} />
         <LedgerFilters filter={filter} onChange={setFilter} month={month} today={todayLocal()} categories={bundle.settings.categories} inRange={inRange} shown={shown} loading={rangeLoading} insight={filterInsight} balanceHidden={!showBalance} />
         {firstNegative && balanceOpen && <div className="banner warn-banner"><span>Số dư tài khoản âm từ {formatVnDate(firstNegative.occurredOn)}: có thể thiếu khoản thu trước đó, hoặc số dư đầu kỳ chưa đúng.</span><button type="button" className="app-btn ghost" onClick={() => setTab("situ")}>Kiểm tra số dư</button></div>}
-        <LedgerTable guessContext={quickContext} transactions={shown} balances={balances} showBalance={showBalance} balanceOpen={balanceOpen} onBalanceOpen={setBalanceOpen} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} debts={debtPickOptions} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
+        <LedgerTable guessContext={quickContext} transactions={shown} balances={balances} showBalance={showBalance} balanceOpen={balanceOpen} onBalanceOpen={setBalanceOpen} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} debts={debtPickOptions} totals={ledgerTotals} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
       {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} />}

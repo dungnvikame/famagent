@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { vnd } from "@/lib/catalog/format";
+import { vndCompact } from "@/lib/money/format-vnd";
 import { isFiltering, monthRange, parseFilterQuery, PRESET_LABELS, presetOf, presetRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, parseVnd } from "@/lib/money/parse";
 import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyTransaction } from "@/lib/money/types";
@@ -131,7 +132,7 @@ export function LedgerFilters({ filter, onChange, month, today, categories, inRa
   const fundOut = shown.reduce((total, tx) => total + (tx.kind === "saving" && tx.amount < 0 ? -tx.amount : tx.kind === "expense" && tx.paidFrom === "savings" ? tx.amount : 0), 0);
   const fundNet = deposits - fundOut;
   const parts = fundView
-    ? [...(deposits ? [`gửi ${vnd(deposits)}`] : []), ...(fundOut ? [`dùng/rút ${vnd(fundOut)}`] : []), ...(deposits || fundOut ? [`quỹ ${fundNet < 0 ? "−" : "+"}${vnd(Math.abs(fundNet))}`] : [])]
+    ? deposits || fundOut ? [`gửi vào ${vndCompact(deposits)} − đã dùng ${vndCompact(fundOut)} = quỹ ${fundNet < 0 ? "giảm" : "tăng"} ${vndCompact(Math.abs(fundNet))} trong khoảng này`] : []
     : (["expense", "income", "saving"] as MoneyKind[]).filter((kind) => sum(shown, kind)).map((kind) => `${MONEY_KIND_LABELS[kind]} ${vnd(sum(shown, kind))}`);
   const filtering = isFiltering(filter, month);
 
