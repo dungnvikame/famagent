@@ -41,6 +41,15 @@ test("applyFilter combines every field", () => {
   assert.equal(isFiltering({ ...base, text: "x" }, "2026-09"), true);
 });
 
+test("the 'Tiết kiệm' kind is the whole fund: deposits, withdrawals and expenses paid from it", () => {
+  const base = { kinds: [], categories: [], ...monthRange("2026-09"), text: "" };
+  const fromFund = tx("6", "2026-09-18", "expense", 2_000_000, { content: "Bảo hiểm", paidFrom: "savings" });
+  const withdrawal = tx("7", "2026-09-19", "saving", -698_000, { category: "Rút tiết kiệm" });
+  assert.deepEqual(applyFilter([...entries, fromFund, withdrawal], { ...base, kinds: ["saving"] }).map((e) => e.id), ["1", "6", "7"]);
+  // A plain expense filter still leaves fund spending in (it is an expense), and never pulls deposits.
+  assert.deepEqual(applyFilter([fromFund, withdrawal], { ...base, kinds: ["expense"] }).map((e) => e.id), ["6"]);
+});
+
 test("history and category averages", () => {
   const history = monthlyHistory([...entries, tx("a", "2026-08-12", "expense", 600_000), tx("b", "2026-07-03", "expense", 300_000)], "2026-09", 3);
   assert.deepEqual(history.map((row) => [row.month, row.expense]), [["2026-07", 300_000], ["2026-08", 600_000], ["2026-09", 1_405_000]]);

@@ -125,7 +125,14 @@ export function LedgerFilters({ filter, onChange, month, today, categories, inRa
 
   const sum = (list: MoneyTransaction[], kind: MoneyKind) => list.filter((tx) => tx.kind === kind).reduce((total, tx) => total + tx.amount, 0);
   const shownExpense = sum(shown, "expense"); const rangeExpense = sum(inRange, "expense");
-  const parts = (["expense", "income", "saving"] as MoneyKind[]).filter((kind) => sum(shown, kind)).map((kind) => `${MONEY_KIND_LABELS[kind]} ${vnd(sum(shown, kind))}`);
+  // Fund view ("Tiết kiệm"): deposits, what left the fund (withdrawals + expenses paid from it), and the net change.
+  const fundView = filter.kinds.includes("saving");
+  const deposits = shown.reduce((total, tx) => total + (tx.kind === "saving" && tx.amount > 0 ? tx.amount : 0), 0);
+  const fundOut = shown.reduce((total, tx) => total + (tx.kind === "saving" && tx.amount < 0 ? -tx.amount : tx.kind === "expense" && tx.paidFrom === "savings" ? tx.amount : 0), 0);
+  const fundNet = deposits - fundOut;
+  const parts = fundView
+    ? [...(deposits ? [`gửi ${vnd(deposits)}`] : []), ...(fundOut ? [`dùng/rút ${vnd(fundOut)}`] : []), ...(deposits || fundOut ? [`quỹ ${fundNet < 0 ? "−" : "+"}${vnd(Math.abs(fundNet))}`] : [])]
+    : (["expense", "income", "saving"] as MoneyKind[]).filter((kind) => sum(shown, kind)).map((kind) => `${MONEY_KIND_LABELS[kind]} ${vnd(sum(shown, kind))}`);
   const filtering = isFiltering(filter, month);
 
   return <section className="app-card filter-card" aria-label="Bộ lọc sổ thu chi">
@@ -150,7 +157,7 @@ export function LedgerFilters({ filter, onChange, month, today, categories, inRa
       </FilterDropdown>
     </div>
     <div className="fsum" role="status">
-      <span>{loading ? "Đang tải các khoản…" : <><b>{shown.length} khoản</b>{parts.length ? ` · ${parts.join(" · ")}` : ""}{filtering && shownExpense && rangeExpense && shownExpense !== rangeExpense ? ` · ${Math.round(shownExpense / rangeExpense * 100)}% tổng chi trong khoảng này` : ""}</>}</span>
+      <span>{loading ? "Đang tải các khoản…" : <><b>{shown.length} khoản</b>{parts.length ? ` · ${parts.join(" · ")}` : ""}{!fundView && filtering && shownExpense && rangeExpense && shownExpense !== rangeExpense ? ` · ${Math.round(shownExpense / rangeExpense * 100)}% tổng chi trong khoảng này` : ""}</>}</span>
       <span className="hint">{balanceHidden ? "Cột Số dư ẩn khi đang lọc · " : ""}{insight}{insight && filtering ? " · " : ""}{filtering && <button type="button" className="ledger-link" onClick={() => onChange({ kinds: [], categories: [], ...range, text: "" })}>Xóa lọc</button>}</span>
     </div>
   </section>;

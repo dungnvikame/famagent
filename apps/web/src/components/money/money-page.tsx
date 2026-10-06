@@ -129,9 +129,11 @@ export function MoneyPage() {
 
   const debtRecurringIds = new Set((bundle?.settings.position?.debts ?? []).map((debt) => debt.recurringId).filter((id): id is string => Boolean(id)));
 
-  /** "Xem các lần đã gửi": the Sổ filtered to savings entries over the last 12 months (one deposit per month reads as a short list). */
+  /** "Xem các lần đã gửi": every fund movement since the family started tracking (the position date, or 12 months back if that is earlier). */
   function openSavingsLedger() {
-    setFilter({ kinds: ["saving"], categories: [], ...monthRange(month), from: `${shiftMonth(month, -11)}-01`, text: "" });
+    const back = `${shiftMonth(month, -11)}-01`;
+    const asOf = bundle?.settings.position?.asOf;
+    setFilter({ kinds: ["saving"], categories: [], ...monthRange(month), from: asOf && asOf < back ? asOf : back, text: "" });
     setTab("ledger");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }

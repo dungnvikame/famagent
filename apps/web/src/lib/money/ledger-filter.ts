@@ -108,8 +108,9 @@ export function parseFilterQuery(query: string, categories: string[], today: str
 /** Entries that pass the filter (date range, kinds, categories, flags, amounts, words in the content). */
 export function applyFilter(entries: MoneyTransaction[], filter: LedgerFilter, monthlyIds: Set<string> = new Set()): MoneyTransaction[] {
   const words = normalize(filter.text).split(" ").filter(Boolean);
+  // "Tiết kiệm" means every fund movement: deposits/withdrawals (kind saving) AND expenses paid from the fund.
   return entries.filter((entry) => entry.occurredOn >= filter.from && entry.occurredOn <= filter.to
-    && (!filter.kinds.length || filter.kinds.includes(entry.kind))
+    && (!filter.kinds.length || filter.kinds.includes(entry.kind) || (filter.kinds.includes("saving") && entry.paidFrom === "savings"))
     && (!filter.categories.length || filter.categories.includes(entry.category))
     && (!filter.forChild || entry.forChild)
     && (!filter.monthly || (entry.recurringId !== undefined && monthlyIds.has(entry.recurringId)) || entry.source === "recurring")
