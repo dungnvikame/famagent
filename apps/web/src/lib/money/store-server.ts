@@ -59,13 +59,13 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
 }
 
 
-const PAGE = 1000; // PostgREST returns at most this many rows per request by default
+const PAGE = 1000; // PostgREST returns at most this many rows per request, whatever .limit() asks for
 
-/** Every ledger entry's kind/amount/date, read page by page (a single select would stop at the row cap). */
-async function allEntries(client: SupabaseClient, userId: string): Promise<{ data: Row[] | null; error: unknown }> {
+/** Reads a query page by page up to `cap` rows (a single select silently stops at the 1000-row cap). */
+async function allPages(cap: number, page: (from: number, to: number) => PromiseLike<{ data: Row[] | null; error: unknown }>): Promise<{ data: Row[] | null; error: unknown }> {
   const rows: Row[] = [];
-  for (let from = 0; from < 200_000; from += PAGE) {
-    const { data, error } = await client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id,content").eq("user_id", userId).order("id").range(from, from + PAGE - 1);
+  for (let from = 0; from < cap; from += PAGE) {
+    const { data, error } = await page(from, from + PAGE - 1);
     if (error) return { data: null, error };
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;
@@ -73,13 +73,18 @@ async function allEntries(client: SupabaseClient, userId: string): Promise<{ dat
   return { data: rows, error: null };
 }
 
+/** Every ledger entry's kind/amount/date, read page by page (a single select would stop at the row cap). */
+const allEntries = (client: SupabaseClient, userId: string) => allPages(200_000, (from, to) =>
+  client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id,content").eq("user_id", userId).order("id").range(from, to));
+
 const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined, debtId: str(row.debt_id), content: String(row.content ?? "") }));
 
 /** Entries dated from..to (inclusive, newest first) and the cash balance just before `from` (position anchor applied). */
 export async function loadRange(client: SupabaseClient, userId: string, from: string, to: string): Promise<MoneyRange | null> {
   const [settings, transactions, entries] = await Promise.all([
     client.from("money_settings").select("*").eq("user_id", userId).maybeSingle(),
-    client.from(TABLES.transactions).select("*").eq("user_id", userId).gte("occurred_on", from).lte("occurred_on", to).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(3000),
+    // Paged: a single select stops at 1000 rows, which silently dropped the oldest entries of a long range (06/10).
+    allPages(6000, (first, last) => client.from(TABLES.transactions).select("*").eq("user_id", userId).gte("occurred_on", from).lte("occurred_on", to).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).range(first, last)),
     allEntries(client, userId),
   ]);
   if (settings.error || transactions.error || entries.error) return null;
@@ -94,7 +99,7 @@ export async function loadRange(client: SupabaseClient, userId: string, from: st
 export async function loadLoans(client: SupabaseClient, userId: string): Promise<MoneyTransaction[] | null> {
   // Current and short-lived v2 names, so older entries are found too (currentCategory renames them on read).
   const names = [...BORROW_IN, ...REPAY_OUT, ...LEND_OUT, ...REPAID_IN, "Tiền trả nợ cá nhân", "Tiền trả nợ"];
-  const { data, error } = await client.from(TABLES.transactions).select("*").eq("user_id", userId).in("category", [...new Set(names)]).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).limit(5000);
+  const { data, error } = await allPages(5000, (first, last) => client.from(TABLES.transactions).select("*").eq("user_id", userId).in("category", [...new Set(names)]).order("occurred_on", { ascending: false }).order("created_at", { ascending: false }).range(first, last));
   if (error) return null;
   return (data ?? []).map(transactionFromRow).filter((tx) => isLoanEntry(tx));
 }
