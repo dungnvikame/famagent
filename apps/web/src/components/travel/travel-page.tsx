@@ -78,11 +78,15 @@ export function TravelPage() {
     {past.length > 0 && <>
       <h2 className="tv-sec">Kỷ niệm</h2>
       <div className="tv-past">
-        {past.map((trip) => <article key={trip.id} className="tv-past-card">
-          <span aria-hidden="true">{trip.status === "cancelled" ? "🚫" : DEST_TYPE_LABELS[trip.destType].emoji}</span>
-          <Link href={`/travel/${trip.id}`}><b>{trip.name}</b><small>{formatVnDate(trip.startDate)}{trip.status === "cancelled" ? " · đã huỷ" : ""}</small></Link>
-          <button type="button" className="tv-x" onClick={() => removePast(trip)} aria-label={`Xoá chuyến ${trip.name}`}>🗑</button>
-        </article>)}
+        {past.map((trip) => {
+          const spent = (state?.expenses ?? []).filter((expense) => expense.tripId === trip.id).reduce((sum, expense) => sum + expense.amount, 0);
+          const money = trip.status === "cancelled" ? "đã huỷ" : spent > 0 ? `đã chi ${vndCompact(spent)}${trip.budgetAmount > 0 ? ` / ${vndCompact(trip.budgetAmount)} ngân sách` : ""}` : "";
+          return <article key={trip.id} className="tv-past-card">
+            <span aria-hidden="true">{trip.status === "cancelled" ? "🚫" : DEST_TYPE_LABELS[trip.destType].emoji}</span>
+            <Link href={`/travel/${trip.id}`}><b>{trip.name}</b><small>{formatVnDate(trip.startDate)}{money ? ` · ${money}` : ""}</small></Link>
+            <button type="button" className="tv-x" onClick={() => removePast(trip)} aria-label={`Xoá chuyến ${trip.name}`}>🗑</button>
+          </article>;
+        })}
       </div>
     </>}
 

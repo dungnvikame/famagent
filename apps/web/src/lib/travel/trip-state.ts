@@ -92,6 +92,30 @@ export function nextAction(readiness: TripReadiness, countdown: number): { tab: 
   return { tab: "overview", label: "Mọi thứ sẵn sàng 🎉" };
 }
 
+export interface TripRecap {
+  total: number;
+  budget: number;
+  /** total − budget: positive = overspent. */
+  diff: number;
+  count: number;
+  /** Buckets that had a budget or a spend, in the canonical order. */
+  byBucket: Array<{ bucket: ExpenseBucket; spent: number; budget: number }>;
+}
+
+/** Post-trip wrap-up numbers; the ledger mirror keeps them equal to the Sổ by construction. */
+export function tripRecap(trip: Pick<Trip, "budgetAmount" | "budgetSplit">, expenses: TripExpense[]): TripRecap {
+  const budgets = bucketBudgets(trip);
+  const spent = spentByBucket(expenses);
+  const total = spentTotal(expenses);
+  return {
+    total,
+    budget: trip.budgetAmount,
+    diff: total - trip.budgetAmount,
+    count: expenses.length,
+    byBucket: EXPENSE_BUCKETS.filter((bucket) => budgets[bucket] > 0 || spent[bucket] > 0).map((bucket) => ({ bucket, spent: spent[bucket], budget: budgets[bucket] })),
+  };
+}
+
 /** Trips ordered for the list: upcoming/ongoing first (soonest start first), then done/cancelled (latest first). */
 export function orderTrips(trips: Trip[], today: string): { active: Trip[]; past: Trip[] } {
   const active: Trip[] = []; const past: Trip[] = [];

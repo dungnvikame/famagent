@@ -8,7 +8,8 @@ export interface PackingSuggestion { name: string; qty: number; category: Packin
 
 const norm = (value: string) => value.toLowerCase().normalize("NFC").replace(/\s+/g, " ").trim();
 /** First word-ish key of a name ("Bỉm size M ×24" → "bỉm size m") so an existing item hides the matching suggestion. */
-const key = (value: string) => norm(value).replace(/[×x]\s*\d+.*$/, "").split(/[·(,]/)[0].trim();
+export const packingKey = (value: string) => norm(value).replace(/[×x]\s*\d+.*$/, "").split(/[·(,]/)[0].trim();
+const key = packingKey;
 /** "Na (4 tuổi)" → "Na". */
 const childName = (label: string) => label.replace(/\s*\(.*\)$/, "");
 

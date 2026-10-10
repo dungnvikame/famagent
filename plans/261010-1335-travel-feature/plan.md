@@ -1,6 +1,6 @@
 # FamAgent — Tính năng "Du lịch" (Travel): danh sách tính năng & kế hoạch phát triển
 
-Ngày: 10/10/2026 · Nhánh: `main` · Trạng thái: **Brainstorm đã chốt, chờ duyệt mockup HTML trước khi code UI**
+Ngày: 10/10/2026 · Nhánh: `main` · Trạng thái: **Đợt 0–4 ĐÃ XONG, deploy 10/10/2026** (mockup duyệt → code → 405 test xanh → migration 0028 áp staging → commit 51cc44d + 70729c0 push main). **Đợt 5 cũng đã xong** (10/10): gắn quỹ `money_goals` ở Tổng quan, AI gợi ý thêm đồ (`/api/travel/suggest`, consent + quota chat, chỉ gửi tuổi bé không gửi tên; nút tự ẩn khi server chưa bật AI), tổng kết sau chuyến (recap thay khối sẵn sàng khi đã về) + "chép checklist từ chuyến trước" thay cho lưu mẫu riêng (DRY: chuyến cũ chính là mẫu). Còn lại: Đợt 6 tuỳ chọn (mẫu Tết/nhân bản chuyến, quick-add chat gắn trip, xuất lịch trình).
 
 Nguồn: khảo sát toàn bộ convention codebase (shopping/money/family, migrations, push/cron), roadmap tối ưu [260929-0926](../260929-0926-app-optimization-roadmap/plan.md), nghiên cứu usecase gia đình VN ([researcher-260929-0926](../reports/researcher-260929-0926-family-os-usecases.md)), và khảo sát app trip-planning 2026 (Wanderlog, TripIt, Stippl) + kinh nghiệm du lịch gia đình có con nhỏ (nguồn ở §9).
 

@@ -6,7 +6,8 @@ import { travelHomeCard } from "../src/lib/travel/home-card.ts";
 import { suggestPacking } from "../src/lib/travel/packing-template.ts";
 import type { TripMember } from "../src/lib/travel/trip-members.ts";
 import { childAgeMonths } from "../src/lib/travel/trip-members.ts";
-import { bucketBudgets, countdownDays, nextAction, orderTrips, suggestTripName, tripDays, tripNights, tripPhase, tripReadiness } from "../src/lib/travel/trip-state.ts";
+import { cleanSuggestions, suggestSystem, validSuggestRequest } from "../src/lib/travel/suggest-ai.ts";
+import { bucketBudgets, countdownDays, nextAction, orderTrips, suggestTripName, tripDays, tripNights, tripPhase, tripReadiness, tripRecap } from "../src/lib/travel/trip-state.ts";
 import type { Trip, TripExpense } from "../src/lib/travel/types.ts";
 import { validExpense, validItineraryEntry, validPackingItem, validTrip } from "../src/lib/travel/validate.ts";
 
@@ -164,6 +165,38 @@ test("travelHomeCard: context-aware single card, none without trips", () => {
   const back = travelHomeCard(state, "2026-11-25")!;
   assert.match(back.title, /Tổng kết/);
   assert.equal(travelHomeCard(state, "2026-12-05"), null, "card disappears a few days after the trip");
+});
+
+test("tripRecap sums buckets against the split and reports the diff", () => {
+  const expenses: TripExpense[] = [
+    { id: "x1", tripId: trip().id, occurredOn: "2026-11-20", content: "Vé bay", bucket: "transport", amount: 4_200_000 },
+    { id: "x2", tripId: trip().id, occurredOn: "2026-11-21", content: "Khách sạn", bucket: "lodging", amount: 3_600_000 },
+    { id: "x3", tripId: trip().id, occurredOn: "2026-11-21", content: "Hải sản", bucket: "food", amount: 5_000_000 },
+  ];
+  const recap = tripRecap(trip(), expenses);
+  assert.deepEqual([recap.total, recap.budget, recap.diff, recap.count], [12_800_000, 15_000_000, -2_200_000, 3]);
+  assert.equal(recap.byBucket.length, 5, "every budgeted bucket shows");
+  assert.deepEqual(recap.byBucket.find((row) => row.bucket === "food"), { bucket: "food", spent: 5_000_000, budget: 3_750_000 });
+  const noBudget = tripRecap(trip({ budgetAmount: 0 }), expenses);
+  assert.equal(noBudget.byBucket.length, 3, "without a budget only spent buckets show");
+});
+
+test("suggest-ai: request validation, child-age privacy shape, reply cleaning + dedupe", () => {
+  const request = validSuggestRequest({ destination: "Đà Nẵng", destType: "beach", nights: 3, adults: 2, childAges: ["bé 18 tháng", "bé 4 tuổi"], existing: ["Bỉm Bin", "Kem chống nắng trẻ em"] });
+  assert.ok(request);
+  assert.equal(validSuggestRequest({ ...request, childAges: ["bé Na 4 tuổi"] }), null, "names in ages are rejected");
+  assert.equal(validSuggestRequest({ ...request, nights: 99 }), null);
+  assert.match(suggestSystem(request!), /Đà Nẵng/);
+  assert.match(suggestSystem(request!), /bé 18 tháng, bé 4 tuổi/);
+  const cleaned = cleanSuggestions({ items: [
+    { name: "Lều che nắng cho bé", category: "kids", qty: 1 },
+    { name: "Kem chống nắng", category: "health" },            // already on the checklist → dropped
+    { name: "Lều che nắng", category: "kids" },                 // duplicate of the first → dropped
+    { name: "Gì đó", category: "nope" },                        // bad category → dropped
+    { name: "Túi chống nước điện thoại", category: "electronics", qty: 150 }, // qty clamped to 1
+  ] }, request!);
+  assert.deepEqual(cleaned.map((item) => item.name), ["Lều che nắng cho bé", "Túi chống nước điện thoại"]);
+  assert.equal(cleaned[1].qty, 1);
 });
 
 test("trip expense ledger mirror: deterministic uuid, category Du lịch, source trip", () => {

@@ -8,8 +8,11 @@ import { useEffect, useMemo, useState } from "react";
 import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
 import { getProfile } from "@/lib/experience/storage";
 import type { FamilyProfile } from "@/lib/experience/types";
+import { loadMoney } from "@/lib/money/client";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { formatVnDate, todayLocal } from "@/lib/money/parse";
+import { monthKey } from "@/lib/money/summary";
+import type { MoneyGoal } from "@/lib/money/types";
 import * as client from "@/lib/travel/client";
 import { tripMembers } from "@/lib/travel/trip-members";
 import { countdownDays, tripDays, tripPhase, tripReadiness } from "@/lib/travel/trip-state";
@@ -31,12 +34,15 @@ export function TripWorkspace({ tripId }: { tripId: string }) {
   const [tab, setTab] = useState<TripTab>("overview");
   const [error, setError] = useState("");
   const [editing, setEditing] = useState(false);
+  const [goals, setGoals] = useState<MoneyGoal[]>([]);
 
   useEffect(() => {
     const wanted = new URLSearchParams(window.location.search).get("tab");
     if (wanted === "itin" || wanted === "packing" || wanted === "money") setTab(wanted);
     loadTravelData();
     (cloudEnabled ? loadCloudProfile() : Promise.resolve(getProfile())).then(setProfile).catch(() => {});
+    // Saving goals are optional context for "Quỹ cho chuyến này"; a failure just hides the box's picker.
+    loadMoney(monthKey(new Date())).then((bundle) => setGoals(bundle.goals)).catch(() => {});
   }, []);
   function loadTravelData() { client.loadTravel().then(setState).catch((failure: Error) => setError(failure.message)); }
 
@@ -45,6 +51,12 @@ export function TripWorkspace({ tripId }: { tripId: string }) {
   const packing = useMemo(() => (state?.packing ?? []).filter((item) => item.tripId === tripId), [state, tripId]);
   const expenses = useMemo(() => (state?.expenses ?? []).filter((expense) => expense.tripId === tripId), [state, tripId]);
   const members = useMemo(() => tripMembers(profile, today), [profile, today]);
+  // The newest other trip with a checklist: "chép checklist từ chuyến trước" when this trip's list is empty.
+  const copySource = useMemo(() => {
+    const donor = (state?.trips ?? []).filter((entry) => entry.id !== tripId && (state?.packing ?? []).some((item) => item.tripId === entry.id))
+      .sort((a, b) => b.startDate.localeCompare(a.startDate))[0];
+    return donor ? { name: donor.name, items: (state?.packing ?? []).filter((item) => item.tripId === donor.id) } : undefined;
+  }, [state, tripId]);
 
   /** Optimistic write: apply, persist; a failed save surfaces the error and reloads the saved truth. */
   function mutate(apply: (previous: TravelState) => TravelState, persistChange: () => Promise<unknown>) {
@@ -111,9 +123,9 @@ export function TripWorkspace({ tripId }: { tripId: string }) {
       <button type="button" className={tab === "money" ? "on" : undefined} onClick={() => setTab("money")}>Chi phí</button>
     </nav>
 
-    {tab === "overview" && <TripOverview trip={trip} readiness={ready} countdown={countdown} packing={packing} members={members} onTrip={saveTrip} onPacking={savePacking} onTab={setTab} />}
+    {tab === "overview" && <TripOverview trip={trip} phase={phase} readiness={ready} countdown={countdown} packing={packing} expenses={expenses} members={members} goals={goals} onTrip={saveTrip} onPacking={savePacking} onTab={setTab} />}
     {tab === "itin" && <TripItinerary trip={trip} entries={itinerary} onSave={saveEntry} onDelete={removeEntry} />}
-    {tab === "packing" && <TripPacking trip={trip} items={packing} members={members} onSave={savePacking} onSaveMany={savePackingMany} onDelete={removePacking} />}
+    {tab === "packing" && <TripPacking trip={trip} items={packing} members={members} aiConsent={profile?.aiConsent === true} copySource={copySource} onSave={savePacking} onSaveMany={savePackingMany} onDelete={removePacking} />}
     {tab === "money" && <TripExpenses trip={trip} expenses={expenses} itinerary={itinerary} onSave={saveExpense} onDelete={removeExpense} onTrip={saveTrip} />}
 
     {editing && <TripForm trip={trip} onSave={(next) => { saveTrip(next); setEditing(false); }} onDelete={removeTrip} onClose={() => setEditing(false)} />}
