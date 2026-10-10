@@ -275,6 +275,8 @@ export function FamilyPage() {
     {children.length === 0 && <section className="app-card fam-nokid"><span aria-hidden="true">👶</span><div><b>{p.household?.setup === "expecting" ? "Đang chờ bé chào đời" : "Chưa có hồ sơ bé"}</b><p className="fam-hint">Thêm bé để thấy tuổi, mốc ngày tuổi, biểu đồ cân nặng và gợi ý size bỉm.</p></div><button type="button" className="app-btn" onClick={() => setSheet({ kind: "addChild" })}>＋ Thêm bé</button></section>}
 
     <FamilyMemory notes={notes} childNames={names} onChanged={reloadNotes} />
+    {/* Lối vào module Du lịch (plan 261010-1335 §3.1: thẻ Home + lối vào ở Gia đình, không thêm tab). */}
+    <Link className="app-card fam-travel" href="/travel"><span className="fam-travel-emoji" aria-hidden="true">🧳</span><div><b>Chuyến đi của nhà mình</b><p className="fam-hint">Lịch trình theo ngày, checklist đồ gợi ý theo các bé, chi phí nối vào sổ Tài chính.</p></div><span className="fam-travel-go">Mở →</span></Link>
     <div className="fam-duo"><PrefsPane profile={p} onEdit={() => setSheet({ kind: "prefs" })} />{hasKids && <CarePane profile={p} onChoose={() => setSheet({ kind: "care" })} />}</div>
 
     <details className="app-card fam-acct" id="account" open={accountOpen} onToggle={(event) => setAccountOpen((event.target as HTMLDetailsElement).open)}>

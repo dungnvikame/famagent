@@ -25,6 +25,7 @@ import "./financial-health.css";
 import "./family-notes.css";
 import "./family-page.css";
 import "./shopping-plan.css";
+import "./travel.css";
 
 // Self-hosted at build time by next/font (no runtime request to Google); Vietnamese subset included.
 const sans = Plus_Jakarta_Sans({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700", "800"], variable: "--font-sans", display: "swap" });

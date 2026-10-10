@@ -16,7 +16,7 @@ export interface MoneyTransaction {
   forChild: boolean;
   childId?: string;
   note?: string;
-  source: "manual" | "recurring" | "purchase";
+  source: "manual" | "recurring" | "purchase" | "trip";
   recurringId?: string;
   /** Expense only: paid out of the savings fund instead of cash (so it does not add to "tiêu lẹm"). */
   paidFrom?: "savings";
