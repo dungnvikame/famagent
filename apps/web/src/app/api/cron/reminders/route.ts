@@ -6,6 +6,7 @@ import { childAgeMonths, profileFromRow } from "@/lib/experience/profile-mapper"
 import { measureDue, measurePush } from "@/lib/family/measure-schedule";
 import { tipPushFor } from "@/lib/family/age-guide";
 import { remindersFor } from "@/lib/push/reminders";
+import { tripRemindersFor } from "@/lib/push/travel-reminders";
 import { checkFromRow, itemFromRow } from "@/lib/shopping/item-store-server";
 import { estimateItems, itemRateResolver } from "@/lib/shopping/items";
 import { purchaseFromRow } from "@/lib/shopping/purchase-store-server";
@@ -88,6 +89,22 @@ export async function GET(request: Request) {
         if (!claimed.rowCount) continue;
         if (!await deliver(reminder)) await client.query("delete from public.push_log where user_id = $1 and item_id = $2 and day = $3", [userId, reminder.itemId, today]);
       }
+
+      // Trip reminders (T-7, T-2, wrap-up); kept apart so a missing migration 0028 never blocks the others.
+      if (devices.length) try {
+        const trips = await client.query<{ id: string; name: string; start_date: string; end_date: string; status: string; push_enabled: boolean }>(
+          "select id, name, start_date, end_date, status, push_enabled from public.travel_trips where user_id = $1 and push_enabled and status not in ('cancelled','done') and start_date <= $2::date + 8 and end_date >= $2::date - 2", [userId, today]);
+        if (trips.rows.length) {
+          const packing = await client.query<{ trip_id: string; todo_left: string }>("select trip_id, count(*) filter (where status = 'todo') as todo_left from public.travel_packing_items where user_id = $1 group by trip_id", [userId]);
+          const packLeft = new Map(packing.rows.map((row) => [row.trip_id, Number(row.todo_left) || 0]));
+          const pushes = tripRemindersFor(trips.rows.map((row) => ({ id: row.id, name: row.name, startDate: row.start_date, endDate: row.end_date, status: row.status as "planning", pushEnabled: row.push_enabled })), packLeft, today);
+          for (const push of pushes) {
+            const claimed = await client.query("insert into public.travel_push_log (user_id, trip_id, kind, day) values ($1, $2, $3, $4) on conflict do nothing", [userId, push.tripId, push.kind, today]);
+            if (!claimed.rowCount) continue;
+            if (!await deliver({ title: push.title, body: push.body, url: push.url, tag: push.tag })) await client.query("delete from public.travel_push_log where user_id = $1 and trip_id = $2 and kind = $3 and day = $4", [userId, push.tripId, push.kind, today]);
+          }
+        }
+      } catch (cause) { console.warn("[cron reminders] travel", cause instanceof Error ? cause.message : "error"); }
 
       // Measuring reminders; kept apart so a problem here (e.g. migration 0024 missing) never blocks the stock ones.
       if (!profile?.children.length || !devices.length) return;

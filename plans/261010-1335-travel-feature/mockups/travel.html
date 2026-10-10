@@ -1,0 +1,625 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mock · Du lịch (Đợt 0)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Tokens lấy từ app (aurora.css), đồng bộ với mock money-page */
+:root{--ink:#1f1b2e;--muted:#6f6a8a;--muted-2:#5d5878;--cream:#f7f6fb;--paper:#fff;--line:#e8e5f3;--primary:#5b4bb7;--primary-2:#7a5cff;--primary-ink:#3f3290;--tint:#ece8ff;
+--grad:linear-gradient(135deg,#7a5cff 0%,#5b4bb7 100%);--ok:#1f7a5a;--ok-bg:#dff6ee;--warn:#8a5a12;--warn-bg:#fff3d6;--danger:#b4413c;--danger-bg:#fde8e7;
+--glass:#ffffffd0;--r-sm:12px;--r:16px;--r-lg:24px;--pill:999px;--shadow:0 20px 40px -28px #4b3fa066;
+--aurora:radial-gradient(60% 50% at 8% 0%,#ffd9c7 0%,transparent 60%),radial-gradient(50% 45% at 96% 8%,#dcd5ff 0%,transparent 60%),radial-gradient(60% 50% at 50% 104%,#cff3e6 0%,transparent 65%)}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{font-family:'Be Vietnam Pro',system-ui,sans-serif;color:var(--ink);background:var(--aurora),var(--cream);background-attachment:fixed;-webkit-font-smoothing:antialiased;font-size:14px;line-height:1.5}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--primary-2);outline-offset:2px}
+
+/* ---------- thanh công cụ của bản mock ---------- */
+.mock-bar{position:sticky;top:0;z-index:100;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 16px;background:#1f1b2ee6;color:#fff;backdrop-filter:blur(8px);font-size:13px}
+.mock-bar b{font-weight:700}
+.mock-bar .sp{flex:1}
+.mock-bar button{background:#ffffff1f;border:1px solid #ffffff40;color:#fff;border-radius:var(--pill);padding:0 14px;height:36px}
+.mock-bar button.on{background:#fff;color:var(--ink)}
+.stage{padding:18px 16px 40px;display:flex;justify-content:center}
+.app{width:min(1240px,100%);background:#ffffff40;border:1px solid #ffffffb0;border-radius:28px;box-shadow:var(--shadow);overflow:hidden;overflow:clip;display:grid;grid-template-columns:208px 1fr;min-height:760px;position:relative}
+.app.m{width:390px;display:flex;flex-direction:column;height:min(820px,calc(100vh - 96px));min-height:0;border-radius:36px;border:8px solid #1f1b2e}
+
+/* ---------- sidebar / bottom nav (5 mục hiện có, KHÔNG thêm tab) ---------- */
+.side{padding:20px 14px;display:flex;flex-direction:column;gap:6px;border-right:1px solid #ffffffa0;background:#ffffff66}
+.brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:17px;padding:4px 8px 16px}
+.orb{width:28px;height:28px;border-radius:50%;background:conic-gradient(from 200deg,#ff9f7a,#b59cff,#6fd7b5,#ff9f7a)}
+.nav a{display:flex;align-items:center;gap:10px;height:44px;padding:0 12px;border-radius:14px;color:var(--muted-2);font-weight:600;text-decoration:none}
+.nav a.on{background:#fff;color:var(--primary-ink);box-shadow:0 6px 16px -10px #4b3fa040}
+.nav em{font-style:normal;font-size:16px;width:20px;text-align:center}
+.side .who{margin-top:auto;display:flex;align-items:center;gap:10px;padding:10px;border-radius:14px;background:#fff9;font-weight:600}
+.app.m .side{order:2;flex:none;z-index:20;flex-direction:row;border:0;border-top:1px solid var(--line);background:#fffffff2;padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.app.m .brand,.app.m .side .who{display:none}
+.app.m .nav{display:flex;width:100%;justify-content:space-around}
+.app.m .nav a{flex-direction:column;gap:2px;height:52px;min-width:60px;font-size:11px;padding:4px 6px;justify-content:center}
+
+/* ---------- main ---------- */
+.main{padding:24px 28px 40px;min-width:0}
+.app.m .main{order:1;flex:1;overflow-y:auto;padding:16px 14px 90px}
+.head{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.head h1{font-size:28px;margin:0;letter-spacing:-.02em}
+.app.m .head h1{font-size:22px}
+.head .sp{flex:1}
+.crumb{background:none;border:0;color:var(--primary-ink);font-weight:700;height:44px;padding:0 6px 0 0;display:inline-flex;align-items:center;gap:4px}
+.btn{height:44px;border-radius:var(--pill);border:0;padding:0 20px;font-weight:700;display:inline-flex;align-items:center;gap:8px;white-space:nowrap}
+.btn.primary{background:var(--grad);color:#fff;box-shadow:0 10px 22px -10px #5b4bb7aa}
+.btn.ghost{background:#fff;border:1px solid var(--line);color:var(--primary-ink)}
+.btn.sm{height:36px;padding:0 14px;font-size:13px}
+.card{background:var(--glass);border:1px solid #ffffffe6;border-radius:var(--r-lg);box-shadow:var(--shadow);backdrop-filter:blur(14px)}
+.pill{display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 12px;border-radius:99px;font-size:13px;font-weight:700}
+.pill.ok{background:var(--ok-bg);color:var(--ok)}
+.pill.note{background:var(--tint);color:var(--primary-ink)}
+.pill.warn{background:var(--warn-bg);color:var(--warn)}
+.eyebrow{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2)}
+.muted{color:var(--muted-2)}
+h2.sec{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted-2);margin:22px 0 8px;font-weight:800}
+
+/* ---------- VIEW: danh sách chuyến ---------- */
+.trip-hero{margin-top:16px;padding:20px 22px;display:flex;gap:18px;align-items:center;flex-wrap:wrap}
+.trip-hero .cd{flex:none;width:92px;height:92px;border-radius:24px;background:var(--grad);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 10px 22px -10px #5b4bb7aa}
+.trip-hero .cd b{font-size:30px;line-height:1;letter-spacing:-.02em}
+.trip-hero .cd span{font-size:11px;font-weight:700;opacity:.9}
+.trip-hero .info{flex:1;min-width:200px}
+.trip-hero h3{margin:0 0 2px;font-size:20px;letter-spacing:-.01em}
+.trip-hero .meta{font-size:13px;color:var(--muted-2)}
+.mini-prog{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.mini-prog .mp{background:#fff;border:1px solid var(--line);border-radius:99px;height:30px;display:inline-flex;align-items:center;gap:7px;padding:0 12px;font-size:12.5px;font-weight:600;color:var(--muted-2)}
+.mini-prog .mp i{width:8px;height:8px;border-radius:50%;background:var(--primary-2)}
+.mini-prog .mp.done i{background:var(--ok)}
+.trip-hero .act{display:flex;flex-direction:column;gap:8px}
+.app.m .trip-hero .act{flex-direction:row;width:100%}
+.past{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.app.m .past{grid-template-columns:1fr}
+.past .pc{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px;display:flex;gap:12px;align-items:center}
+.past .pc .em{font-size:22px}
+.past .pc b{display:block;font-size:14px}
+.past .pc small{color:var(--muted-2)}
+.empty-note{margin-top:14px;padding:14px 16px;background:#fff;border:1px dashed var(--line);border-radius:var(--r);color:var(--muted-2);font-size:13px}
+
+/* ---------- VIEW: workspace ---------- */
+.trip-head{margin-top:14px;padding:18px 22px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.trip-head .em{font-size:34px}
+.trip-head .t{flex:1;min-width:180px}
+.trip-head h3{margin:0;font-size:22px;letter-spacing:-.01em}
+.trip-head .meta{font-size:13px;color:var(--muted-2)}
+.tabs{display:flex;gap:6px;margin-top:16px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{height:44px;padding:0 18px;border-radius:99px;border:1px solid var(--line);background:#fff;font-weight:700;color:var(--muted-2);white-space:nowrap}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.panel{margin-top:14px;padding:18px}
+.app.m .panel{padding:14px}
+
+/* Tổng quan */
+.ov-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.app.m .ov-grid{grid-template-columns:1fr}
+.ov-box{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.ov-box h4{margin:0 0 8px;font-size:14px}
+.prog-row{display:flex;align-items:center;gap:10px;margin:8px 0}
+.prog-row small{flex:none;width:86px;color:var(--muted-2);font-weight:600}
+.prog-row .bar{flex:1;height:10px;border-radius:99px;background:var(--tint);position:relative;overflow:hidden}
+.prog-row .bar i{position:absolute;left:0;top:0;bottom:0;border-radius:99px;background:var(--grad)}
+.prog-row b{flex:none;width:58px;text-align:right;font-size:13px}
+.doc-li{list-style:none;margin:0;padding:0}
+.doc-li li{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px dashed var(--line);font-size:13.5px}
+.doc-li li:last-child{border-bottom:0}
+.doc-li .tick{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);background:#fff;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:13px;color:#fff;padding:0}
+.doc-li .tick.on{background:var(--ok);border-color:var(--ok)}
+.links a{display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 12px;background:var(--tint);color:var(--primary-ink);border-radius:99px;font-weight:700;font-size:13px;text-decoration:none;margin:0 6px 6px 0}
+.switch{display:inline-flex;gap:8px;align-items:center;background:none;border:0;color:var(--primary-ink);font-weight:700;height:40px;padding:0}
+.switch i{width:38px;height:22px;border-radius:99px;background:#cfc8ea;position:relative;transition:.15s;flex:none}
+.switch i::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.15s}
+.switch.on i{background:var(--ok)}
+.switch.on i::after{left:18px}
+
+/* Lịch trình */
+.days{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.app.m .days{grid-template-columns:1fr}
+.day{background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.day h4{margin:0 0 6px;font-size:14px;display:flex;gap:8px;align-items:center}
+.day h4 small{color:var(--muted-2);font-weight:600}
+.it{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);align-items:flex-start}
+.it:last-of-type{border-bottom:0}
+.it .tm{flex:none;width:52px;font-size:12.5px;font-weight:700;color:var(--primary-ink);padding-top:2px}
+.it .bd{flex:1;min-width:0}
+.it .bd b{font-size:13.5px;display:block}
+.it .bd small{color:var(--muted-2);font-size:12.5px}
+.it .cost{flex:none;font-size:12.5px;font-weight:700;color:var(--warn);background:var(--warn-bg);border-radius:99px;padding:2px 9px;align-self:center}
+.it .mv{flex:none;border:0;background:none;color:var(--muted-2);font-size:15px;padding:2px 4px}
+.add-it{width:100%;margin-top:8px;height:38px;border-radius:12px;border:1px dashed var(--primary);background:var(--tint);color:var(--primary-ink);font-weight:700;font-size:13px}
+.unsched{margin-top:12px;background:var(--warn-bg);border:1px solid #f0dfae;border-radius:var(--r);padding:10px 14px;font-size:13px;color:var(--warn);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.unsched b{font-weight:800}
+.unsched select{height:32px;border-radius:99px;border:1px solid #e3cf8e;background:#fff;padding:0 10px;font-size:12.5px}
+
+/* Đồ đạc */
+.pk-top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+.pk-top .bar{flex:1 1 180px;height:10px;border-radius:99px;background:var(--tint);position:relative;overflow:hidden}
+.pk-top .bar i{position:absolute;left:0;top:0;bottom:0;background:var(--grad);border-radius:99px;transition:.2s}
+.pk-group{margin-top:14px}
+.pk-group h4{margin:0 0 4px;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)}
+.pk{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line)}
+.pk:last-child{border-bottom:0}
+.pk .tick{width:24px;height:24px;border-radius:8px;border:2px solid var(--line);background:#fff;flex:none;display:inline-flex;align-items:center;justify-content:center;font-size:14px;color:#fff;padding:0}
+.pk.packed .tick{background:var(--ok);border-color:var(--ok)}
+.pk .nm{flex:1;min-width:0;font-size:13.5px}
+.pk.packed .nm{color:var(--muted-2);text-decoration:line-through}
+.pk .nm small{color:var(--muted-2);text-decoration:none;display:inline}
+.pk .who{flex:none;font-size:11.5px;font-weight:700;background:var(--tint);color:var(--primary-ink);border-radius:99px;padding:2px 8px}
+.pk .bt{flex:none;height:30px;padding:0 10px;border-radius:99px;border:1px solid var(--line);background:#fff;font-size:12px;font-weight:700;color:var(--muted-2)}
+.pk .bt.on{background:var(--warn-bg);border-color:transparent;color:var(--warn)}
+.pk-add{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.pk-add input{flex:1 1 170px;height:42px;border-radius:99px;border:1px solid var(--line);background:#fff;padding:0 14px;min-width:0}
+.pk-add select{height:42px;border-radius:99px;border:1px solid var(--line);background:#fff;padding:0 10px}
+
+/* Chi phí */
+.bud-top{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+.bud-top .big{font-size:32px;font-weight:800;letter-spacing:-.02em}
+.bud{margin-top:10px}
+.bud .prog-row small{width:74px}
+.exp-add{display:flex;gap:8px;margin:16px 0 4px;flex-wrap:wrap}
+.exp-add input{height:42px;border-radius:99px;border:1px solid var(--line);background:#fff;padding:0 14px;min-width:0}
+.exp-add .t{flex:2 1 160px}
+.exp-add .a{flex:1 1 90px;max-width:130px}
+.exp-add select{height:42px;border-radius:99px;border:1px solid var(--line);background:#fff;padding:0 10px}
+.exp-note{font-size:12.5px;color:var(--muted-2);margin:2px 0 10px}
+.exp{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px dashed var(--line)}
+.exp:last-child{border-bottom:0}
+.exp .bk{flex:none;font-size:11.5px;font-weight:700;background:var(--tint);color:var(--primary-ink);border-radius:99px;padding:2px 9px}
+.exp .bd{flex:1;min-width:0}
+.exp .bd b{font-size:13.5px;display:block}
+.exp .bd small{color:var(--muted-2)}
+.exp .amt{font-weight:800;white-space:nowrap}
+.soon{margin-top:14px;background:#fff;border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:13px}
+.soon b{font-size:13px}
+
+/* ---------- VIEW: thẻ Home ---------- */
+.home-wrap{margin-top:16px;display:grid;gap:12px;max-width:560px}
+.hcard{padding:16px 18px;display:flex;gap:14px;align-items:center}
+.hcard .em{font-size:26px;flex:none}
+.hcard .bd{flex:1;min-width:0}
+.hcard .bd b{display:block;font-size:14.5px}
+.hcard .bd small{color:var(--muted-2)}
+.hcard .btn{flex:none}
+.hcard.dim{opacity:.55}
+.home-note{font-size:12.5px;color:var(--muted-2);max-width:560px;margin-top:4px}
+
+/* ---------- sheet / dialog ---------- */
+.scrim{position:fixed;inset:0;background:#1f1b2e66;opacity:0;pointer-events:none;transition:.18s;z-index:200}
+.scrim.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;left:50%;bottom:-20px;transform:translate(-50%,100%);width:min(560px,calc(100vw - 24px));background:#fff;border-radius:24px 24px 18px 18px;box-shadow:0 -10px 50px -12px #1f1b2e55;z-index:201;transition:.22s;padding:20px 22px 26px;max-height:88vh;overflow-y:auto}
+.sheet.show{transform:translate(-50%,0);bottom:12px}
+.sheet h3{margin:0 0 14px;font-size:18px}
+.sheet .x{position:absolute;top:12px;right:12px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#fff;font-size:15px}
+.f{margin-bottom:12px}
+.f label{display:block;font-size:12.5px;font-weight:700;color:var(--muted-2);margin-bottom:5px}
+.f input,.f select{width:100%;height:46px;border-radius:14px;border:1px solid var(--line);background:#fff;padding:0 14px}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{height:38px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:#fff;font-weight:600;color:var(--muted-2);font-size:13px}
+.chips button.on{background:var(--primary-ink);color:#fff;border-color:var(--primary-ink)}
+.hint{font-size:12.5px;color:var(--muted-2);margin-top:4px}
+.sg-li{max-height:300px;overflow-y:auto;border:1px solid var(--line);border-radius:14px;padding:4px 12px;margin-bottom:12px}
+.sg-li h5{margin:10px 0 2px;font-size:11.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted-2)}
+.sg{display:flex;gap:10px;align-items:center;padding:6px 0}
+.sg input{width:20px;height:20px;accent-color:var(--primary)}
+.sg span{flex:1;font-size:13.5px}
+.sg small{color:var(--muted-2)}
+.toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,80px);background:var(--ink);color:#fff;padding:12px 20px;border-radius:99px;font-weight:600;font-size:13.5px;box-shadow:0 14px 30px -10px #1f1b2e88;transition:.22s;z-index:300;opacity:0;max-width:calc(100vw - 32px)}
+.toast.show{transform:translate(-50%,0);opacity:1}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div class="mock-bar">
+  <b>Mock · Du lịch</b>
+  <button id="vList" class="on">1 · Danh sách & tạo chuyến</button>
+  <button id="vTrip">2 · Không gian chuyến đi</button>
+  <button id="vHome">3 · Thẻ Home</button>
+  <span class="sp"></span>
+  <button id="bDesk" class="on">Desktop</button>
+  <button id="bPhone">Điện thoại 375px</button>
+</div>
+
+<div class="stage">
+<div class="app" id="app">
+
+  <!-- sidebar: giữ nguyên 5 mục, Du lịch KHÔNG phải tab -->
+  <aside class="side">
+    <div class="brand"><span class="orb"></span>FamAgent</div>
+    <nav class="nav" id="nav">
+      <a href="#" data-nav="home"><em>🏠</em>Trang chủ</a>
+      <a href="#" data-nav="money"><em>💰</em>Tài chính</a>
+      <a href="#" data-nav="shop"><em>🛒</em>Mua sắm</a>
+      <a href="#" data-nav="agent"><em>✨</em>Trợ lý</a>
+      <a href="#" class="on" data-nav="family"><em>👨‍👩‍👧</em>Gia đình</a>
+    </nav>
+    <div class="who"><span class="orb" style="width:24px;height:24px"></span>Nhà mình</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- ============ VIEW 1: DANH SÁCH ============ -->
+    <section id="view-list">
+      <div class="head">
+        <h1>Chuyến đi</h1>
+        <span class="sp"></span>
+        <button class="btn primary" data-open-create>＋ Tạo chuyến đi</button>
+      </div>
+      <p class="muted" style="margin:6px 0 0;max-width:560px">Lối vào: thẻ trên <b>Trang chủ</b> khi có chuyến sắp tới, và khối "Chuyến đi" trong tab <b>Gia đình</b>. Không thêm tab điều hướng mới.</p>
+
+      <h2 class="sec">Sắp tới</h2>
+      <div class="card trip-hero" id="upTrip" role="button" tabindex="0" title="Mở không gian chuyến đi">
+        <div class="cd"><b>41</b><span>ngày nữa</span></div>
+        <div class="info">
+          <h3>🏖️ Đà Nẵng cuối năm</h3>
+          <div class="meta">20 – 23/11/2026 · 4 ngày 3 đêm · Bố, Mẹ, Na (4t), Bin (18th)</div>
+          <div class="mini-prog">
+            <span class="mp"><i></i>Lịch trình 3/4 ngày</span>
+            <span class="mp"><i></i>Đồ đạc 6/18 món</span>
+            <span class="mp"><i></i>Ngân sách đã dùng 40%</span>
+          </div>
+        </div>
+        <div class="act">
+          <button class="btn primary sm" data-goto-trip>Mở chuyến đi →</button>
+          <button class="btn ghost sm" data-goto-trip data-tab-target="packing">Xếp đồ (12 món)</button>
+        </div>
+      </div>
+
+      <h2 class="sec">Kỷ niệm</h2>
+      <div class="past">
+        <div class="pc"><span class="em">⛰️</span><div><b>Sa Pa</b><small>06/2026 · 8,2tr / 9tr ngân sách</small></div></div>
+        <div class="pc"><span class="em">🏡</span><div><b>Về quê Tết</b><small>02/2026 · 12,4tr</small></div></div>
+        <div class="pc" style="border-style:dashed;color:var(--muted-2)"><span class="em">＋</span><div><b style="color:var(--muted-2)">Nhân bản chuyến cũ</b><small>dùng lại checklist & lịch trình (đợt sau)</small></div></div>
+      </div>
+      <div class="empty-note">Trạng thái trống (chưa có chuyến nào): chỉ hiện 1 nút "Tạo chuyến đi" + 1 dòng mô tả. Không nag.</div>
+    </section>
+
+    <!-- ============ VIEW 2: WORKSPACE ============ -->
+    <section id="view-trip" hidden>
+      <div class="head">
+        <button class="crumb" data-goto-list>← Chuyến đi</button>
+      </div>
+      <div class="card trip-head">
+        <span class="em">🏖️</span>
+        <div class="t">
+          <h3>Đà Nẵng cuối năm</h3>
+          <div class="meta">20 – 23/11/2026 · 4N3Đ · Bố, Mẹ, Na, Bin · <a href="#" style="color:var(--primary-ink);font-weight:700">Sửa</a></div>
+        </div>
+        <span class="pill note">⏳ Còn 41 ngày</span>
+        <span class="pill ok">Đang chuẩn bị</span>
+      </div>
+
+      <div class="tabs" id="tripTabs">
+        <button class="on" data-tab="overview">Tổng quan</button>
+        <button data-tab="itin">Lịch trình</button>
+        <button data-tab="packing">Đồ đạc <span id="pkBadge" style="background:var(--warn-bg);color:var(--warn);border-radius:99px;padding:0 7px;font-size:12px;margin-left:2px">12</span></button>
+        <button data-tab="money">Chi phí</button>
+      </div>
+
+      <!-- Tab Tổng quan -->
+      <div class="card panel" id="tab-overview">
+        <div class="ov-grid">
+          <div class="ov-box">
+            <h4>Mức độ sẵn sàng</h4>
+            <div class="prog-row"><small>Lịch trình</small><div class="bar"><i style="width:75%"></i></div><b>3/4 ngày</b></div>
+            <div class="prog-row"><small>Đồ đạc</small><div class="bar"><i id="ovPk" style="width:33%"></i></div><b id="ovPkT">6/18</b></div>
+            <div class="prog-row"><small>Ngân sách</small><div class="bar"><i id="ovBud" style="width:40%"></i></div><b id="ovBudT">40%</b></div>
+            <div style="margin-top:10px"><span class="pill warn">Việc tiếp theo: xếp nốt 12 món đồ</span></div>
+          </div>
+          <div class="ov-box">
+            <h4>Giấy tờ cần nhớ <span class="muted" style="font-weight:400;font-size:12px">(từ checklist Đồ đạc)</span></h4>
+            <ul class="doc-li">
+              <li><button class="tick on" data-tick>✓</button>CCCD bố mẹ</li>
+              <li><button class="tick" data-tick></button>Giấy khai sinh Na & Bin <small class="muted">· chứng minh quan hệ khi bay</small></li>
+              <li><button class="tick" data-tick></button>Thẻ BHYT 2 bé</li>
+            </ul>
+          </div>
+          <div class="ov-box">
+            <h4>Link đặt chỗ</h4>
+            <div class="links">
+              <a href="#">✈️ Vé VietJet · mã GX8K2L</a>
+              <a href="#">🏨 Booking · Mường Thanh</a>
+              <a href="#" style="background:#fff;border:1px dashed var(--line);color:var(--muted-2)">＋ Thêm link</a>
+            </div>
+            <p class="hint" style="margin-top:8px">Chỉ lưu link + ghi chú, không tích hợp đặt chỗ.</p>
+          </div>
+          <div class="ov-box">
+            <h4>Nhắc chuẩn bị</h4>
+            <button class="switch on" id="pushSwitch"><i></i>Bật nhắc cho chuyến này</button>
+            <p class="hint">T-7: bắt đầu chuẩn bị đồ · T-2: món chưa xếp + giấy tờ · T+1: ghi nốt chi phí & tổng kết. Qua thông báo đẩy hiện có.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab Lịch trình -->
+      <div class="card panel" id="tab-itin" hidden>
+        <div class="days">
+          <div class="day">
+            <h4>Ngày 1 <small>· T6 20/11</small></h4>
+            <div class="it"><span class="tm">08:00</span><div class="bd"><b>Bay HAN → DAD</b><small>VietJet VJ521 · đến 09:20</small></div><span class="cost">đã trả</span><button class="mv" title="Chuyển ngày">⋯</button></div>
+            <div class="it"><span class="tm">11:00</span><div class="bd"><b>Nhận phòng Mường Thanh</b><small>đặt cọc rồi, trả nốt 1,8tr</small></div><span class="cost">~1,8tr</span><button class="mv">⋯</button></div>
+            <div class="it"><span class="tm">Chiều</span><div class="bd"><b>Biển Mỹ Khê</b><small>mang đồ bơi + phao Na</small></div><button class="mv">⋯</button></div>
+            <button class="add-it" data-toast="Mock: mở form thêm hoạt động (giờ · tên · ghi chú · chi phí dự kiến · link)">＋ Thêm hoạt động</button>
+          </div>
+          <div class="day">
+            <h4>Ngày 2 <small>· T7 21/11</small></h4>
+            <div class="it"><span class="tm">08:30</span><div class="bd"><b>Bà Nà Hills</b><small>đi sớm tránh đông · Bin miễn phí vé</small></div><span class="cost">~2,6tr</span><button class="mv">⋯</button></div>
+            <div class="it"><span class="tm">19:00</span><div class="bd"><b>Cầu Rồng phun lửa</b><small>21:00 cuối tuần — ăn tối trước</small></div><button class="mv">⋯</button></div>
+            <button class="add-it" data-toast="Mock: mở form thêm hoạt động">＋ Thêm hoạt động</button>
+          </div>
+          <div class="day">
+            <h4>Ngày 3 <small>· CN 22/11</small></h4>
+            <div class="it"><span class="tm">09:00</span><div class="bd"><b>Hội An</b><small>thuê xe 7 chỗ ~700k khứ hồi</small></div><span class="cost">~1,2tr</span><button class="mv">⋯</button></div>
+            <button class="add-it" data-toast="Mock: mở form thêm hoạt động">＋ Thêm hoạt động</button>
+          </div>
+          <div class="day">
+            <h4>Ngày 4 <small>· T2 23/11</small> <span class="pill warn" style="height:22px;font-size:11.5px">trống</span></h4>
+            <p class="muted" style="font-size:13px;margin:6px 0">Trả phòng trước 12:00 · bay 15:40. Chưa có hoạt động.</p>
+            <button class="add-it" data-toast="Mock: mở form thêm hoạt động">＋ Thêm hoạt động</button>
+          </div>
+        </div>
+        <div class="unsched">💡 <b>Chưa xếp ngày:</b> Bảo tàng 3D Art in Paradise
+          <select><option>Chọn ngày…</option><option>Ngày 1</option><option>Ngày 2</option><option>Ngày 3</option><option>Ngày 4</option></select>
+          <span style="flex:1"></span><span>Đổi ngày đi–về không mất hoạt động — chúng rơi vào đây.</span>
+        </div>
+      </div>
+
+      <!-- Tab Đồ đạc -->
+      <div class="card panel" id="tab-packing" hidden>
+        <div class="pk-top">
+          <b id="pkCount">6/18 đã xếp</b>
+          <div class="bar"><i id="pkBar" style="width:33%"></i></div>
+          <button class="btn ghost sm" data-open-suggest>✨ Gợi ý theo nhà mình</button>
+        </div>
+        <p class="hint" style="margin:0 0 4px">Gợi ý sinh từ hồ sơ gia đình (tuổi các bé) × 4 ngày × điểm đến biển — luôn hỏi trước khi thêm.</p>
+
+        <div id="pkList">
+          <div class="pk-group" data-g="Đồ bé">
+            <h4>Đồ bé</h4>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">Bỉm size M <small>· ×24</small></span><span class="who">Bin</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">Sữa công thức + bình</span><span class="who">Bin</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Khăn ướt <small>· ×3 gói</small></span><span class="who">Bin</span><button class="bt on" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Gối + thú bông quen thuộc</span><span class="who">Na</span><button class="bt" data-buy>mua tại chỗ</button></div>
+          </div>
+          <div class="pk-group" data-g="Quần áo">
+            <h4>Quần áo</h4>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">Đồ bơi + phao tay</span><span class="who">Na</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Quần áo Na <small>· 5 bộ (1/ngày + dự phòng)</small></span><span class="who">Na</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Quần áo Bin <small>· 6 bộ</small></span><span class="who">Bin</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Mũ + áo khoác mỏng cả nhà</span><span class="who">Cả nhà</span><button class="bt" data-buy>mua tại chỗ</button></div>
+          </div>
+          <div class="pk-group" data-g="Thuốc & y tế">
+            <h4>Thuốc & y tế</h4>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">Hạ sốt (gói + miếng dán)</span><span class="who">2 bé</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Men tiêu hoá, oresol</span><span class="who">2 bé</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Xịt chống muỗi + kem chống nắng trẻ em</span><span class="who">Cả nhà</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Băng gạc, urgo</span><span class="who">Cả nhà</span><button class="bt" data-buy>mua tại chỗ</button></div>
+          </div>
+          <div class="pk-group" data-g="Giấy tờ">
+            <h4>Giấy tờ</h4>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">CCCD bố mẹ</span><span class="who">Bố Mẹ</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Giấy khai sinh Na & Bin</span><span class="who">2 bé</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Thẻ BHYT 2 bé</span><span class="who">2 bé</span><button class="bt" data-buy>mua tại chỗ</button></div>
+          </div>
+          <div class="pk-group" data-g="Điện tử & khác">
+            <h4>Điện tử & khác</h4>
+            <div class="pk packed"><button class="tick" data-pk>✓</button><span class="nm">Sạc dự phòng + cáp</span><span class="who">Cả nhà</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Túi nhỏ lấy nhanh <small>· bỉm, khăn ướt, đồ ăn vặt khi di chuyển</small></span><span class="who">Mẹ</span><button class="bt" data-buy>mua tại chỗ</button></div>
+            <div class="pk"><button class="tick" data-pk></button><span class="nm">Xe đẩy gấp gọn</span><span class="who">Bin</span><button class="bt" data-buy>mua tại chỗ</button></div>
+          </div>
+        </div>
+
+        <div class="pk-add">
+          <input id="pkName" placeholder="Thêm món đồ… (vd: máy hâm sữa)">
+          <select id="pkCat"><option>Đồ bé</option><option>Quần áo</option><option>Thuốc & y tế</option><option>Giấy tờ</option><option>Điện tử & khác</option></select>
+          <button class="btn primary sm" id="pkAdd" style="height:42px">Thêm</button>
+        </div>
+      </div>
+
+      <!-- Tab Chi phí -->
+      <div class="card panel" id="tab-money" hidden>
+        <div class="bud-top">
+          <div><div class="eyebrow">Đã chi / ngân sách</div><div class="big"><span id="spentT">6,0tr</span> <span class="muted" style="font-size:18px;font-weight:600">/ 15tr</span></div></div>
+          <span class="pill ok" id="budPill">Trong kế hoạch</span>
+          <span class="sp"></span>
+          <span class="pill note">🔗 Ghi vào sổ Tài chính · nhóm "Du lịch"</span>
+        </div>
+        <div class="bud">
+          <div class="prog-row"><small>Đi lại <span class="muted">35%</span></small><div class="bar"><i id="b-transport" style="width:80%"></i></div><b id="t-transport">4,2/5,25tr</b></div>
+          <div class="prog-row"><small>Lưu trú <span class="muted">25%</span></small><div class="bar"><i id="b-lodging" style="width:48%"></i></div><b id="t-lodging">1,8/3,75tr</b></div>
+          <div class="prog-row"><small>Ăn uống <span class="muted">25%</span></small><div class="bar"><i id="b-food" style="width:0%"></i></div><b id="t-food">0/3,75tr</b></div>
+          <div class="prog-row"><small>Hoạt động <span class="muted">10%</span></small><div class="bar"><i id="b-activity" style="width:0%"></i></div><b id="t-activity">0/1,5tr</b></div>
+          <div class="prog-row"><small>Dự phòng <span class="muted">5%</span></small><div class="bar"><i id="b-misc" style="width:0%"></i></div><b id="t-misc">0/750k</b></div>
+          <p class="hint">Tỷ lệ gợi ý theo khung phổ biến (đi lại 35 · lưu trú 25 · ăn 25 · chơi 10 · dự phòng 5) — sửa được khi tạo/sửa chuyến.</p>
+        </div>
+
+        <div class="exp-add">
+          <input class="t" id="exText" placeholder="Nội dung chi… (vd: ăn hải sản Bé Mặn)">
+          <input class="a" id="exAmt" placeholder="850k">
+          <select id="exBucket"><option value="food">Ăn uống</option><option value="transport">Đi lại</option><option value="lodging">Lưu trú</option><option value="activity">Hoạt động</option><option value="misc">Dự phòng</option></select>
+          <button class="btn primary sm" id="exAdd" style="height:42px">Ghi</button>
+        </div>
+        <p class="exp-note">Mỗi khoản ghi ở đây xuất hiện đồng thời trong sổ Tài chính (1 nguồn sự thật, không ghi đôi). Xoá ở đây thì dòng trong sổ cũng gỡ liên kết.</p>
+
+        <div id="expList">
+          <div class="exp"><span class="bk">Lưu trú</span><div class="bd"><b>Đặt cọc Mường Thanh</b><small>05/10 · đã vào sổ ✓</small></div><span class="amt">1.800.000đ</span></div>
+          <div class="exp"><span class="bk">Đi lại</span><div class="bd"><b>Vé máy bay khứ hồi 4 người</b><small>02/10 · đã vào sổ ✓</small></div><span class="amt">4.200.000đ</span></div>
+        </div>
+
+        <div class="soon"><b>Sắp chi theo lịch trình:</b> <span class="muted">trả nốt khách sạn ~1,8tr · Bà Nà ~2,6tr · xe Hội An ~1,2tr → tổng dự kiến <b>11,6tr/15tr</b> ✅</span></div>
+      </div>
+    </section>
+
+    <!-- ============ VIEW 3: THẺ HOME ============ -->
+    <section id="view-home" hidden>
+      <div class="head"><h1>Trang chủ <span class="muted" style="font-size:15px;font-weight:600">· chỉ mock phần thẻ Du lịch</span></h1></div>
+      <div class="home-wrap">
+        <div class="card hcard">
+          <span class="em">🏖️</span>
+          <div class="bd"><b>Đà Nẵng cuối năm · còn 41 ngày</b><small>12 món đồ chưa xếp · lịch trình ngày 4 còn trống</small></div>
+          <button class="btn primary sm" data-goto-trip data-tab-target="packing">Xếp đồ →</button>
+        </div>
+        <div class="card hcard">
+          <span class="em">🏖️</span>
+          <div class="bd"><b>Đà Nẵng cuối năm · còn 2 ngày</b><small>Tất cả đã sẵn sàng · kiểm tra lại giấy tờ lần cuối</small></div>
+          <button class="btn ghost sm">Giấy tờ ✓</button>
+        </div>
+        <div class="card hcard">
+          <span class="em">🧾</span>
+          <div class="bd"><b>Về nhà rồi! Tổng kết Đà Nẵng?</b><small>Đã chi 13,1tr/15tr · còn 2 khoản chưa ghi nốt</small></div>
+          <button class="btn ghost sm">Tổng kết →</button>
+        </div>
+        <div class="card hcard dim">
+          <span class="em">💤</span>
+          <div class="bd"><b>Không có chuyến nào sắp tới</b><small>→ Home KHÔNG hiện thẻ du lịch (không nag)</small></div>
+        </div>
+      </div>
+      <p class="home-note">Thẻ đổi theo ngữ cảnh: 1 thẻ duy nhất, 1 hành động duy nhất. T-7/T-2/T+1 cũng là nội dung push.</p>
+    </section>
+
+  </main>
+</div>
+</div>
+
+<!-- Sheet: tạo chuyến -->
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="createSheet" aria-hidden="true">
+  <button class="x" data-close>✕</button>
+  <h3>Tạo chuyến đi <span class="muted" style="font-size:13px;font-weight:600">· ~1 phút</span></h3>
+  <div class="f"><label>Điểm đến</label><input id="cDest" placeholder="Đà Nẵng" value="Đà Nẵng"></div>
+  <div class="f"><label>Kiểu chuyến đi <span style="font-weight:400">· để gợi ý đồ đạc</span></label>
+    <div class="chips" id="cType">
+      <button class="on">🏖️ Biển</button><button>⛰️ Núi</button><button>🏙️ Thành phố</button><button>🏡 Về quê</button><button>✈️ Nước ngoài</button>
+    </div>
+  </div>
+  <div class="f f2">
+    <div><label>Ngày đi</label><input type="date" value="2026-11-20"></div>
+    <div><label>Ngày về</label><input type="date" value="2026-11-23"></div>
+  </div>
+  <div class="f"><label>Ngân sách dự kiến</label><input id="cBudget" placeholder="15tr" value="15tr">
+    <p class="hint">Sẽ chia gợi ý: đi lại 35% · lưu trú 25% · ăn uống 25% · hoạt động 10% · dự phòng 5% — sửa được sau.</p></div>
+  <div class="f"><label>Tên chuyến</label><input id="cName" value="Đà Nẵng cuối năm"><p class="hint">Tự gợi ý từ điểm đến + thời gian. Thành viên mặc định: cả nhà (sửa trong Tổng quan).</p></div>
+  <button class="btn primary" style="width:100%" id="cSubmit">Tạo & vào không gian chuyến đi →</button>
+</div>
+
+<!-- Sheet: gợi ý đồ -->
+<div class="sheet" id="suggestSheet" aria-hidden="true">
+  <button class="x" data-close>✕</button>
+  <h3>✨ Gợi ý theo nhà mình</h3>
+  <p class="hint" style="margin:-8px 0 10px">Từ hồ sơ: Na 4 tuổi, Bin 18 tháng × 4N3Đ × biển. Bỏ chọn món không cần — <b>chỉ thêm khi bạn bấm xác nhận</b>.</p>
+  <div class="sg-li">
+    <h5>Đồ bé</h5>
+    <label class="sg"><input type="checkbox" checked><span>Máy hâm sữa mini</span><small>Bin 18th</small></label>
+    <label class="sg"><input type="checkbox" checked><span>Yếm ăn + thìa quen</span><small>Bin</small></label>
+    <label class="sg"><input type="checkbox"><span>Ghế ăn dặm gấp gọn</span><small>có thể mượn ks</small></label>
+    <h5>Quần áo</h5>
+    <label class="sg"><input type="checkbox" checked><span>Áo chống nắng dài tay ×2 bé</span><small>biển</small></label>
+    <h5>An toàn</h5>
+    <label class="sg"><input type="checkbox" checked><span>Giấy ghi tên + SĐT bố mẹ bỏ túi bé</span><small>phòng đi lạc</small></label>
+    <label class="sg"><input type="checkbox" checked><span>Kính bơi + áo phao Na</span><small>Na 4t</small></label>
+  </div>
+  <button class="btn primary" style="width:100%" id="sgAdd">Thêm 5 món đã chọn vào checklist</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+
+/* ---------- toast ---------- */
+let tt; function toast(m){ const t=$('#toast'); t.textContent=m; t.classList.add('show'); clearTimeout(tt); tt=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- chuyển view ---------- */
+const views = {list:'#view-list', trip:'#view-trip', home:'#view-home'};
+const viewBtns = {list:'#vList', trip:'#vTrip', home:'#vHome'};
+function show(v){ for(const k in views){ $(views[k]).hidden = k!==v; $(viewBtns[k]).classList.toggle('on',k===v); } $('.main').scrollTop=0; window.scrollTo({top:0}); }
+$('#vList').onclick=()=>show('list'); $('#vTrip').onclick=()=>show('trip'); $('#vHome').onclick=()=>show('home');
+$$('[data-goto-trip]').forEach(b=>b.onclick=e=>{ e.stopPropagation(); show('trip'); const t=b.dataset.tabTarget; if(t) setTab(t); });
+$$('[data-goto-list]').forEach(b=>b.onclick=()=>show('list'));
+$('#upTrip').addEventListener('click',e=>{ if(!e.target.closest('button')) show('trip'); });
+
+/* ---------- tabs workspace ---------- */
+function setTab(t){ $$('#tripTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===t));
+  ['overview','itin','packing','money'].forEach(k=>$('#tab-'+k).hidden = k!==t); }
+$('#tripTabs').onclick=e=>{ const b=e.target.closest('button'); if(b) setTab(b.dataset.tab); };
+
+/* ---------- sheets ---------- */
+function openSheet(id){ $('#scrim').classList.add('show'); $(id).classList.add('show'); $(id).setAttribute('aria-hidden','false'); }
+function closeSheets(){ $('#scrim').classList.remove('show'); $$('.sheet').forEach(s=>{s.classList.remove('show');s.setAttribute('aria-hidden','true');}); }
+$$('[data-open-create]').forEach(b=>b.onclick=()=>openSheet('#createSheet'));
+$$('[data-open-suggest]').forEach(b=>b.onclick=()=>openSheet('#suggestSheet'));
+$$('[data-close]').forEach(b=>b.onclick=closeSheets);
+$('#scrim').onclick=closeSheets;
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') closeSheets(); });
+$('#cSubmit').onclick=()=>{ closeSheets(); show('trip'); setTab('overview'); toast('Đã tạo "Đà Nẵng cuối năm" · ngân sách chia sẵn 5 nhóm'); };
+$('#cType').onclick=e=>{ const b=e.target.closest('button'); if(!b) return; $$('#cType button').forEach(x=>x.classList.toggle('on',x===b)); };
+
+/* ---------- packing ---------- */
+function pkRefresh(){ const all=$$('#pkList .pk'); const done=all.filter(x=>x.classList.contains('packed')).length;
+  const left=all.length-done; const pct=Math.round(done/all.length*100);
+  $('#pkCount').textContent=`${done}/${all.length} đã xếp`; $('#pkBar').style.width=pct+'%';
+  $('#pkBadge').textContent=left; $('#pkBadge').style.display=left?'':'none';
+  $('#ovPk').style.width=pct+'%'; $('#ovPkT').textContent=`${done}/${all.length}`; }
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-pk]'); if(t){ const row=t.closest('.pk'); row.classList.toggle('packed'); t.textContent=row.classList.contains('packed')?'✓':''; pkRefresh(); return; }
+  const b=e.target.closest('[data-buy]'); if(b){ b.classList.toggle('on'); if(b.classList.contains('on')) toast('Đánh dấu "mua tại chỗ" — không cần xếp vào vali'); return; }
+  const d=e.target.closest('[data-tick]'); if(d){ d.classList.toggle('on'); d.textContent=d.classList.contains('on')?'✓':''; return; }
+  const ts=e.target.closest('[data-toast]'); if(ts){ toast(ts.dataset.toast); }
+});
+function pkAddItem(name,cat){ const g=$$('#pkList .pk-group').find(x=>x.dataset.g===cat)||$$('#pkList .pk-group')[0];
+  const div=document.createElement('div'); div.className='pk';
+  div.innerHTML=`<button class="tick" data-pk></button><span class="nm">${name}</span><span class="who">Cả nhà</span><button class="bt" data-buy>mua tại chỗ</button>`;
+  g.appendChild(div); }
+$('#pkAdd').onclick=()=>{ const n=$('#pkName').value.trim(); if(!n){ toast('Nhập tên món đồ'); return; }
+  pkAddItem(n,$('#pkCat').value); $('#pkName').value=''; pkRefresh(); toast('Đã thêm: '+n); };
+$('#pkName').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#pkAdd').click(); });
+$('#sgAdd').onclick=()=>{ const picked=$$('#suggestSheet .sg input:checked'); let n=0;
+  picked.forEach(c=>{ const name=c.parentElement.querySelector('span').textContent; const h=c.parentElement.previousElementSibling; pkAddItem(name,'Đồ bé'); n++; });
+  closeSheets(); setTab('packing'); pkRefresh(); toast(`Đã thêm ${n} món từ gợi ý — món không cần thì xoá/bỏ tick`); };
+/* đếm lại số món thật khi mở (danh sách tĩnh ban đầu ≠ 18) */ pkRefresh();
+
+/* ---------- chi phí ---------- */
+const BUD={transport:5250,lodging:3750,food:3750,activity:1500,misc:750}; // nghìn đồng
+const SPENT={transport:4200,lodging:1800,food:0,activity:0,misc:0};
+const fmt=k=> k>=1000 ? (Math.round(k/100)/10).toString().replace('.',',')+'tr' : k+'k';
+function parseAmt(s){ s=s.toLowerCase().replace(/\s|,/g,m=>m===','?'.':''); const m=s.match(/^(\d+(?:\.\d+)?)(k|tr|m)?$/); if(!m) return null;
+  let v=parseFloat(m[1]); if(m[2]==='tr'||m[2]==='m') v*=1000; else if(!m[2]&&v>=1000) v=v/1000; return Math.round(v); }
+function budRefresh(){ let tot=0,btot=0;
+  for(const k in BUD){ tot+=SPENT[k]; btot+=BUD[k]; const pct=Math.min(100,Math.round(SPENT[k]/BUD[k]*100));
+    $('#b-'+k).style.width=pct+'%'; $('#b-'+k).style.background = SPENT[k]>BUD[k] ? 'var(--danger)' : 'var(--grad)';
+    $('#t-'+k).textContent=`${fmt(SPENT[k])}/${fmt(BUD[k])}`; }
+  $('#spentT').textContent=fmt(tot); const p=Math.round(tot/btot*100);
+  $('#ovBud').style.width=p+'%'; $('#ovBudT').textContent=p+'%';
+  const pill=$('#budPill'); if(tot>btot){ pill.textContent='Vượt ngân sách'; pill.className='pill'; pill.style.background='var(--danger-bg)'; pill.style.color='var(--danger)'; }
+  else if(tot>btot*.85){ pill.textContent='Gần chạm ngân sách'; pill.className='pill warn'; pill.style.cssText=''; }
+  else { pill.textContent='Trong kế hoạch'; pill.className='pill ok'; pill.style.cssText=''; } }
+$('#exAdd').onclick=()=>{ const t=$('#exText').value.trim(); const a=parseAmt($('#exAmt').value); const bk=$('#exBucket').value;
+  if(!t||a===null){ toast('Nhập nội dung và số tiền (vd 850k, 1,2tr)'); return; }
+  SPENT[bk]+=a; const names={transport:'Đi lại',lodging:'Lưu trú',food:'Ăn uống',activity:'Hoạt động',misc:'Dự phòng'};
+  const div=document.createElement('div'); div.className='exp';
+  div.innerHTML=`<span class="bk">${names[bk]}</span><div class="bd"><b>${t}</b><small>hôm nay · đã vào sổ ✓</small></div><span class="amt">${(a*1000).toLocaleString('vi')}đ</span>`;
+  $('#expList').prepend(div); $('#exText').value=''; $('#exAmt').value=''; budRefresh();
+  toast(`Đã ghi vào sổ Tài chính · Du lịch: ${t} −${fmt(a)}`); };
+$('#exAmt').addEventListener('keydown',e=>{ if(e.key==='Enter') $('#exAdd').click(); });
+budRefresh();
+
+/* ---------- switch nhắc ---------- */
+$('#pushSwitch').onclick=e=>{ const on=e.currentTarget.classList.toggle('on'); toast(on?'Bật nhắc T-7 · T-2 · T+1 cho chuyến này':'Đã tắt nhắc cho chuyến này'); };
+
+/* ---------- chế độ điện thoại ---------- */
+const app=$('#app'); function setPhone(on){ app.classList.toggle('m',on); $('#bPhone').classList.toggle('on',on); $('#bDesk').classList.toggle('on',!on); }
+$('#bPhone').onclick=()=>setPhone(true); $('#bDesk').onclick=()=>setPhone(false);
+if(innerWidth<900) setPhone(true);
+</script>
+</body>
+</html>

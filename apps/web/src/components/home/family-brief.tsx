@@ -17,6 +17,8 @@ import { estimateItems, itemRateResolver, type ItemEstimate } from "@/lib/shoppi
 import { DailyTasks } from "./daily-tasks";
 import { localDay } from "@/lib/brief/daily-tasks";
 import { lastMeasureDays, loadMeasures } from "@/lib/family/client";
+import { loadTravel } from "@/lib/travel/client";
+import type { TravelState } from "@/lib/travel/types";
 
 /** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
 export function FamilyBriefPage() {
@@ -31,6 +33,7 @@ export function FamilyBriefPage() {
   const [checks, setChecks] = useState<StockCheckRow[]>([]);
   const [shoppingTick, setShoppingTick] = useState(0);
   const [measures, setMeasures] = useState<Record<string, { weight?: string; height?: string }>>({});
+  const [travel, setTravel] = useState<TravelState | null>(null);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
 
@@ -49,6 +52,8 @@ export function FamilyBriefPage() {
         // Growth log for "đến lịch cân đo"; without it the card falls back to the profile's weight date.
         loadMeasures().then((rows) => { if (!cancelled) setMeasures(lastMeasureDays(rows)); }).catch(() => {});
         loadShopping().then((shopping) => { if (!cancelled) { setStock(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks)); setChecks(shopping.checks); } }).catch(() => {});
+        // The travel card is optional: no trips (or a load failure) just means no card.
+        loadTravel().then((trips) => { if (!cancelled) setTravel(trips); }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
     void load();
@@ -56,7 +61,7 @@ export function FamilyBriefPage() {
   }, [router, shoppingTick]);
 
   if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
-  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock, measures });
+  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock, measures, travel });
   const known = stock.filter((item) => item.known);
   const candidate = checkCandidate(stock, (itemId) => checks.filter((check) => check.itemId === itemId).map((check) => check.checkedOn).sort().at(-1), localDay(new Date()));
   const child = profile?.children[0];

@@ -4,6 +4,8 @@ import { formatWeight } from "../onboarding/questions.ts";
 import { shortVnd, type MonthSummary } from "../money/summary.ts";
 import { runningLow, type ItemEstimate } from "../shopping/items.ts";
 import { WHAT_TEXT, cadenceText, measureDue, sinceLast } from "../family/measure-schedule.ts";
+import { travelHomeCard } from "../travel/home-card.ts";
+import type { TravelState } from "../travel/types.ts";
 
 /**
  * Family Brief (spec v2 §16–17): what needs attention, built from data the app already has.
@@ -40,6 +42,8 @@ export interface BriefInput {
   stock?: ItemEstimate[];
   /** Last weighing / height day per child from the growth log (YYYY-MM-DD); weight falls back to the profile's date. */
   measures?: Record<string, { weight?: string; height?: string }>;
+  /** Trips, packing and expenses for the travel card (null = not loaded; no upcoming trip = no card). */
+  travel?: TravelState | null;
   now?: Date;
 }
 
@@ -63,7 +67,7 @@ export function greetingFor(now: Date, name?: string): string {
 /** Vietnam calendar day of a time (the family's day, whatever the device timezone). */
 const vnDay = (time: number) => new Date(time + 7 * 3_600_000).toISOString().slice(0, 10);
 
-export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], measures = {}, now = new Date() }: BriefInput): FamilyBrief {
+export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], measures = {}, travel = null, now = new Date() }: BriefInput): FamilyBrief {
   const attention: BriefCard[] = [];
   const insights: BriefInsight[] = [];
   const children = profile?.children ?? [];
@@ -112,6 +116,13 @@ export function buildBrief({ profile, conversations, savedCount, displayName, mo
     for (const insight of money.insights.filter((item) => item.id !== "over-pace").slice(0, 1)) insights.unshift({ text: insight.text, source: insight.source, href: "/money" });
   } else {
     attention.push({ id: "money-setup", tone: "ok", badge: "₫", title: "Bắt đầu sổ thu chi của gia đình", detail: "Ghi vài khoản đầu tiên để Trang chủ hiện tiền tháng này và khoản sắp đến hạn.", cta: { label: "Mở Tài chính", href: "/money" } });
+  }
+
+  // Travel (plan 261010-1335 §4.8): one card for the nearest trip; urgent (≤7 days out) goes first.
+  const tripCard = travelHomeCard(travel, vnDay(now.getTime()));
+  if (tripCard) {
+    const card: BriefCard = { id: "travel-trip", tone: tripCard.tone, badge: tripCard.badge, title: tripCard.title, detail: tripCard.detail, cta: tripCard.cta };
+    if (tripCard.urgent) attention.unshift(card); else attention.push(card);
   }
 
   if (savedCount > 0) insights.push({ text: `Bạn đang lưu ${savedCount} sản phẩm để xem lại. Hỏi FamAgent “so sánh các sản phẩm đã lưu” để thấy khác biệt theo giá mỗi miếng.`, source: "Từ danh sách đã lưu", href: "/shopping?tab=saved" });
