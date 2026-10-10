@@ -176,6 +176,15 @@
 .tv-exp-amount{font-weight:800;white-space:nowrap}
 .tv-soon{margin-top:14px;background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:10px 14px;font-size:13px}
 
+/* ----- Nhập từ tour ----- */
+.tv-import-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;padding:10px 12px;background:var(--mint);border-radius:var(--r)}
+.tv-import-bar .tv-hint{margin:0;flex:1;min-width:180px}
+.tv-import-text{width:100%;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--paper);padding:10px 12px;font:inherit;font-size:13.5px;resize:vertical;min-height:120px}
+.tv-import-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px}
+.tv-sp{flex:1}
+.tv-import-time{color:var(--primary-ink);font-size:12.5px;margin-right:2px}
+.tv-import-cost{font-style:normal;color:var(--warn);font-weight:700;font-size:12.5px}
+
 /* ----- Đợt 5: goal box, recap, AI mark ----- */
 .tv-goal-pick{width:100%;height:42px;border-radius:var(--r-sm);border:1px solid var(--line);background:var(--paper);padding:0 10px;font:inherit;margin-bottom:4px}
 .tv-recap-total{margin:0 0 8px;font-size:15px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}

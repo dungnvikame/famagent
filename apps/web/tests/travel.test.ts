@@ -3,6 +3,7 @@ import test from "node:test";
 import { tripRemindersFor } from "../src/lib/push/travel-reminders.ts";
 import { ledgerIdForTripExpense, transactionForTripExpense } from "../src/lib/travel/expense-store-server.ts";
 import { travelHomeCard } from "../src/lib/travel/home-card.ts";
+import { cleanImport, importSystem, validImportRequest } from "../src/lib/travel/import-ai.ts";
 import { suggestPacking } from "../src/lib/travel/packing-template.ts";
 import type { TripMember } from "../src/lib/travel/trip-members.ts";
 import { childAgeMonths } from "../src/lib/travel/trip-members.ts";
@@ -197,6 +198,35 @@ test("suggest-ai: request validation, child-age privacy shape, reply cleaning + 
   ] }, request!);
   assert.deepEqual(cleaned.map((item) => item.name), ["Lều che nắng cho bé", "Túi chống nước điện thoại"]);
   assert.equal(cleaned[1].qty, 1);
+});
+
+test("import-ai: needs text or image, clamps days, bounds fields, dedupes packing", () => {
+  assert.equal(validImportRequest({ destination: "Đà Nẵng", days: 4 }), null, "text or image required");
+  assert.equal(validImportRequest({ destination: "Đà Nẵng", days: 0, text: "x" }), null);
+  const request = validImportRequest({ destination: "Đà Nẵng", days: 4, text: "NGÀY 01: bay..." });
+  assert.ok(request);
+  assert.match(importSystem(request!), /4 ngày/);
+  const cleaned = cleanImport({
+    itinerary: [
+      { day: 1, time: "08:00", title: "Bay HAN – DAD", note: "VJ521, có mặt trước 2 tiếng", estAmount: 4200000 },
+      { day: 9, title: "Bà Nà Hills", estAmount: -5 },         // day ngoài chuyến → chưa xếp; tiền âm → 0
+      { title: "   " },                                          // thiếu title → bỏ
+      { day: 2, title: "x".repeat(300), time: "t".repeat(99) },  // cắt về giới hạn
+    ],
+    packing: [
+      { name: "Áo ấm", category: "clothes", qty: 4 },
+      { name: "Áo ấm dày", category: "clothes" },                // trùng tiền tố → bỏ
+      { name: "Bỉm Bin", category: "kids" },                     // đã có trong checklist → bỏ
+      { name: "Gì đó", category: "zzz" },                        // category sai → bỏ
+    ],
+  }, request!, ["Bỉm Bin size M"]);
+  assert.equal(cleaned.itinerary.length, 3);
+  assert.deepEqual([cleaned.itinerary[0].day, cleaned.itinerary[0].timeLabel, cleaned.itinerary[0].estAmount], [1, "08:00", 4_200_000]);
+  assert.equal(cleaned.itinerary[1].day, undefined, "day 9 of a 4-day trip goes unscheduled");
+  assert.equal(cleaned.itinerary[1].estAmount, 0);
+  assert.equal(cleaned.itinerary[2].title.length, 120);
+  assert.equal(cleaned.itinerary[2].timeLabel!.length, 20);
+  assert.deepEqual(cleaned.packing, [{ name: "Áo ấm", category: "clothes", qty: 4 }]);
 });
 
 test("trip expense ledger mirror: deterministic uuid, category Du lịch, source trip", () => {

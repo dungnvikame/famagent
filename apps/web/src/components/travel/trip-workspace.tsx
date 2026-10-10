@@ -68,6 +68,11 @@ export function TripWorkspace({ tripId }: { tripId: string }) {
 
   const saveTrip = (next: Trip) => mutate((previous) => ({ ...previous, trips: upsert(previous.trips, next) }), () => client.saveTrip(next));
   const saveEntry = (entry: ItineraryEntry) => mutate((previous) => ({ ...previous, itinerary: upsert(previous.itinerary, entry) }), () => client.saveEntry(entry));
+  /** "Nhập từ tour": one confirm adds a batch of entries and (optionally) packing items. */
+  const importMany = (newEntries: ItineraryEntry[], newPacking: PackingItem[]) => mutate(
+    (previous) => ({ ...previous, itinerary: newEntries.reduce(upsert, previous.itinerary), packing: newPacking.reduce(upsert, previous.packing) }),
+    () => Promise.all([...newEntries.map((entry) => client.saveEntry(entry)), ...newPacking.map((item) => client.savePacking(item))]),
+  );
   const removeEntry = (id: string) => mutate((previous) => ({ ...previous, itinerary: previous.itinerary.filter((entry) => entry.id !== id) }), () => client.deleteEntry(id));
   const savePacking = (item: PackingItem) => mutate((previous) => ({ ...previous, packing: upsert(previous.packing, item) }), () => client.savePacking(item));
   const savePackingMany = (items: PackingItem[]) => mutate(
@@ -124,7 +129,7 @@ export function TripWorkspace({ tripId }: { tripId: string }) {
     </nav>
 
     {tab === "overview" && <TripOverview trip={trip} phase={phase} readiness={ready} countdown={countdown} packing={packing} expenses={expenses} members={members} goals={goals} onTrip={saveTrip} onPacking={savePacking} onTab={setTab} />}
-    {tab === "itin" && <TripItinerary trip={trip} entries={itinerary} onSave={saveEntry} onDelete={removeEntry} />}
+    {tab === "itin" && <TripItinerary trip={trip} entries={itinerary} packing={packing} aiConsent={profile?.aiConsent === true} onSave={saveEntry} onDelete={removeEntry} onImport={importMany} />}
     {tab === "packing" && <TripPacking trip={trip} items={packing} members={members} aiConsent={profile?.aiConsent === true} copySource={copySource} onSave={savePacking} onSaveMany={savePackingMany} onDelete={removePacking} />}
     {tab === "money" && <TripExpenses trip={trip} expenses={expenses} itinerary={itinerary} onSave={saveExpense} onDelete={removeExpense} onTrip={saveTrip} />}
 

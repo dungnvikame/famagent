@@ -2,11 +2,14 @@
 
 // Tab Lịch trình: one block per day of the trip, entries ordered by position; entries whose day fell outside a
 // changed date range wait in "chưa xếp ngày" instead of disappearing (plan 261010-1335 acceptance #2).
-import { useState } from "react";
+// Families with a tour programme paste/photograph it instead of typing (ImportSheet).
+import { useEffect, useState } from "react";
+import { cloudEnabled } from "@/lib/experience/cloud";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { groupAmountTyping, parseVnd } from "@/lib/money/parse";
 import { tripDays } from "@/lib/travel/trip-state";
-import type { ItineraryEntry, Trip } from "@/lib/travel/types";
+import type { ItineraryEntry, PackingItem, Trip } from "@/lib/travel/types";
+import { ImportSheet } from "./trip-import";
 
 const WEEKDAYS = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 const dayLabel = (iso: string) => `${WEEKDAYS[new Date(`${iso}T00:00:00`).getDay()]} ${iso.slice(8, 10)}/${iso.slice(5, 7)}`;
@@ -48,9 +51,20 @@ function EntryForm({ tripId, dayDate, position, entry, onSave, onClose }: { trip
   </div>;
 }
 
-export function TripItinerary({ trip, entries, onSave, onDelete }: { trip: Trip; entries: ItineraryEntry[]; onSave: (entry: ItineraryEntry) => void; onDelete: (id: string) => void }) {
+export function TripItinerary({ trip, entries, packing, aiConsent, onSave, onDelete, onImport }: {
+  trip: Trip; entries: ItineraryEntry[]; packing: PackingItem[]; aiConsent: boolean;
+  onSave: (entry: ItineraryEntry) => void; onDelete: (id: string) => void;
+  onImport: (entries: ItineraryEntry[], packing: PackingItem[]) => void;
+}) {
   const [adding, setAdding] = useState<string | "unscheduled" | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importCaps, setImportCaps] = useState<{ available: boolean; vision: boolean }>({ available: false, vision: false });
+  // The import button only shows when the server actually has a model (no dead button).
+  useEffect(() => {
+    if (!cloudEnabled || !aiConsent) return;
+    fetch("/api/travel/import", { cache: "no-store" }).then((response) => response.json()).then((data: { available?: boolean; vision?: boolean }) => setImportCaps({ available: data.available === true, vision: data.vision === true })).catch(() => {});
+  }, [aiConsent]);
   const days = tripDays(trip);
   const daySet = new Set(days);
   const byDay = (day: string) => entries.filter((entry) => entry.dayDate === day).sort((a, b) => a.position - b.position || (a.timeLabel ?? "").localeCompare(b.timeLabel ?? ""));
@@ -75,6 +89,10 @@ export function TripItinerary({ trip, entries, onSave, onDelete }: { trip: Trip;
     </div>;
 
   return <section className="tv-card tv-panel">
+    {importCaps.available && <div className="tv-import-bar">
+      <button type="button" className="tv-btn tv-btn-ghost tv-btn-sm" onClick={() => setImporting(true)}>📄 Nhập từ tour — dán{importCaps.vision ? " / chụp" : ""} lịch trình có sẵn</button>
+      <span className="tv-hint">AI tách thành hoạt động theo ngày (+ đồ cần chuẩn bị nếu có) — bạn duyệt trước khi thêm.</span>
+    </div>}
     <div className="tv-days">
       {days.map((day, index) => {
         const list = byDay(day);
@@ -94,5 +112,6 @@ export function TripItinerary({ trip, entries, onSave, onDelete }: { trip: Trip;
       {adding === "unscheduled" && <EntryForm tripId={trip.id} position={nextPosition(undefined)} onSave={onSave} onClose={() => setAdding(null)} />}
     </div>}
     {adding !== "unscheduled" && <button type="button" className="tv-link tv-small" onClick={() => { setAdding("unscheduled"); setEditingId(null); }}>＋ Thêm ý tưởng chưa chốt ngày</button>}
+    {importing && <ImportSheet trip={trip} entries={entries} packing={packing} vision={importCaps.vision} onAdd={onImport} onClose={() => setImporting(false)} />}
   </section>;
 }
