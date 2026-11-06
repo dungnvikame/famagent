@@ -229,6 +229,14 @@ export function MoneyPage() {
     trackEvent("money_debt_added");
   }
 
+  /** Removes a big debt from the position; savePosition's sync drops its linked recurring reminder. */
+  async function removeDebt(id: string) {
+    const position = bundle?.settings.position;
+    if (!position) return;
+    await savePosition({ ...position, debts: position.debts.filter((debt) => debt.id !== id) }, []);
+    trackEvent("money_debt_deleted");
+  }
+
   /** Position: debt payments become recurring items; fixed items from the setup are created with a guessed category. */
   async function savePosition(position: MoneyPosition, newFixed: Array<Omit<MoneyRecurring, "id" | "active" | "category"> & { category?: string }>) {
     if (!bundle) return;
@@ -267,7 +275,7 @@ export function MoneyPage() {
         <LedgerTable guessContext={quickContext} transactions={shown} balances={balances} showBalance={showBalance} balanceOpen={balanceOpen} onBalanceOpen={setBalanceOpen} emptyText={source.length ? "Không có khoản nào khớp bộ lọc." : undefined} categories={bundle.settings.categories} familyChildren={children} month={month} recurring={bundle.recurring} debtRecurringIds={debtRecurringIds} debts={debtPickOptions} totals={ledgerTotals} onSave={(item, repeat) => act(repeat.on ? "money_transaction_saved_monthly" : "money_transaction_saved")(() => saveEntry(item, repeat))} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} />
       </>}
       {tab === "month" && <MonthView summary={summary} bundle={bundle} openingCash={summary.balances.cash - summary.cashChange} onBudget={(item) => act("money_budget_saved")(() => saveMoneyItem("budgets", item))} onDeleteBudget={(id) => act("money_budget_deleted")(() => deleteMoneyItem("budgets", id))} onOpenLedger={(category) => { setFilter({ kinds: [], categories: category ? [category] : [], ...monthRange(month), text: "" }); setTab("ledger"); window.scrollTo({ top: 0, behavior: "smooth" }); }} onTab={(next) => setTab(next)} />}
-      {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} />}
+      {tab === "debt" && <DebtsView bundle={bundle} onSave={async (item) => { await act("money_loan_saved")(() => saveTransaction(item)); }} onTab={(next) => setTab(next)} onAddDebt={addDebt} onDelete={(id) => act("money_transaction_deleted")(() => deleteMoneyItem("transactions", id))} onDeleteDebt={removeDebt} />}
       {tab === "plan" && <PlanView bundle={bundle} summary={summary} month={month} onOpenSavings={openSavingsLedger}
         onSettings={async (settings) => { await act("money_saving_set")(() => saveMoneySettings(settings)); }}
         onRecurring={async (item) => { await act("money_recurring_saved")(() => saveMoneyItem("recurring", item)); }}

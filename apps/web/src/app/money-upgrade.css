@@ -400,3 +400,4 @@ select.chip.add{border-style:dashed;color:var(--primary);appearance:none;padding
 .alloc-base label{font-weight:700;font-size:14px}
 .alloc-base .amt-field{width:190px}
 .alloc-base small{color:var(--muted);font-size:12.5px}
+.tl-amt{display:inline-flex;align-items:center;gap:8px}.tl-amt .ledger-link{padding:0 2px;line-height:1}.tl-act{gap:14px}

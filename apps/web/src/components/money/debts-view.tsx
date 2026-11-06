@@ -30,13 +30,17 @@ interface Props {
   onTab: (tab: "situ") => void;
   /** Saves a debt the family already had (into Tình hình's position, not the ledger); without it the "Thêm khoản nợ cũ" form is hidden. */
   onAddDebt?: (debt: MoneyDebt) => Promise<void>;
+  /** Deletes one ledger entry (a loan line); the page reloads afterwards. */
+  onDelete: (id: string) => Promise<void>;
+  /** Removes a big Tình hình debt (and its monthly reminder). */
+  onDeleteDebt: (id: string) => Promise<void>;
 }
 
 /**
  * Nợ: who owes the family and whom the family owes, per person, read from the ledger; big scheduled loans come
  * from Tình hình. Recording a loan here writes the same ledger line the Sổ would.
  */
-export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
+export function DebtsView({ bundle, onSave, onTab, onAddDebt, onDelete, onDeleteDebt }: Props) {
   const [loans, setLoans] = useState<MoneyTransaction[] | null>(null);
   const [error, setError] = useState("");
   const [open, setOpen] = useState<string | null>(null);
@@ -74,6 +78,16 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
     finally { setBusy(false); }
   }
 
+  /** Asks first, then runs a delete and reloads the loans; errors show under the form. */
+  async function remove(question: string, task: () => Promise<void>) {
+    if (busy || !window.confirm(question)) return;
+    setBusy(true); setError("");
+    try { await task(); await refresh(); } catch (cause) { setError(cause instanceof Error ? cause.message : "Chưa xóa được."); }
+    finally { setBusy(false); }
+  }
+  // A person's whole loan = every line under their name (vay/cho vay and the payments back).
+  const removePerson = (row: PersonLedger) => remove(`Xóa toàn bộ khoản nợ với “${row.name}” (${row.entries.length} dòng trong sổ)?`, async () => { for (const tx of row.entries) await onDelete(tx.id); setOpen(null); });
+
   const prefill = (row: PersonLedger, role: Role) => { setForm({ role, name: row.name === "Khác" ? "" : row.name, amount: row.left > 0 ? row.left.toLocaleString("vi-VN") : "", date: todayLocal() }); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
   const personRow = (row: PersonLedger, side: "lent" | "owe") => {
@@ -86,8 +100,11 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
         {total > 0 && <span className="pbar-s"><span style={{ width: `${Math.min(100, paid / total * 100)}%` }} /></span>}
       </button>
       {open === key && <div className="tl">
-        {row.entries.map((tx) => <div key={tx.id}><span>{formatVnDate(tx.occurredOn)} · {tx.content}</span><b className={(side === "lent") === (tx.kind === "expense") ? "owe-c" : "lend-c"}>{tx.kind === "income" ? "+" : "−"}{vnd(tx.amount)}</b></div>)}
-        {row.left > 0 && row.name !== "Khác" && <div className="tl-act"><button type="button" className="ledger-link" onClick={() => prefill(row, side === "lent" ? "collect" : "repay")}>{side === "lent" ? "Ghi khoản trả lại" : "Ghi khoản trả nợ"}</button></div>}
+        {row.entries.map((tx) => <div key={tx.id}><span>{formatVnDate(tx.occurredOn)} · {tx.content}</span><span className="tl-amt"><b className={(side === "lent") === (tx.kind === "expense") ? "owe-c" : "lend-c"}>{tx.kind === "income" ? "+" : "−"}{vnd(tx.amount)}</b><button type="button" className="ledger-link danger" disabled={busy} aria-label={`Xóa dòng ${tx.content}`} title="Xóa dòng này" onClick={() => void remove(`Xóa dòng “${tx.content}” ${vnd(tx.amount)} ngày ${formatVnDate(tx.occurredOn)}?`, () => onDelete(tx.id))}>×</button></span></div>)}
+        <div className="tl-act">
+          {row.left > 0 && row.name !== "Khác" && <button type="button" className="ledger-link" onClick={() => prefill(row, side === "lent" ? "collect" : "repay")}>{side === "lent" ? "Ghi khoản trả lại" : "Ghi khoản trả nợ"}</button>}
+          <button type="button" className="ledger-link danger" disabled={busy} onClick={() => void removePerson(row)}>Xóa khoản nợ</button>
+        </div>
       </div>}
     </div>;
   };
@@ -140,6 +157,7 @@ export function DebtsView({ bundle, onSave, onTab, onAddDebt }: Props) {
               <div className="tl-act">
                 {left > 0 && <button type="button" className="ledger-link" onClick={() => { setForm({ role: "repay", name: debt.name, amount: (debt.monthlyPayment || left).toLocaleString("vi-VN"), date: todayLocal() }); setDebtChoice(debt.id); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Ghi khoản trả nợ</button>}
                 <button type="button" className="ledger-link" onClick={() => onTab("situ")}>sửa ở Tình hình</button>
+                <button type="button" className="ledger-link danger" disabled={busy} onClick={() => void remove(`Xóa khoản nợ “${debt.name}”? Lịch trả hằng tháng của khoản này cũng bị xóa; các dòng đã ghi trong sổ vẫn giữ.`, async () => { await onDeleteDebt(debt.id); setOpen(null); })}>Xóa khoản nợ</button>
               </div>
             </div>}
           </div>;
