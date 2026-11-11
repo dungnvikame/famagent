@@ -1,6 +1,5 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { tripRemindersFor } from "../src/lib/push/travel-reminders.ts";
 import { ledgerIdForTripExpense, transactionForTripExpense } from "../src/lib/travel/expense-store-server.ts";
 import { travelHomeCard } from "../src/lib/travel/home-card.ts";
 import { cleanImport, importSystem, validImportRequest } from "../src/lib/travel/import-ai.ts";
@@ -132,22 +131,6 @@ test("suggestPacking: existing items hide matching suggestions; abroad adds pass
   assert.ok(names.some((name) => name.includes("Ổ cắm chuyển đổi")));
 });
 
-test("tripRemindersFor: T-7, T-2 with pack counts, wrap-up the day after; off-switch and cancelled respected", () => {
-  const base = { id: trip().id, name: "Đà Nẵng cuối năm", startDate: "2026-11-20", endDate: "2026-11-23", status: "planning" as const, pushEnabled: true };
-  const packLeft = new Map([[base.id, 12]]);
-  const t7 = tripRemindersFor([base], packLeft, "2026-11-13");
-  assert.equal(t7.length, 1);
-  assert.deepEqual([t7[0].kind, t7[0].url], ["prep7", `/travel/${base.id}?tab=packing`]);
-  assert.match(t7[0].body, /12 món/);
-  const t2 = tripRemindersFor([base], new Map(), "2026-11-18");
-  assert.equal(t2[0].kind, "prep2");
-  assert.match(t2[0].body, /giấy tờ/);
-  const wrap = tripRemindersFor([{ ...base, status: "ongoing" }], packLeft, "2026-11-24");
-  assert.equal(wrap[0].kind, "wrapup");
-  assert.equal(tripRemindersFor([base], packLeft, "2026-11-10").length, 0, "no reminder on ordinary days");
-  assert.equal(tripRemindersFor([{ ...base, pushEnabled: false }], packLeft, "2026-11-13").length, 0);
-  assert.equal(tripRemindersFor([{ ...base, status: "cancelled" }], packLeft, "2026-11-13").length, 0);
-});
 
 test("travelHomeCard: context-aware single card, none without trips", () => {
   assert.equal(travelHomeCard(null, "2026-10-10"), null);

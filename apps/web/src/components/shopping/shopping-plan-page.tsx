@@ -31,7 +31,6 @@ import { ItemCard } from "./item-card";
 import { MarkPurchased } from "./mark-purchased";
 import { QuickCapture } from "./quick-capture";
 import { PhotoCapture } from "./photo-capture";
-import { PushToggle } from "@/components/push-toggle";
 import { StarterItems } from "./starter-items";
 import { UpcomingTimeline } from "./upcoming-timeline";
 
@@ -108,7 +107,6 @@ export function ShoppingPlanPage() {
         <MarkPurchased target={{ itemId: estimate.item.id, productId: estimate.item.productId, productName: estimate.item.name, brand: estimate.item.brand, merchant: estimate.item.merchant, price: estimate.lastPackPrice, piecesPerPack: estimate.item.packSize }} source="quick" label={estimate.lastPackPrice ? `Đã mua lại ~${shortVnd(estimate.lastPackPrice)}` : "Đã mua"} onDone={() => void reload()} />
       </>} />
 
-      <div className="app-card app-rows account-rows push-invite"><PushToggle cloud={cloudEnabled} inviteOnly /></div>
 
       <MonthPlan lines={plan} month={monthKey(now)} items={state.items} familyChildren={children} budget={limit ? { spent, limit } : undefined} remainingOfPlan={money?.remainingOfPlan} notes={saleNotes} onChanged={() => void reload()} />
 

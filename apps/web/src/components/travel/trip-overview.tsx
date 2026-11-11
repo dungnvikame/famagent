@@ -114,9 +114,6 @@ export function TripOverview({ trip, phase, readiness, countdown, packing, expen
         <div className="tv-chips">
           {members.map((member) => { const on = selected.size === 0 || selected.has(member.id); return <button key={member.id} type="button" className={on ? "on" : undefined} aria-pressed={on} onClick={() => toggleMember(member.id)}>{member.label}</button>; })}
         </div>
-        <h4 className="tv-gap">Nhắc chuẩn bị</h4>
-        <button type="button" className={`tv-switch ${trip.pushEnabled ? "on" : ""}`} aria-pressed={trip.pushEnabled} onClick={() => onTrip({ ...trip, pushEnabled: !trip.pushEnabled })}><i aria-hidden="true" />Bật nhắc cho chuyến này</button>
-        <p className="tv-hint">T-7: bắt đầu chuẩn bị đồ · T-2: món chưa xếp + giấy tờ · hôm về: ghi nốt chi phí{trip.budgetAmount ? ` (ngân sách ${vndCompact(trip.budgetAmount)})` : ""}. Gửi qua thông báo đẩy của app.</p>
       </div>
     </div>
   </section>;

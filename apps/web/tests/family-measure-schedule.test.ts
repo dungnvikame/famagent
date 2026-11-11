@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cadenceText, dueLine, intervalDays, measureDue, measurePush, sinceLast } from "../src/lib/family/measure-schedule.ts";
+import { cadenceText, dueLine, intervalDays, measureDue, sinceLast } from "../src/lib/family/measure-schedule.ts";
 import { validProfile } from "../src/lib/experience/validate.ts";
 
 const today = "2026-09-29";
@@ -33,14 +33,6 @@ test("due, soon, ok — and height only once measured", () => {
   assert.equal(measureDue({ ageMonths: 14, today, every: "off" }), null);
 });
 
-test("push at most once a week, only when due", () => {
-  const due = measureDue({ ageMonths: 14, lastWeight: "2026-07-28", today })!;
-  const push = measurePush("c1", "Gold", due, today)!;
-  assert.equal(push.title, "Đến lịch cân cho Gold"); assert.match(push.body, /63 ngày/); assert.match(push.body, /mỗi 2 tháng/);
-  assert.equal(measurePush("c1", "Gold", due, today, "2026-09-25"), null);
-  assert.ok(measurePush("c1", "Gold", due, today, "2026-09-22"));
-  assert.equal(measurePush("c1", "Gold", measureDue({ ageMonths: 5, lastWeight: "2026-09-01", today }), today), null);
-});
 
 test("profile accepts the reminder setting", () => {
   const base = { id: "p", children: [], pricePreference: "value", aiConsent: true, updatedAt: "2026-09-29T00:00:00Z" };

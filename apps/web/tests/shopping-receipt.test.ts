@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { remindersFor } from "../src/lib/push/reminders.ts";
-import { estimateItems, type ShoppingItem } from "../src/lib/shopping/items.ts";
+import type { ShoppingItem } from "../src/lib/shopping/items.ts";
 import { isImageDataUrl, isReceipt, receiptDrafts } from "../src/lib/shopping/receipt.ts";
 
 const merries: ShoppingItem = { id: "i1", name: "Bỉm Merries L", category: "diapers", unit: "miếng", packSize: 64, brand: "Merries", status: "active" };
@@ -29,21 +28,4 @@ test("trả lời sai dạng bị loại; ngày tương lai về hôm nay; chỉ
   assert.equal(isImageDataUrl("https://example.com/a.jpg"), false);
 });
 
-test("nhắc: món ≤ 3 ngày, chưa nhắc hôm nay, tối đa 2", () => {
-  const now = new Date(2026, 8, 24, 9);
-  const items = ["a", "b", "c", "d"].map((id): ShoppingItem => ({ ...merries, id, name: `Món ${id}` }));
-  const purchases = [["a", 10], ["b", 20], ["c", 5], ["d", 64]].map(([itemId, unitCount]) => ({ id: crypto.randomUUID(), itemId: itemId as string, productName: "x", amount: 100_000, packs: 1, unitCount: unitCount as number, purchasedOn: "2026-09-23" }));
-  const estimates = estimateItems(items, purchases, () => 6, now);
-  const reminders = remindersFor(estimates, new Set(["c"]));
-  assert.deepEqual(reminders.map((reminder) => reminder.itemId), ["a", "b"]);
-  assert.match(reminders[0].title, /Món a còn khoảng 0 ngày|Món a có thể đã hết/);
-  assert.equal(remindersFor(estimates, new Set(["a", "b", "c"])).length, 0);
-});
 
-test("món đã hết chỉ được nhắc tối đa 3 lần trong 2 tuần", () => {
-  const now = new Date(2026, 8, 24, 9);
-  const out = estimateItems([merries], [{ id: "p", itemId: "i1", productName: "x", amount: 1, packs: 1, unitCount: 6, purchasedOn: "2026-09-20" }], () => 6, now);
-  assert.equal(out[0].daysLeft, 0);
-  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 2]])).length, 1);
-  assert.equal(remindersFor(out, new Set(), 2, new Map([["i1", 3]])).length, 0);
-});

@@ -14,7 +14,6 @@ const FIXED: Record<Exclude<MeasureEvery, "auto" | "off">, number> = { monthly: 
 /** "Soon" window: shown ahead, never pushed. */
 export const SOON_DAYS = 3;
 /** A due child is pushed at most once in this many days. */
-export const PUSH_EVERY_DAYS = 7;
 
 export function intervalDays(ageMonths: number | undefined, every: MeasureEvery = "auto"): number | null {
   if (every === "off") return null;
@@ -66,16 +65,3 @@ export function sinceLast(due: MeasureDue, today: string): number | undefined {
   return last ? daysBetween(last, today) : undefined;
 }
 
-export interface MeasurePush { childId: string; title: string; body: string; url: string; tag: string }
-/** Push for a due child unless one went out in the last PUSH_EVERY_DAYS days (`lastPushed` = YYYY-MM-DD). */
-export function measurePush(childId: string, name: string, due: MeasureDue | null, today: string, lastPushed?: string): MeasurePush | null {
-  if (!due || due.state !== "due" || (lastPushed && daysBetween(lastPushed, today) < PUSH_EVERY_DAYS)) return null;
-  const since = sinceLast(due, today);
-  return {
-    childId,
-    title: `Đến lịch ${WHAT_TEXT[due.what]} cho ${name}`,
-    body: `${since !== undefined ? `Lần trước cách đây ${since} ngày. ` : ""}Ở tuổi này nên cân đo ${cadenceText(due.interval)} — ghi lại để xem ${name} so với chuẩn WHO.`,
-    url: "/family#fam-kids",
-    tag: `measure-${childId}`,
-  };
-}
