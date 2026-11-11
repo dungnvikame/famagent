@@ -175,13 +175,19 @@ const tokens = (text: string) => normalize(text).split(" ").filter((word) => wor
 
 /**
  * The waiting period a typed entry answers: every meaningful word of the item's name appears in what was typed
- * ("trả góp xe 4,5tr" → Trả góp xe). Failing that, the only waiting item of the same kind and category whose
+ * ("trả góp xe 4,5tr" → Trả góp xe); an entry filed under another category must carry the whole name. Failing that, the only waiting item of the same kind and category whose
  * amount is within 35% of the typed one. Urgent periods win over early ones.
  */
 export function matchDue(entries: DueEntry[], typed: { content: string; kind: MoneyKind; category?: string; amount?: number }): DueEntry | null {
   const words = new Set(tokens(typed.content));
   const sameKind = entries.filter((entry) => entry.kind === typed.kind);
-  const byName = sameKind.filter((entry) => { const need = tokens(entry.name); return need.length > 0 && need.every((word) => words.has(word)); });
+  const text = ` ${normalize(typed.content)} `;
+  const byName = sameKind.filter((entry) => {
+    const need = tokens(entry.name);
+    if (!need.length || !need.every((word) => words.has(word))) return false;
+    // Filed under another category ("Bỉm + nước rửa bình" in Con is not Tiền nước): only the whole name counts.
+    return !typed.category || typed.category === entry.category || text.includes(` ${normalize(entry.name)} `);
+  });
   if (byName.length) return byName[0];
   if (typed.category && typed.amount) {
     const close = sameKind.filter((entry) => entry.category === typed.category && Math.abs(entry.amount - typed.amount!) <= entry.amount * 0.35);

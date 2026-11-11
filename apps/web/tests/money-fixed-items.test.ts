@@ -116,6 +116,13 @@ test("typed entries find the period they answer", () => {
   assert.equal(matchDue(due, { content: "đóng học phí 9tr", kind: "expense" })?.recurringId, "school");
   assert.equal(matchDue(due, { content: "internet 260k", kind: "income" }), null);
   assert.equal(matchDue(due, { content: "ăn sáng", kind: "expense" }), null);
+  // One word of the name inside something else, filed under another category, is not that bill.
+  const water = item({ id: "water", name: "Tiền nước", category: "Tiền nước", amount: 200_000, dayOfMonth: 10, amountMode: "estimate", lastPostedMonth: "2026-08" });
+  const waiting = dueEntries([water], [], undefined, today);
+  assert.equal(matchDue(waiting, { content: "Bỉm + nước rửa bình", kind: "expense", category: "Con", amount: 648_000 }), null);
+  assert.equal(matchDue(waiting, { content: "Nước mía", kind: "expense", category: "Ăn uống", amount: 30_000 }), null);
+  assert.equal(matchDue(waiting, { content: "Tiền nước tháng 9", kind: "expense", category: "Khác", amount: 252_425 })?.recurringId, "water");
+  assert.equal(matchDue(waiting, { content: "đóng nước", kind: "expense", category: "Tiền nước", amount: 252_425 })?.recurringId, "water");
   // No name in common: the only waiting item of that category with a close amount.
   assert.equal(matchDue(due, { content: "chuyển khoản ngân hàng", kind: "expense", category: "Tiền trả góp", amount: 4_400_000 })?.recurringId, "car");
   assert.equal(matchDue(due, { content: "chuyển khoản ngân hàng", kind: "expense", category: "Tiền trả góp", amount: 1_000_000 }), null);

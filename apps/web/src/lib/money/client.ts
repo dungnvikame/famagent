@@ -6,7 +6,7 @@ import { cloudEnabled } from "@/lib/experience/cloud";
 import { monthlyHistory } from "./history";
 import { mergePeriods, periodsFromEntries, recurringAmountsFrom } from "./fixed-items";
 import { debtLinkIds, isLoanEntry, personLoanTotals } from "./loans";
-import { confirmLocal, undoLocal, type ConfirmInput, type PeriodRecord } from "./period-confirm";
+import { confirmLocal, liveRecords, undoLocal, type ConfirmInput, type PeriodRecord } from "./period-confirm";
 import { sumUntil, withPosition } from "./position";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction } from "./types";
 
@@ -36,7 +36,7 @@ export async function loadMoney(month: string): Promise<MoneyBundle> {
   const data = readLocal();
   // "YYYY-MM-99" sorts after every day of the month, so it works as an exclusive upper bound for string dates.
   const debtLinks = debtLinkIds(data.settings.position?.debts ?? []);
-  return withPosition({ history: monthlyHistory(data.transactions, month, 12), loans: personLoanTotals(data.transactions, debtLinks), month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals, periods: mergePeriods(data.periods.map((record) => ({ recurringId: record.recurringId, period: record.period, status: record.status, paidOn: record.paidOn, amount: record.amount })), periodsFromEntries(data.transactions)), recurringAmounts: recurringAmountsFrom(data.transactions) }, data.transactions);
+  return withPosition({ history: monthlyHistory(data.transactions, month, 12), loans: personLoanTotals(data.transactions, debtLinks), month, settings: { ...empty().settings, ...data.settings }, transactions: data.transactions.filter((item) => item.occurredOn.startsWith(month)).sort((a, b) => b.occurredOn.localeCompare(a.occurredOn)), totals: sumUntil(data.transactions, `${month}-99`), budgets: data.budgets.filter((item) => item.month === month), recurring: data.recurring, goals: data.goals, periods: mergePeriods(liveRecords(data.periods, (id) => data.transactions.some((tx) => tx.id === id)).map((record) => ({ recurringId: record.recurringId, period: record.period, status: record.status, paidOn: record.paidOn, amount: record.amount })), periodsFromEntries(data.transactions)), recurringAmounts: recurringAmountsFrom(data.transactions) }, data.transactions);
 }
 
 /** Sổ filter over any date range: entries from..to (newest first) and the cash balance just before `from`. */
@@ -74,6 +74,8 @@ export async function deleteMoneyItem(resource: Resource, id: string): Promise<v
   (data[resource] as Array<{ id: string }>) = (data[resource] as Array<{ id: string }>).filter((item) => item.id !== id) as never;
   // A deleted fixed item takes its answers with it (the server cascades).
   if (resource === "recurring") data.periods = data.periods.filter((period) => period.recurringId !== id);
+  // A deleted ledger entry takes the "Đã trả" it stood for with it, so the period asks again.
+  if (resource === "transactions") data.periods = data.periods.filter((period) => period.transactionId !== id);
   writeLocal(data);
 }
 

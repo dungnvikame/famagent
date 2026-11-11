@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { CONFIRMED_MESSAGE, confirmLocal, undoLocal, type ConfirmInput, type LocalPeriodData } from "../src/lib/money/period-confirm.ts";
-import { confirmPeriod, loadBundle, recurringFromRow, recurringRow, settingsFromRow, settingsRow, undoPeriod } from "../src/lib/money/store-server.ts";
+import { CONFIRMED_MESSAGE, confirmLocal, liveRecords, undoLocal, type ConfirmInput, type LocalPeriodData } from "../src/lib/money/period-confirm.ts";
+import { confirmPeriod, deleteTransaction, loadBundle, recurringFromRow, recurringRow, settingsFromRow, settingsRow, undoPeriod } from "../src/lib/money/store-server.ts";
 import { DEFAULT_CATEGORIES, type MoneyRecurring, type MoneyTransaction } from "../src/lib/money/types.ts";
 import { validConfirm, validRecurring, validSettings } from "../src/lib/money/validate.ts";
 
@@ -144,6 +144,23 @@ test("local: undo removes the entry it created and frees the period; nothing to 
   confirmLocal(skipped, confirm(item.id, { status: "skipped" }), "2026-09-29", "tx4");
   undoLocal(skipped, item.id, "2026-09");
   assert.deepEqual([skipped.transactions, skipped.periods], [[other], []]);
+});
+
+test("a paid answer whose ledger entry was deleted no longer stands, and the period can be answered again", () => {
+  const item = power({ amountMode: "fixed" });
+  const data = local({ recurring: [item] });
+  confirmLocal(data, confirm(item.id, { content: "Bỉm + nước rửa bình", amount: 648_000 }), "2026-09-29", "tx1");
+  const has = (id: string) => data.transactions.some((tx) => tx.id === id);
+  assert.equal(liveRecords(data.periods, has).length, 1);
+  // The family deletes the entry from the Sổ: the answer goes with it.
+  data.transactions = [];
+  assert.deepEqual(liveRecords(data.periods, has), []);
+  // A skip, or a paid answer without an entry id (older data), stands on its own.
+  const kept = [{ recurringId: item.id, period: "2026-08", status: "skipped" as const }, { recurringId: item.id, period: "2026-07", status: "paid" as const }];
+  assert.deepEqual(liveRecords(kept, has), kept);
+  const again = confirmLocal(data, confirm(item.id), "2026-09-30", "tx2");
+  assert.equal(again.transaction?.id, "tx2");
+  assert.deepEqual(data.periods.map((record) => record.transactionId), ["tx2"]);
 });
 
 test("local: an unknown item is rejected; estimate items default to the average of the last three paid amounts", () => {
@@ -295,6 +312,27 @@ test("server undo: removes the entry the answer created and the period row; unkn
   const foreign = fakeClient({ money_recurring_periods: [{ id: uuid(), user_id: "someone-else", recurring_id: item.id, period: "2026-09", status: "skipped", transaction_id: null }] });
   await undoPeriod(foreign.client, USER, item.id, "2026-09");
   assert.equal(foreign.tables.money_recurring_periods.length, 1);
+});
+
+test("server: deleting the ledger entry frees its period; an answer left behind is ignored on read and cleared on the next answer", async () => {
+  const water = power({ name: "Tiền nước", category: "Tiền nước", amount: 200_000, dayOfMonth: 10, schedule: undefined });
+  const { client, tables } = fakeClient({ money_recurring: [itemRow(water)] });
+  // Deleting through the store takes the answer with it.
+  const first = await confirmPeriod(client, USER, answer(water.id, { content: "Bỉm + nước rửa bình", amount: 648_000 }), NOON);
+  assert.ok(first.ok && first.transaction);
+  assert.equal(await deleteTransaction(client, USER, first.transaction.id), true);
+  assert.equal(tables.money_transactions.length + tables.money_recurring_periods.length, 0);
+  // An answer already orphaned (entry deleted before this fix): the bundle no longer counts it…
+  const orphan = { id: uuid(), user_id: USER, recurring_id: water.id, period: "2026-09", status: "paid", paid_on: "2026-09-11", amount: 648_000, transaction_id: uuid() };
+  tables.money_recurring_periods.push(orphan);
+  assert.deepEqual((await loadBundle(client, USER, "2026-09", NOON))?.periods, []);
+  // …and answering the period again replaces it instead of 409.
+  const again = await confirmPeriod(client, USER, answer(water.id, { amount: 252_000 }), NOON);
+  assert.ok(again.ok && again.transaction);
+  assert.deepEqual(tables.money_recurring_periods.map((row) => [row.transaction_id, row.amount]), [[again.transaction.id, 252_000]]);
+  assert.deepEqual((await loadBundle(client, USER, "2026-09", NOON))?.periods?.map((p) => [p.period, p.status, p.amount]), [["2026-09", "paid", 252_000]]);
+  // A real answer still blocks a second one.
+  assert.deepEqual(await confirmPeriod(client, USER, answer(water.id), NOON), { ok: false, status: 409, error: CONFIRMED_MESSAGE });
 });
 
 // ---------- bundle: no auto-posting, periods and amounts come along ----------

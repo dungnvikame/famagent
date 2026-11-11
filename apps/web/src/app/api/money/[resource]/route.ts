@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { authenticated } from "@/lib/supabase/server";
-import { budgetRow, goalRow, recurringRow, TABLES, transactionRow, type MoneyResource } from "@/lib/money/store-server";
+import { budgetRow, deleteTransaction, goalRow, recurringRow, TABLES, transactionRow, type MoneyResource } from "@/lib/money/store-server";
 import { validBudget, validGoal, validRecurring, validTransaction } from "@/lib/money/validate";
 
 export const dynamic = "force-dynamic";
@@ -33,6 +33,8 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ r
   if (!auth || auth.user.is_anonymous) return NextResponse.json({ error: "Cần đăng nhập" }, { status: 401 });
   const id = new URL(request.url).searchParams.get("id");
   if (!id || !/^[a-f0-9-]{36}$/i.test(id)) return NextResponse.json({ error: "Thiếu id" }, { status: 400 });
+  // A ledger entry takes the fixed-item answer it stood for with it.
+  if (resource === "transactions") return await deleteTransaction(auth.client, auth.user.id, id) ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "Không thể xóa" }, { status: 500 });
   const { error } = await auth.client.from(TABLES[resource]).delete().eq("id", id).eq("user_id", auth.user.id);
   return error ? NextResponse.json({ error: "Không thể xóa" }, { status: 500 }) : NextResponse.json({ ok: true });
 }

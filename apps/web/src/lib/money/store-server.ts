@@ -6,7 +6,7 @@ import { BORROW_IN, debtLinkIds, isLoanEntry, LEND_OUT, personLoanTotals, REPAID
 import { sumUntil, withPosition } from "./position.ts";
 import { todayVn } from "../time/vn-date.ts";
 import { mergePeriods, periodsFromEntries, recurringAmountsFrom } from "./fixed-items.ts";
-import { CONFIRMED_MESSAGE, MISSING_ITEM_MESSAGE, planConfirmation, type ConfirmInput } from "./period-confirm.ts";
+import { CONFIRMED_MESSAGE, liveRecords, MISSING_ITEM_MESSAGE, planConfirmation, type ConfirmInput, type PeriodRecord } from "./period-confirm.ts";
 import { currentCategories, currentCategory, DEFAULT_CATEGORIES, type MoneyBudget, type MoneyBundle, type MoneyDebt, type MoneyRange, type MoneyGoal, type MoneyRecurring, type MoneySettings, type MoneyTransaction, type RecurringPeriod } from "./types.ts";
 
 type Row = Record<string, unknown>;
@@ -27,7 +27,9 @@ const currentAllocation = (allocation?: MoneySettings["allocation"] | null): Mon
 export const settingsRow = (item: MoneySettings, userId: string) => ({ user_id: userId, opening_cash: item.openingCash, opening_savings: item.openingSavings, monthly_plan: item.monthlyPlan ?? null, categories: item.categories, position: item.position ?? null, allocation: item.allocation ?? null, monthly_saving: item.monthlySaving ?? null, category_memory: item.categoryMemory ?? {}, updated_at: new Date().toISOString() });
 
 const PERIODS = "money_recurring_periods";
-const periodFromRow = (row: Row): RecurringPeriod => ({ recurringId: row.recurring_id as string, period: row.period as string, status: row.status === "skipped" ? "skipped" : "paid", paidOn: str(row.paid_on), amount: row.amount === null || row.amount === undefined ? undefined : num(row.amount) });
+const periodFromRow = (row: Row): PeriodRecord => ({ recurringId: row.recurring_id as string, period: row.period as string, status: row.status === "skipped" ? "skipped" : "paid", paidOn: str(row.paid_on), amount: row.amount === null || row.amount === undefined ? undefined : num(row.amount), transactionId: str(row.transaction_id) });
+/** The answers that still stand (a "paid" one whose ledger entry was deleted is dropped), in the shape the bundle carries. */
+const standingPeriods = (rows: Row[], entryIds: Set<string>): RecurringPeriod[] => liveRecords(rows.map(periodFromRow), (id) => entryIds.has(id)).map((record) => ({ recurringId: record.recurringId, period: record.period, status: record.status, paidOn: record.paidOn, amount: record.amount }));
 
 export const TABLES = { transactions: "money_transactions", budgets: "money_budgets", recurring: "money_recurring", goals: "money_goals" } as const;
 export type MoneyResource = keyof typeof TABLES;
@@ -55,7 +57,7 @@ export async function loadBundle(client: SupabaseClient, userId: string, month: 
   const all = entriesFromRows(totals.data ?? []);
   const loadedSettings = settingsFromRow(settings.data);
   const debtLinks = debtLinkIds(loadedSettings.position?.debts ?? []);
-  return withPosition({ history: monthlyHistory(all, month, 12), loans: personLoanTotals(all, debtLinks), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow), periods: mergePeriods((periods.data ?? []).map(periodFromRow), periodsFromEntries(all)), recurringAmounts: recurringAmountsFrom(all) }, all);
+  return withPosition({ history: monthlyHistory(all, month, 12), loans: personLoanTotals(all, debtLinks), month, settings: settingsFromRow(settings.data), transactions: (transactions.data ?? []).map(transactionFromRow), totals: sumUntil(all, nextMonth), budgets: (budgets.data ?? []).map(budgetFromRow), recurring, goals: (goals.data ?? []).map(goalFromRow), periods: mergePeriods(standingPeriods(periods.data ?? [], new Set((totals.data ?? []).map((row) => String(row.id)))), periodsFromEntries(all)), recurringAmounts: recurringAmountsFrom(all) }, all);
 }
 
 
@@ -75,7 +77,7 @@ async function allPages(cap: number, page: (from: number, to: number) => Promise
 
 /** Every ledger entry's kind/amount/date, read page by page (a single select would stop at the row cap). */
 const allEntries = (client: SupabaseClient, userId: string) => allPages(200_000, (from, to) =>
-  client.from(TABLES.transactions).select("kind,amount,occurred_on,recurring_id,category,paid_from,debt_id,content").eq("user_id", userId).order("id").range(from, to));
+  client.from(TABLES.transactions).select("id,kind,amount,occurred_on,recurring_id,category,paid_from,debt_id,content").eq("user_id", userId).order("id").range(from, to));
 
 const entriesFromRows = (rows: Row[]) => rows.map((row) => ({ kind: row.kind as MoneyTransaction["kind"], amount: num(row.amount), occurredOn: String(row.occurred_on), recurringId: str(row.recurring_id), category: currentCategory(String(row.category ?? ""), row.kind as MoneyTransaction["kind"]), paidFrom: row.paid_from === "savings" ? "savings" as const : undefined, debtId: str(row.debt_id), content: String(row.content ?? "") }));
 
@@ -132,7 +134,10 @@ export async function confirmPeriod(client: SupabaseClient, userId: string, inpu
   }
   const { record, transaction } = planConfirmation(item, input, { amounts, debts, today: todayVn(now), transactionId: crypto.randomUUID() });
   const periodId = crypto.randomUUID();
-  const { error: periodError } = await client.from(PERIODS).insert({ id: periodId, user_id: userId, recurring_id: item.id, period: input.period, status: record.status, paid_on: record.paidOn ?? null, amount: record.amount ?? null, transaction_id: record.transactionId ?? null });
+  const insertPeriod = () => client.from(PERIODS).insert({ id: periodId, user_id: userId, recurring_id: item.id, period: input.period, status: record.status, paid_on: record.paidOn ?? null, amount: record.amount ?? null, transaction_id: record.transactionId ?? null });
+  let { error: periodError } = await insertPeriod();
+  // Already answered — unless that answer was left behind by a ledger entry the family deleted: clear it and answer again.
+  if ((periodError as { code?: string } | null)?.code === "23505" && await clearOrphanAnswer(client, userId, item.id, input.period)) ({ error: periodError } = await insertPeriod());
   if (periodError) return (periodError as { code?: string }).code === "23505" ? failure(409, CONFIRMED_MESSAGE) : failure(500, "Không thể lưu xác nhận.");
   if (!transaction) return { ok: true };
   const { error: transactionError } = await client.from(TABLES.transactions).insert(transactionRow(transaction, userId));
@@ -142,6 +147,29 @@ export async function confirmPeriod(client: SupabaseClient, userId: string, inpu
     return failure(500, "Không thể ghi khoản này vào sổ.");
   }
   return { ok: true, transaction };
+}
+
+/** Removes a "paid" answer whose ledger entry no longer exists; true when one was removed. */
+async function clearOrphanAnswer(client: SupabaseClient, userId: string, recurringId: string, period: string): Promise<boolean> {
+  const { data } = await client.from(PERIODS).select("id,status,transaction_id").eq("user_id", userId).eq("recurring_id", recurringId).eq("period", period).maybeSingle();
+  if (!data || data.status !== "paid" || !data.transaction_id) return false;
+  const { data: entry, error } = await client.from(TABLES.transactions).select("id").eq("id", data.transaction_id).eq("user_id", userId).maybeSingle();
+  if (error || entry) return false;
+  const { error: deleteError } = await client.from(PERIODS).delete().eq("id", data.id).eq("user_id", userId);
+  return !deleteError;
+}
+
+/**
+ * Deletes a ledger entry and the "Đã trả" it stood for, so that period of the fixed item asks again
+ * (an answer left behind would keep the period settled with nothing in the ledger).
+ */
+export async function deleteTransaction(client: SupabaseClient, userId: string, id: string): Promise<boolean> {
+  const { error } = await client.from(TABLES.transactions).delete().eq("id", id).eq("user_id", userId);
+  if (error) return false;
+  const { error: periodError } = await client.from(PERIODS).delete().eq("transaction_id", id).eq("user_id", userId);
+  // Not fatal: reads ignore an answer without its entry, and answering again clears it.
+  if (periodError) console.error("money period cleanup failed", id, periodError);
+  return true;
 }
 
 /** Takes an answer back: the ledger entry it created (if any) goes first, then the period row. Nothing to undo is fine. */

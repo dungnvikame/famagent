@@ -15,6 +15,13 @@ export interface ConfirmInput { recurringId: string; period: string; status: "pa
 /** A stored answer: the period plus the ledger entry it created (undo deletes it). */
 export interface PeriodRecord extends RecurringPeriod { transactionId?: string }
 
+/**
+ * A "paid" answer whose ledger entry is gone (the family deleted it from the Sổ) no longer answers its period:
+ * the period asks again instead of staying "Đã trả" with nothing in the ledger.
+ */
+export const liveRecords = <T extends PeriodRecord>(records: T[], hasEntry: (transactionId: string) => boolean): T[] =>
+  records.filter((record) => !(record.status === "paid" && record.transactionId && !hasEntry(record.transactionId)));
+
 /** The record, and for "paid" the ledger entry, that answer `input` for `item`. */
 export function planConfirmation(item: MoneyRecurring, input: ConfirmInput, ctx: { amounts?: Record<string, number[]>; debts: MoneyDebt[]; today: string; transactionId: string }): { record: PeriodRecord; transaction?: MoneyTransaction } {
   if (input.status === "skipped") return { record: { recurringId: item.id, period: input.period, status: "skipped" } };
@@ -33,6 +40,8 @@ export interface LocalPeriodData { recurring: MoneyRecurring[]; transactions: Mo
 export function confirmLocal(data: LocalPeriodData, input: ConfirmInput, today: string, transactionId: string): { transaction?: MoneyTransaction } {
   const item = data.recurring.find((entry) => entry.id === input.recurringId);
   if (!item) throw new Error(MISSING_ITEM_MESSAGE);
+  // An answer left behind by a deleted ledger entry does not block answering the period again.
+  data.periods = liveRecords(data.periods, (id) => data.transactions.some((tx) => tx.id === id));
   if (data.periods.some((record) => record.recurringId === item.id && record.period === input.period)) throw new Error(CONFIRMED_MESSAGE);
   const { record, transaction } = planConfirmation(item, input, { amounts: recurringAmountsFrom(data.transactions), debts: data.settings.position?.debts ?? [], today, transactionId });
   data.periods.push(record);
