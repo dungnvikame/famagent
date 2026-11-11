@@ -30,10 +30,3 @@ export function ensureSession(): Promise<{ anonymous: boolean } | null> {
   return inflight;
 }
 
-/** True when the signed-in user is an anonymous guest (used to invite email linking). */
-export async function isAnonymousUser(): Promise<boolean> {
-  const client = createAuthBrowserClient();
-  if (!client) return false;
-  const { data } = await client.auth.getUser();
-  return Boolean(data.user?.is_anonymous);
-}

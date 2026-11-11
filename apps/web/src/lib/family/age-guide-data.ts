@@ -177,4 +177,3 @@ export const GUIDE_STAGES: GuideStage[] = [
 const TIP_IDS = new Set(GUIDE_STAGES.flatMap((item) => item.tips.map((tip) => tip.id)));
 export const knownTip = (id: unknown): id is string => typeof id === "string" && TIP_IDS.has(id);
 export const stageFor = (ageMonths: number) => GUIDE_STAGES.find((item) => ageMonths >= item.from && ageMonths < item.to);
-export const nextStage = (stageKey: number) => GUIDE_STAGES[GUIDE_STAGES.findIndex((item) => item.key === stageKey) + 1];

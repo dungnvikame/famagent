@@ -1,5 +1,5 @@
 import { parseVnd } from "./parse.ts";
-import { DEFAULT_CATEGORIES, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyTransaction } from "./types.ts";
+import { DEFAULT_CATEGORIES, type MoneyCategory, type MoneyKind, type MoneyTransaction } from "./types.ts";
 
 /**
  * "Thêm nhanh bằng Trợ lý": a pasted list (or lines read from a photo) → ledger drafts the family reviews before
@@ -297,8 +297,6 @@ export function rememberCorrections(memory: Record<string, string> | undefined, 
   for (const draft of changed) next = rememberCategory(next, draft.content, draft.category) ?? next;
   return next;
 }
-
-export const isSavingCategory = (name: string) => SAVING_CATEGORIES.includes(name);
 
 /** Category for a single named item (e.g. a fixed monthly item from the Tình hình setup), same rules as quick add. */
 /** Category guess for one typed entry (the ledger's add row): same rules as quick add, plus whether it is a weak guess. */

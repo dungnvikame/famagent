@@ -94,7 +94,6 @@ export interface AdultMember { id: string; name?: string; role?: (typeof MEMBER_
 /** How a member is drawn when there is no photo. */
 export interface MemberLook { emoji?: string; color?: (typeof AVATAR_COLORS)[number] }
 export const MERCHANTS = ["shopee", "lazada", "tiktok", "concung", "bibomart", "supermarket"] as const;
-export const MERCHANT_LABELS: Record<(typeof MERCHANTS)[number], string> = { shopee: "Shopee", lazada: "Lazada", tiktok: "TikTok Shop", concung: "Con Cưng", bibomart: "Bibo Mart", supermarket: "Siêu thị / tạp hóa gần nhà" };
 
 /** Household context from onboarding (spec v2 §5 Family Graph): what the family wants help with and how it lives. */
 export interface HouseholdContext {

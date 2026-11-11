@@ -24,8 +24,6 @@ function loadScript(): Promise<void> {
   return scriptLoading;
 }
 
-export const captchaEnabled = () => Boolean(process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY);
-
 /**
  * Resolves a one-time token, or undefined when CAPTCHA is not configured. Rejects on load failure,
  * challenge error/expiry, or when the whole flow (script load + possible interaction) exceeds the deadline.

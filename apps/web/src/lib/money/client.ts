@@ -23,7 +23,6 @@ function readLocal(): LocalMoney {
   } catch { return empty(); }
 }
 function writeLocal(data: LocalMoney) { localStorage.setItem(KEY, JSON.stringify(data)); }
-export function clearLocalMoney() { localStorage.removeItem(KEY); }
 
 async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const response = await fetch(path, { cache: "no-store", ...options, headers: { "Content-Type": "application/json", ...options?.headers } });

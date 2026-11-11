@@ -51,10 +51,6 @@ export async function savePlanEntry(entry: PlanEntry): Promise<void> {
   writeLocal(LOCAL_KEYS.plan, [...readLocal<PlanEntry>(LOCAL_KEYS.plan).filter((item) => item.id !== entry.id), entry]);
 }
 
-export async function deletePlanEntry(id: string): Promise<void> {
-  if (cloudEnabled) { await shoppingApi(`/api/shopping/plan?id=${encodeURIComponent(id)}`, { method: "DELETE" }); return; }
-  writeLocal(LOCAL_KEYS.plan, readLocal<PlanEntry>(LOCAL_KEYS.plan).filter((item) => item.id !== id));
-}
 
 /** "Không phải đồ dùng": the ledger row is never asked about again. */
 export async function dismissTransaction(transactionId: string): Promise<void> {

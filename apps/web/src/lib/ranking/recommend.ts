@@ -6,7 +6,6 @@ import type { Product, ProductOffer, ProductVariant } from "../catalog/types.ts"
 import type { ProductScores, Recommendation, ShoppingIntent } from "../experience/types.ts";
 
 export const RANKING_VERSION = "product_score_v1";
-export const OFFER_SCORE_VERSION = "offer_score_v1";
 const TOP = 3;
 const UNKNOWN_FIT = 40;
 const WEIGHTS: Record<keyof ProductScores, number> = { requirementFit: 0.40, householdPreferenceFit: 0.20, evidenceQuality: 0.15, value: 0.15, purchaseContinuity: 0.10 };

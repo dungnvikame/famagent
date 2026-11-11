@@ -89,4 +89,3 @@ export function lastMeasureDays(rows: ChildMeasure[]): Record<string, { weight?:
   return out;
 }
 
-export function clearLocalFamily() { localStorage.removeItem(WEIGHTS_KEY); localStorage.removeItem(AVATARS_KEY); localStorage.removeItem(MILESTONES_KEY); }
