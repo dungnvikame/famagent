@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { isFiltering, monthRange, parseFilterQuery, PRESET_LABELS, presetOf, presetRange, type LedgerFilter } from "@/lib/money/ledger-filter";
 import { formatVnDate, parseVnd } from "@/lib/money/parse";

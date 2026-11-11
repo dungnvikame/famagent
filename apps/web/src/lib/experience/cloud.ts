@@ -1,4 +1,4 @@
-import type { Conversation, FamilyProfile } from "./types";
+import type { FamilyProfile } from "./types";
 
 export const cloudEnabled = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY);
 
@@ -11,7 +11,3 @@ async function api<T>(path: string, options?: RequestInit): Promise<T> {
 export async function loadCloudProfile() { return (await api<{ profile: FamilyProfile | null }>("/api/me")).profile; }
 export async function saveCloudProfile(profile: FamilyProfile) { await api("/api/me", { method: "PUT", body: JSON.stringify({ profile }) }); }
 export async function clearCloudData() { await api("/api/me", { method: "DELETE" }); }
-export async function loadCloudConversations() { return (await api<{ conversations: Conversation[] }>("/api/conversations")).conversations; }
-export async function saveCloudConversation(conversation: Conversation) { await api("/api/conversations", { method: "PUT", body: JSON.stringify({ conversation }) }); }
-export async function loadCloudSaved() { return (await api<{ ids: string[] }>("/api/saved")).ids; }
-export async function setCloudSaved(productId: string, saved: boolean) { await api("/api/saved", { method: "PUT", body: JSON.stringify({ productId, saved }) }); }

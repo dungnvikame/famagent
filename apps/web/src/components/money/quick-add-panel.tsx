@@ -10,7 +10,7 @@ import { draftsFromImage, parseQuickList, type ImageLine, type QuickContext, typ
 import { MONEY_KIND_LABELS, SAVING_CATEGORIES, type MoneyCategory, type MoneyKind } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
 import { DateInput } from "./date-input";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 
 interface Props {
   context: Omit<QuickContext, "today">;

@@ -3,7 +3,7 @@
 // Tab Chi phí: budget per bucket vs actual, quick expense entry and the list. Every expense also lands in the
 // money ledger server-side (source "trip", category "Du lịch") — one source of truth, never counted twice.
 import { useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { formatVnDate, groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
 import { bucketBudgets, plannedTotal, spentByBucket, spentTotal } from "@/lib/travel/trip-state";

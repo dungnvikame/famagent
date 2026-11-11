@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AFFILIATE_DISCLOSURE } from "@/lib/catalog/format";
 import { AccountNav } from "@/components/account-nav";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import "./experience.css";
-import "./agent-workspace.css";
 import "./onboarding-agent.css";
 // Soft Aurora layer must load last (tokens + glass surfaces override component files).
 import "./aurora.css";
@@ -22,9 +20,7 @@ import "./money-plan.css";
 import "./money-future.css";
 import "./money-due.css";
 import "./financial-health.css";
-import "./family-notes.css";
 import "./family-page.css";
-import "./shopping-plan.css";
 import "./travel.css";
 
 // Self-hosted at build time by next/font (no runtime request to Google); Vietnamese subset included.
@@ -43,6 +39,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <nav aria-label="Điều hướng chính"><AccountNav /><Link className="nav-cta" href="/onboarding">Bắt đầu miễn phí</Link></nav>
     </div></header>
     <main>{children}</main>
-    <footer className="site-footer"><div className="container"><strong>FamAgent</strong><p>{AFFILIATE_DISCLOSURE} Giá sản phẩm chưa gồm phí giao và có thể thay đổi tại nơi bán.</p></div></footer>
+    <footer className="site-footer"><div className="container"><strong>FamAgent</strong></div></footer>
   </body></html>;
 }

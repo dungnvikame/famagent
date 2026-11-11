@@ -1,4 +1,4 @@
-import type { Conversation, FamilyProfile } from "./types";
+import type { FamilyProfile } from "./types";
 
 const PROFILE_KEY = "family-ai:profile:v1";
 const CONVERSATIONS_KEY = "family-ai:conversations:v1";
@@ -15,10 +15,6 @@ function read<T>(key: string, fallback: T): T {
 export function getProfile(): FamilyProfile | null { return read<FamilyProfile | null>(PROFILE_KEY, null); }
 export function saveProfile(profile: FamilyProfile): void { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); }
 export function clearAllData(): void { for (const key of [PROFILE_KEY, CONVERSATIONS_KEY, SAVED_KEY, EVENTS_KEY, PENDING_IMPORT_KEY, "family-ai:money:v1", "family-ai:purchases:v1", "family-ai:shopping-items:v1", "family-ai:stock-checks:v1", "family-ai:shopping-plan:v1", "family-ai:shopping-dismissed:v1", "family-ai:notes:v1", "family-ai:routine:v1", "family-ai:weights:v1", "family-ai:avatars:v1", "family-ai:milestones:v1"]) localStorage.removeItem(key); document.cookie = "family-ai-onboarded=; Path=/; SameSite=Lax; Max-Age=0"; }
-export function getConversations(): Conversation[] { return read<Conversation[]>(CONVERSATIONS_KEY, []); }
-export function saveConversations(items: Conversation[]): void { localStorage.setItem(CONVERSATIONS_KEY, JSON.stringify(items.slice(0, 30))); }
-export function getSavedProducts(): string[] { return read<string[]>(SAVED_KEY, []); }
-export function saveSavedProducts(ids: string[]): void { localStorage.setItem(SAVED_KEY, JSON.stringify(ids)); }
 export function trackEvent(name: string, data: Record<string, string | number | boolean> = {}): void {
   if (typeof window === "undefined") return;
   const events = read<Array<{ name: string; at: string; data: typeof data }>>(EVENTS_KEY, []);

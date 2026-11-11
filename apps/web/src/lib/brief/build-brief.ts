@@ -1,9 +1,5 @@
-import type { Conversation, FamilyProfile } from "../experience/types.ts";
-import { childAgeMonths } from "../experience/profile-mapper.ts";
-import { formatWeight } from "../onboarding/questions.ts";
+import type { FamilyProfile } from "../experience/types.ts";
 import { shortVnd, type MonthSummary } from "../money/summary.ts";
-import { runningLow, type ItemEstimate } from "../shopping/items.ts";
-import { WHAT_TEXT, cadenceText, measureDue, sinceLast } from "../family/measure-schedule.ts";
 import { travelHomeCard } from "../travel/home-card.ts";
 import type { TravelState } from "../travel/types.ts";
 
@@ -33,27 +29,12 @@ export interface FamilyBrief {
 
 export interface BriefInput {
   profile: FamilyProfile | null;
-  conversations: Conversation[];
-  savedCount: number;
   displayName?: string;
   /** Current-month money summary when the ledger is available (null = not loaded / not signed in). */
   money?: MonthSummary | null;
-  /** Stock estimates per household item (Shopping side of the event stream). */
-  stock?: ItemEstimate[];
-  /** Last weighing / height day per child from the growth log (YYYY-MM-DD); weight falls back to the profile's date. */
-  measures?: Record<string, { weight?: string; height?: string }>;
   /** Trips, packing and expenses for the travel card (null = not loaded; no upcoming trip = no card). */
   travel?: TravelState | null;
   now?: Date;
-}
-
-/** Diaper size guidance by weight (kg), matching the ranges used by the onboarding weight choices. */
-export function diaperSizeFor(weightKg: number): string {
-  if (weightKg < 5) return "NB/S";
-  if (weightKg < 8) return "M";
-  if (weightKg < 12) return "L";
-  if (weightKg < 15) return "XL";
-  return "XXL";
 }
 
 const weekday = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -67,47 +48,11 @@ export function greetingFor(now: Date, name?: string): string {
 /** Vietnam calendar day of a time (the family's day, whatever the device timezone). */
 const vnDay = (time: number) => new Date(time + 7 * 3_600_000).toISOString().slice(0, 10);
 
-export function buildBrief({ profile, conversations, savedCount, displayName, money = null, stock = [], measures = {}, travel = null, now = new Date() }: BriefInput): FamilyBrief {
+export function buildBrief({ profile, displayName, money = null, travel = null, now = new Date() }: BriefInput): FamilyBrief {
   const attention: BriefCard[] = [];
   const insights: BriefInsight[] = [];
-  const children = profile?.children ?? [];
 
-  // The magic moment (spec v2 §40): running low is known before anyone remembers to check.
-  for (const estimate of runningLow(stock).slice(0, 2)) {
-    const { item, daysLeft, lastPurchase } = estimate;
-    const days = daysLeft ?? 0;
-    const source = estimate.rateSource === "learned" ? " theo nhịp dùng của nhà mình" : estimate.rateSource === "default" ? " (ước tính)" : "";
-    attention.push({ id: `low-${item.id}`, tone: days <= 3 ? "warn" : "info", badge: days === 0 ? "Hết" : `${days}d`, title: days === 0 ? `${item.name} ước tính đã hết` : `${item.name} còn khoảng ${days} ngày`, detail: `Từ ${estimate.purchaseCount} lần mua${lastPurchase ? ` (gần nhất ${lastPurchase.purchasedOn.slice(8)}/${lastPurchase.purchasedOn.slice(5, 7)})` : ""}, ${Math.round(estimate.dailyRate * 10) / 10} ${item.unit}/ngày${source}.`, cta: { label: "Mua lại", href: item.productId ? `/agent?q=${encodeURIComponent(`Mua lại ${item.name}`)}` : "/shopping" } });
-  }
-
-  for (const child of children) {
-    const who = child.name ? `bé ${child.name}` : "bé";
-    if (child.weightKg === undefined) {
-      attention.push({ id: `weight-${child.id}`, tone: "warn", badge: "?", title: `Chưa có cân nặng của ${who}`, detail: "Cân nặng quyết định size bỉm — thiếu thì FamAgent chỉ gợi ý được chung chung.", cta: { label: "Bổ sung", href: "/family" } });
-      continue;
-    }
-    const months = childAgeMonths(child, now);
-    // Regular weighing / measuring on the age cadence (lib/family/measure-schedule), not a fixed 60 days.
-    const observed = profile?.fieldMeta?.[`children.${child.id}.weightKg`]?.observedAt;
-    const today = vnDay(now.getTime());
-    const due = measureDue({ ageMonths: months, lastWeight: measures[child.id]?.weight ?? (observed ? vnDay(Date.parse(observed)) : undefined), lastHeight: measures[child.id]?.height, today, every: profile?.household?.measureEvery });
-    if (due?.state === "due") {
-      const since = sinceLast(due, today);
-      attention.push({ id: `stale-${child.id}`, tone: "info", badge: since !== undefined ? `${since}d` : "📏", title: `Đến lịch ${WHAT_TEXT[due.what]} cho ${who}${since !== undefined ? ` — đã ${since} ngày` : ""}`, detail: `Ở tuổi này nên cân đo ${cadenceText(due.interval)}${due.what !== "height" ? `. Đang dùng ${formatWeight(child.weightKg)} để chọn size bỉm` : ""} — ghi lại để so với chuẩn WHO.`, cta: { label: "Ghi lại", href: "/family#fam-kids" } });
-    }
-    const size = diaperSizeFor(child.weightKg);
-    if (child.diaperSize && !size.split("/").includes(child.diaperSize)) {
-      insights.push({ text: `${who[0].toUpperCase()}${who.slice(1)} ${formatWeight(child.weightKg)} thường hợp size ${size}, hồ sơ đang ghi size ${child.diaperSize}. Nếu bé hay tràn, thử lên size.`, source: "Từ cân nặng và size trong hồ sơ", href: "/family" });
-    } else {
-      insights.push({ text: `${who[0].toUpperCase()}${who.slice(1)}${months !== undefined ? ` ${months} tháng` : ""} · ${formatWeight(child.weightKg)} → size ${size} phù hợp${profile?.maxBudget ? `, trong ngân sách ${profile.maxBudget.toLocaleString("vi-VN")}đ` : ""}.`, source: "Từ hồ sơ gia đình", href: "/agent" });
-    }
-  }
-
-  // An unanswered clarification from the agent is the most actionable thing on the list.
-  const pending = conversations.find((item) => { const last = item.turns.at(-1); return last?.role === "assistant" && (last.choices?.length ?? 0) > 0; });
-  if (pending) attention.push({ id: `pending-${pending.id}`, tone: "warn", badge: "!", title: "FamAgent đang chờ bạn trả lời", detail: `“${pending.title}” — chọn một gợi ý để tiếp tục.`, cta: { label: "Trả lời", href: `/agent?c=${pending.id}` } });
-
-  if (profile && !profile.aiConsent) attention.push({ id: "ai-off", tone: "info", badge: "AI", title: "AI đang tắt — FamAgent chỉ dùng quy tắc", detail: "Bật AI để hiểu câu hỏi tự nhiên hơn. Tên bé được thay bằng mã trước khi gửi.", cta: { label: "Bật AI", href: "/family#account" } });
+  if (profile && !profile.aiConsent) attention.push({ id: "ai-off", tone: "info", badge: "AI", title: "AI đang tắt — FamAgent chỉ dùng quy tắc", detail: "Bật AI để tự xếp nhóm khoản chi và đọc ảnh hoá đơn. Tên bé được thay bằng mã trước khi gửi.", cta: { label: "Bật AI", href: "/family#account" } });
 
   // Money (SPEC_V2 §16): pace vs plan, bills due soon, or the nudge to start the ledger.
   if (money && money.transactionCount > 0) {
@@ -124,8 +69,6 @@ export function buildBrief({ profile, conversations, savedCount, displayName, mo
     const card: BriefCard = { id: "travel-trip", tone: tripCard.tone, badge: tripCard.badge, title: tripCard.title, detail: tripCard.detail, cta: tripCard.cta };
     if (tripCard.urgent) attention.unshift(card); else attention.push(card);
   }
-
-  if (savedCount > 0) insights.push({ text: `Bạn đang lưu ${savedCount} sản phẩm để xem lại. Hỏi FamAgent “so sánh các sản phẩm đã lưu” để thấy khác biệt theo giá mỗi miếng.`, source: "Từ danh sách đã lưu", href: "/shopping?tab=saved" });
 
   const count = attention.filter((card) => card.tone === "warn").length;
   const date = `${weekday[now.getDay()]} ${now.getDate()}/${now.getMonth() + 1}`;

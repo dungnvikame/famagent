@@ -21,10 +21,10 @@ function emittedNames(): Map<string, string> {
 
 test("mọi tên sự kiện app đang gửi đều nằm trong danh sách /api/events", () => {
   const emitted = emittedNames();
-  assert.ok(emitted.size >= 30, `quét được ${emitted.size} tên sự kiện`);
+  assert.ok(emitted.size >= 20, `quét được ${emitted.size} tên sự kiện`);
   const missing = [...emitted].filter(([name]) => !isEventName(name)).map(([name, file]) => `${name} (${file})`);
   assert.deepEqual(missing, [], "thêm vào EVENT_NAMES (lib/events/event-names.ts)");
-  for (const name of ["daily_task_done", "family_note_recorded", "purchase_recorded", "stock_checked", "money_quick_saved", "care_method_chosen"]) assert.ok(emitted.has(name), `${name} vẫn được gửi`);
+  for (const name of ["money_transaction_saved", "money_period_paid", "money_quick_saved", "onboarding_completed"]) assert.ok(emitted.has(name), `${name} vẫn được gửi`);
 });
 
 test("danh sách không trùng và chỉ chứa tên snake_case", () => {

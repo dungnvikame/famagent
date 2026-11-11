@@ -1,52 +1,8 @@
 "use client";
 
-import { careMethodById } from "@/lib/care/methods";
-import { DELIVERY_PREFERENCE_LABELS, DELIVERY_PREFERENCES, MEMBER_ROLES, PRICE_PREFERENCE_LABELS, PRICE_PREFERENCES, COVER_THEMES, type AdultMember, type FamilyProfile } from "@/lib/experience/types";
+import { MEMBER_ROLES, COVER_THEMES, type AdultMember, type FamilyProfile } from "@/lib/experience/types";
 import { COVER_STYLES, ROLE_LABELS, type CoverTheme } from "@/lib/family/members";
-import { ChipInput } from "./chip-input";
 import { MemberAvatar } from "./member-avatar";
-
-const vnd = (value: number) => `${value.toLocaleString("vi-VN")}đ`;
-const cap = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
-
-/** Summary of shopping priorities; editing happens in the sheet. */
-export function PrefsPane({ profile, onEdit }: { profile: FamilyProfile; onEdit: () => void }) {
-  return <section className="app-card fam-pane" aria-labelledby="fam-prefs-h">
-    <h2 id="fam-prefs-h">🛒 Nhà mình ưu tiên <span className="sp" /><button type="button" className="link-btn" onClick={onEdit}>Sửa</button></h2>
-    <p className="fam-hint">FamAgent dùng để xếp hạng lựa chọn khi gợi ý mua.</p>
-    <dl className="fam-kv">
-      <dt>Giá</dt><dd>{PRICE_PREFERENCE_LABELS[profile.pricePreference]}</dd>
-      <dt>Giao hàng</dt><dd>{profile.deliveryPreference ? cap(DELIVERY_PREFERENCE_LABELS[profile.deliveryPreference]) : "Chưa chọn"}</dd>
-      <dt>Ngân sách/lần</dt><dd>{profile.maxBudget ? `≤ ${vnd(profile.maxBudget)}` : "Không giới hạn"}</dd>
-      {profile.preferredBrands?.length ? <><dt>Tin dùng</dt><dd className="fam-tags">{profile.preferredBrands.map((brand) => <span key={brand} className="fam-tag yes">♥ {brand}</span>)}</dd></> : null}
-      {profile.avoidedIngredients?.length ? <><dt>Tránh</dt><dd className="fam-tags">{profile.avoidedIngredients.map((item) => <span key={item} className="fam-tag no">✕ {item}</span>)}</dd></> : null}
-    </dl>
-  </section>;
-}
-
-export function PrefsForm({ profile, onChange }: { profile: FamilyProfile; onChange: (patch: Partial<FamilyProfile>) => void }) {
-  return <div className="fam-form">
-    <div className="fam-field"><span className="fam-label">Ưu tiên giá</span><div className="fam-seg" role="radiogroup" aria-label="Ưu tiên giá">{PRICE_PREFERENCES.map((value) => <button type="button" role="radio" aria-checked={profile.pricePreference === value} key={value} className={profile.pricePreference === value ? "on" : ""} onClick={() => onChange({ pricePreference: value })}>{PRICE_PREFERENCE_LABELS[value]}</button>)}</div></div>
-    <div className="fam-field"><span className="fam-label">Giao hàng</span><div className="fam-seg" role="radiogroup" aria-label="Giao hàng">{DELIVERY_PREFERENCES.map((value) => <button type="button" role="radio" aria-checked={profile.deliveryPreference === value} key={value} className={profile.deliveryPreference === value ? "on" : ""} onClick={() => onChange({ deliveryPreference: profile.deliveryPreference === value ? undefined : value })}>{cap(DELIVERY_PREFERENCE_LABELS[value])}</button>)}</div></div>
-    <label className="fam-field"><span className="fam-label">Ngân sách tối đa mỗi lần mua (đ)</span><input type="number" min="50000" step="10000" value={profile.maxBudget ?? ""} placeholder="Để trống = không giới hạn" onChange={(event) => onChange({ maxBudget: event.target.value ? Number(event.target.value) : undefined })} /></label>
-    <ChipInput label="Thương hiệu gia đình tin dùng" tone="yes" value={profile.preferredBrands} placeholder="Gõ rồi Enter" onChange={(value) => onChange({ preferredBrands: value })} />
-    <ChipInput label="Thành phần muốn tránh" tone="no" value={profile.avoidedIngredients} placeholder="Ví dụ: hương liệu, paraben" onChange={(value) => onChange({ avoidedIngredients: value })} />
-  </div>;
-}
-
-/** The chosen parenting approach, compact; the six options open only on "Đổi". */
-export function CarePane({ profile, onChoose }: { profile: FamilyProfile; onChoose: () => void }) {
-  const method = careMethodById(profile.household?.careMethod);
-  return <section className="app-card fam-pane" id="care-method" aria-labelledby="fam-care-h">
-    <h2 id="fam-care-h">🌱 Cách nuôi dạy <span className="sp" /><button type="button" className="link-btn" onClick={onChoose}>{method ? "Đổi" : "Chọn"}</button></h2>
-    {method ? <>
-      <div className="fam-method"><span className="mi" aria-hidden="true">🌱</span><div><b>{method.name}</b><small>{method.ages.label} · {method.origin}</small></div></div>
-      <p className="fam-idea">{method.idea}</p>
-      <ol className="fam-practices">{method.practices.map((line) => <li key={line}>{line}</li>)}</ol>
-      <p className="fam-hint">Mỗi ngày một việc xoay vòng trong “Hôm nay với bé” và “Việc hôm nay” ở Trang chủ.</p>
-    </> : <p className="fam-hint">Chọn một phương pháp được nhiều gia đình trên thế giới dùng — FamAgent nhắc mỗi ngày một việc nhỏ của phương pháp đó.</p>}
-  </section>;
-}
 
 /** Name, motto, cover and the list of adults (tap one to edit its look). */
 export function HouseholdForm({ profile, members, onChange, onMember, onAddMember }: {

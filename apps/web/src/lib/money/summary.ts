@@ -3,7 +3,7 @@ import { dueEntries, fixedStillDue, type DueEntry } from "./fixed-items.ts";
 import { categoryAverages } from "./history.ts";
 import { budgetLines, effectivePlan, flexibleBudget, flexibleCategories, type BudgetLine } from "./plan.ts";
 import { debtLinkIds, loanFlows, loanRole, type LoanTotals } from "./loans.ts";
-import { vnd } from "../catalog/format.ts";
+import { vnd } from "./format-vnd.ts";
 
 /**
  * Month analytics for the Money home and the Family Brief (SPEC_V2 §10–11): rules + arithmetic, no LLM.

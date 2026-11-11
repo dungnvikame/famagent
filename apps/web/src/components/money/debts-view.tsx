@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { loadLoans } from "@/lib/money/client";
 import { autoDebtId } from "@/lib/money/debt-link";
 import { vndCompact } from "@/lib/money/format-vnd";

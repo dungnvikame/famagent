@@ -10,12 +10,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint src tests scripts evals eslint.config.mjs",
+    "lint": "eslint src tests scripts eslint.config.mjs",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "eval": "node scripts/evaluate.mjs",
-    "import-products": "node scripts/import-products.mjs",
-    "verify-offers": "node scripts/verify-offers.mjs",
     "cleanup-anonymous": "node scripts/cleanup-anonymous.mjs",
     "db:migrate": "node --env-file=.env.local scripts/db-migrate.mjs",
     "setup:auth": "node --env-file=.env.local scripts/configure-supabase-auth.mjs"

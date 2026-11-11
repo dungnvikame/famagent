@@ -4,7 +4,7 @@ import { useState } from "react";
 import { allocatable, allocationFrom, allocationTotal, BUCKET_COLORS, CUSTOM_NAME, unassigned } from "@/lib/money/allocation";
 import type { FrameworkId } from "@/lib/money/frameworks";
 import { DEFAULT_CATEGORIES, type AllocationBucket, type MoneyAllocation, type MoneyCategory } from "@/lib/money/types";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { parseVnd } from "@/lib/money/parse";
 import { AmountInput } from "./amount-input";
 

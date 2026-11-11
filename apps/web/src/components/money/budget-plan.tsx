@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { groupAmountTyping, parseVnd } from "@/lib/money/parse";
 import { effectivePlan, flexibleBudget } from "@/lib/money/plan";

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { chatJson, isAiConfigured, visionProviders, type ContentPart } from "@/lib/ai/llm";
 import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
-import { isImageDataUrl } from "@/lib/shopping/receipt";
+import { isImageDataUrl } from "@/lib/image/data-url";
 import { cleanImport, IMPORT_SCHEMA, importSystem, isImportReply, validImportRequest } from "@/lib/travel/import-ai";
 import { authenticated, authConfigured } from "@/lib/supabase/server";
 

@@ -2,7 +2,7 @@
 
 import type { FamilyProfile } from "@/lib/experience/types";
 import { babyStep, FRAMEWORKS, suggestFrameworks, type FrameworkId } from "@/lib/money/frameworks";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 
 /**
  * Pick a money framework: every card names its author/source, explains the idea in one line and — when income is

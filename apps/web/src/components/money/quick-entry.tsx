@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
 import { getProfile, trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile } from "@/lib/experience/types";

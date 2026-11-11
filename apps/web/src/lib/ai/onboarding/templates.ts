@@ -1,6 +1,6 @@
 // Vietnamese wording for the onboarding review step.
 import { childAgeMonths } from "../../experience/profile-mapper.ts";
-import { vnd } from "../../catalog/format.ts";
+import { vnd } from "../../money/format-vnd.ts";
 import type { ChildProfile, FamilyProfile } from "../../experience/types.ts";
 import { formatWeight } from "../../onboarding/questions.ts";
 

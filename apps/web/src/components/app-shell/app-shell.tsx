@@ -3,24 +3,22 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { QuickEntryProvider, useQuickEntry } from "@/components/money/quick-entry";
-import { IconAgent, IconBag, IconFamily, IconHome, IconMoney } from "./nav-icons";
+import { IconFamily, IconHome, IconMoney } from "./nav-icons";
 import { useAccount } from "./use-account";
 
-/** Spec v2 §34: Home · Money · Shopping · Agent · Family. Same order on the desktop sidebar and the phone bottom bar. */
+/** Home · Money · Family. Same order on the desktop sidebar and the phone bottom bar. */
 export const SECTIONS = [
   { href: "/home", label: "Trang chủ", icon: IconHome, match: /^\/home/ },
   { href: "/money", label: "Tài chính", icon: IconMoney, match: /^\/money/ },
-  { href: "/shopping", label: "Mua sắm", icon: IconBag, match: /^\/(shopping|products|compare)/ },
-  { href: "/agent", label: "Trợ lý", icon: IconAgent, match: /^\/agent/ },
-  { href: "/family", label: "Gia đình", icon: IconFamily, match: /^\/family/ },
+  { href: "/family", label: "Gia đình", icon: IconFamily, match: /^\/(family|travel)/ },
 ] as const;
 
-/** "Ghi khoản" from any page: a button in the sidebar (key N) and a floating button on phones (not over the chat composer). */
-function QuickEntryButtons({ pathname }: { pathname: string }) {
+/** "Ghi khoản" from any page: a button in the sidebar (key N) and a floating button on phones. */
+function QuickEntryButtons() {
   const { open } = useQuickEntry();
   return <>
     <button type="button" className="app-quick" onClick={open}>＋ Ghi khoản <kbd aria-hidden="true">N</kbd></button>
-    {!pathname.startsWith("/agent") && <button type="button" className="app-fab" onClick={open} aria-label="Ghi khoản">＋</button>}
+    <button type="button" className="app-fab" onClick={open} aria-label="Ghi khoản">＋</button>
   </>;
 }
 
@@ -40,7 +38,7 @@ function AppShellFrame({ children }: { children: React.ReactNode }) {
   return <div className="app-shell">
     <aside className="app-side">
       <Link href="/home" className="app-brand"><span className="app-orb" aria-hidden="true" />FamAgent</Link>
-      <QuickEntryButtons pathname={pathname} />
+      <QuickEntryButtons />
       <nav className="app-nav" aria-label="Điều hướng chính">{items}</nav>
       <Link href="/family#account" className="app-me" aria-label="Tài khoản & quyền riêng tư">
         {/* eslint-disable-next-line @next/next/no-img-element -- Google avatar; remote host not whitelisted for next/image */}

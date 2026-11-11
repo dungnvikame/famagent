@@ -8,7 +8,7 @@ import type { MonthSummary } from "@/lib/money/summary";
 import type { MoneyAllocation, MoneyBundle, MoneyCategory } from "@/lib/money/types";
 import { AllocationEditor } from "./allocation-editor";
 import { FrameworkChooser } from "./framework-chooser";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 
 interface Props {
   profile: FamilyProfile; summary: MonthSummary; bundle: MoneyBundle;

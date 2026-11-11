@@ -57,55 +57,8 @@ export function dayMilestone(birthDate: string, today: string): { day: number; d
   return { day, date: addDays(birthDate, day - 1), daysLeft: day - now, isToday: day === now };
 }
 
-// ---------- weight ----------
-export interface WeightPoint { date: string; kg: number; id?: string }
-
-/** Diaper sizes by weight — same cut-offs as diaperSizeFor (lib/brief/build-brief). */
-export const SIZE_BANDS = [
-  { size: "NB/S", min: 0, max: 5 }, { size: "M", min: 5, max: 8 }, { size: "L", min: 8, max: 12 }, { size: "XL", min: 12, max: 15 }, { size: "XXL", min: 15, max: 40 },
-] as const;
-export const bandFor = (kg: number) => SIZE_BANDS.find((band) => kg >= band.min && kg < band.max) ?? SIZE_BANDS[SIZE_BANDS.length - 1];
-
-/**
- * The weighings, oldest first, one per day. The profile's current weight joins the line when it is newer than the
- * last entry and a different number (chat updates, data from before the log existed) — never as a repeat.
- */
-export function weightSeries(log: WeightPoint[], current?: { kg?: number; date?: string }): WeightPoint[] {
-  const byDay = new Map<string, WeightPoint>();
-  for (const point of [...log].sort((a, b) => a.date.localeCompare(b.date))) byDay.set(point.date, point);
-  const series = [...byDay.values()];
-  const last = series.at(-1);
-  if (current?.kg !== undefined && current.date && (!last || (current.date > last.date && Math.abs(current.kg - last.kg) >= 0.05))) series.push({ date: current.date, kg: current.kg });
-  return series;
-}
-
-/** Growth pace in kg per 30 days: least squares over the last 180 days; null with < 2 points or < 14 days apart. */
-export function growthPerMonth(series: WeightPoint[]): number | null {
-  const last = series.at(-1);
-  if (!last) return null;
-  const recent = series.filter((point) => daysBetween(point.date, last.date) <= 180);
-  if (recent.length < 2 || daysBetween(recent[0].date, last.date) < 14) return null;
-  const xs = recent.map((point) => daysBetween(recent[0].date, point.date));
-  const mx = xs.reduce((a, b) => a + b, 0) / xs.length, my = recent.reduce((a, p) => a + p.kg, 0) / recent.length;
-  const cov = xs.reduce((sum, x, i) => sum + (x - mx) * (recent[i].kg - my), 0), vx = xs.reduce((sum, x) => sum + (x - mx) ** 2, 0);
-  return vx ? (cov / vx) * 30 : null;
-}
-
-export interface SizeOutlook { size: string; nextSize?: string; kgToGo?: number; /** Projected date the next size fits, when the pace says within a year. */ onDate?: string }
-export function sizeOutlook(series: WeightPoint[], pace: number | null): SizeOutlook | null {
-  const last = series.at(-1);
-  if (!last) return null;
-  const band = bandFor(last.kg);
-  const next = SIZE_BANDS[SIZE_BANDS.indexOf(band) + 1];
-  if (!next) return { size: band.size };
-  const kgToGo = Math.round((next.min - last.kg) * 10) / 10;
-  const days = pace && pace > 0.05 ? Math.ceil(kgToGo / pace * 30) : undefined;
-  return { size: band.size, nextSize: next.size, kgToGo, onDate: days !== undefined && days <= 365 ? addDays(last.date, days) : undefined };
-}
-
 /** "18/08" or "18/08/2025" when not this year. */
 export function shortDate(iso: string, today?: string): string {
   const [y, m, d] = iso.split("-");
   return today && today.slice(0, 4) === y ? `${d}/${m}` : `${d}/${m}/${y}`;
 }
-export const kgText = (kg: number) => `${(Math.round(kg * 10) / 10).toLocaleString("vi-VN")} kg`;

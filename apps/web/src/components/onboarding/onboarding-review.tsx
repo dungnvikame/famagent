@@ -8,17 +8,14 @@ import type { FamilyProfile } from "@/lib/experience/types";
 import { buildAssessment, type Assessment } from "@/lib/onboarding/assessment";
 import { FrameworkChooser } from "@/components/money/framework-chooser";
 import type { FrameworkId } from "@/lib/money/frameworks";
-import { CareMethodChooser } from "@/components/care/care-method-chooser";
-import type { CareMethodId } from "@/lib/care/methods";
 
 /**
  * End of onboarding: FamAgent's first read of the family — verdict, money situation, a choice of well-known money
- * frameworks (the family picks), care plan by age and three first steps. Rules render instantly; the AI-written opening note replaces the template when it arrives.
+ * frameworks (the family picks), care notes by age and three first steps. Rules render instantly; the AI-written opening note replaces the template when it arrives.
  */
-export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onReset, onMethod, onCareMethod }: {
+export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onReset, onMethod }: {
   profile: FamilyProfile;
   onMethod: (id: FrameworkId) => void;
-  onCareMethod: (id: CareMethodId) => void;
   cloud: boolean;
   busy: boolean;
   onStart: () => void;
@@ -94,12 +91,6 @@ export function OnboardingReview({ profile, cloud, busy, onStart, onEdit, onRese
     {assessment.care.points.length > 0 && <div className="ob-assess-block">
       <h3><IconSparkle size={18} /> Việc cần theo dõi theo độ tuổi</h3>
       <ul>{assessment.care.points.map((point) => <li key={point}>{point}</li>)}</ul>
-    </div>}
-
-    {(profile.children.length > 0 || profile.household?.setup === "expecting") && <div className="ob-assess-block">
-      <h3><IconSparkle size={18} /> Chọn phương pháp nuôi dạy cho nhà mình</h3>
-      <p className="ob-assess-why">Những phương pháp được nhiều gia đình trên thế giới áp dụng. Chọn một cách bạn thấy hợp — FamAgent sẽ nhắc các việc hằng ngày của phương pháp đó; đổi lại được trong mục Gia đình.</p>
-      <CareMethodChooser profile={profile} value={profile.household?.careMethod} onChange={onCareMethod} />
     </div>}
 
     <div className="ob-assess-block">

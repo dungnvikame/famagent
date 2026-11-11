@@ -3,7 +3,7 @@ import { chatJson, isAiConfigured, visionProviders } from "@/lib/ai/llm";
 import { allowInMemory } from "@/lib/ai/onboarding/rate-limit";
 import { isMoneyImage, MONEY_IMAGE_SCHEMA, MONEY_IMAGE_SYSTEM } from "@/lib/money/image-read";
 import type { ImageLine } from "@/lib/money/quick-add";
-import { isImageDataUrl } from "@/lib/shopping/receipt";
+import { isImageDataUrl } from "@/lib/image/data-url";
 import { authenticated, authConfigured } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { expectedAmount } from "@/lib/money/fixed-items";
 import { todayLocal } from "@/lib/money/parse";
 import { itemStatus, listedItems, scheduleText } from "@/lib/money/plan-model";

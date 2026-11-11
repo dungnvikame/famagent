@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { autoDebtId, REPAYMENT_CATEGORIES } from "@/lib/money/debt-link";
 import { buildEntry } from "@/lib/money/entry";
 import { vndCompact } from "@/lib/money/format-vnd";

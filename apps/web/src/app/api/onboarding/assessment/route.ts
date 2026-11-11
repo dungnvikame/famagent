@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { chatJson, isAiConfigured, type JsonSchema } from "@/lib/ai/llm";
-import { passesFactGuard } from "@/lib/ai/shopping/composer";
+import { passesFactGuard } from "@/lib/ai/fact-guard";
 import { allowInMemory, ONBOARDING_LLM_PER_HOUR } from "@/lib/ai/onboarding/rate-limit";
 import { validProfile } from "@/lib/experience/validate";
 import { buildAssessment } from "@/lib/onboarding/assessment";

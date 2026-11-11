@@ -1,8 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ageParts, ageText, bandFor, dayMilestone, growthPerMonth, nextBirthday, sizeOutlook, weightSeries } from "../src/lib/family/child-stats.ts";
+import { ageParts, ageText, dayMilestone, nextBirthday } from "../src/lib/family/child-stats.ts";
 import { adultMembers, adultName, childLook, withChildLook, withMembers } from "../src/lib/family/members.ts";
-import { validMeasureInput, validAvatarImage } from "../src/lib/family/validate.ts";
 import { validProfile } from "../src/lib/experience/validate.ts";
 import type { FamilyProfile } from "../src/lib/experience/types.ts";
 
@@ -36,27 +35,6 @@ test("day milestones", () => {
   assert.equal(dayMilestone("2025-07-20", "2026-12-01")?.isToday, true);
 });
 
-test("weight series merges the profile weight only when newer", () => {
-  const log = [{ date: "2026-05-01", kg: 9 }, { date: "2026-07-01", kg: 9.8 }, { date: "2026-07-01", kg: 9.9 }];
-  assert.deepEqual(weightSeries(log, { kg: 10.5, date: "2026-09-01" }).map((p) => p.kg), [9, 9.9, 10.5]);
-  assert.deepEqual(weightSeries(log, { kg: 9.9, date: "2026-06-01" }).map((p) => p.kg), [9, 9.9]);
-  assert.deepEqual(weightSeries([], { kg: 7 }), []);
-  // Same weight re-saved later (profile updatedAt moved on) is not a new weighing.
-  assert.deepEqual(weightSeries(log, { kg: 9.9, date: "2026-09-20" }).map((p) => p.date), ["2026-05-01", "2026-07-01"]);
-});
-
-test("growth pace and size outlook", () => {
-  const series = [{ date: "2026-06-01", kg: 9 }, { date: "2026-07-01", kg: 9.5 }, { date: "2026-07-31", kg: 10 }];
-  const pace = growthPerMonth(series)!;
-  assert.ok(Math.abs(pace - 0.5) < 0.01);
-  const outlook = sizeOutlook(series, pace)!;
-  assert.equal(outlook.size, "L"); assert.equal(outlook.nextSize, "XL"); assert.equal(outlook.kgToGo, 2);
-  assert.equal(outlook.onDate, "2026-11-28");
-  assert.equal(growthPerMonth([{ date: "2026-07-01", kg: 9 }, { date: "2026-07-05", kg: 9.2 }]), null);
-  assert.equal(sizeOutlook([{ date: "2026-07-01", kg: 16 }], null)?.nextSize, undefined);
-  assert.equal(bandFor(12).size, "XL"); assert.equal(bandFor(4.9).size, "NB/S");
-});
-
 test("members: placeholders, names, looks, adultsCount follows the list", () => {
   assert.deepEqual(adultMembers(base).map((m) => m.id), ["me", "adult-2"]);
   assert.equal(adultName({ id: "me" }, 0, "Dũng"), "Dũng");
@@ -78,13 +56,4 @@ test("validation rejects bad members, looks and inputs", () => {
   assert.equal(bad({ looks: { [CHILD]: { color: "neon" } } }), false);
   assert.equal(bad({ looks: { "not-a-uuid": {} } }), false);
   assert.equal(bad({ theme: "disco" }), false);
-  const now = new Date("2026-09-29T05:00:00Z");
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", kg: 10.4 }, now), true);
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", cm: 80.5 }, now), true);
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29" }, now), false);
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", cm: 20 }, now), false);
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-10-05", kg: 10.4 }, now), false);
-  assert.equal(validMeasureInput({ childId: CHILD, date: "2026-09-29", kg: 45 }, now), false);
-  assert.equal(validAvatarImage("data:image/png;base64,AAAA"), false);
-  assert.equal(validAvatarImage("data:image/jpeg;base64,AAAA"), true);
 });

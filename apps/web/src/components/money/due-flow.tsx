@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { trackEvent } from "@/lib/experience/storage";
 import { confirmPeriod, undoPeriod } from "@/lib/money/client";
 import type { DueEntry } from "@/lib/money/fixed-items";

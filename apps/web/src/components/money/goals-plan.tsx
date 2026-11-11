@@ -4,7 +4,7 @@ import { useState } from "react";
 import { parseVnd } from "@/lib/money/parse";
 import type { MoneyGoal } from "@/lib/money/types";
 import { AmountInput } from "./amount-input";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 
 interface Props {
   goals: MoneyGoal[];

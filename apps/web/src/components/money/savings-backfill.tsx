@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { backfillPlan, parseMonthInput, type BackfillLine } from "@/lib/money/backfill";
 import { loadRange, saveMoneyItem } from "@/lib/money/client";
 import { formatVnDate, parseVnd } from "@/lib/money/parse";

@@ -1,3 +1,0 @@
-/* “Ghi nhận” chips in chat (the family notes list moved to family-page.css). */
-.agent-notes{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
-.agent-notes span{background:#ece8ff;color:var(--primary-ink);border-radius:var(--pill);padding:3px 10px;font-weight:600}

@@ -3,7 +3,6 @@ import test from "node:test";
 import { validBirthDate, validProfile } from "../src/lib/experience/validate.ts";
 import { childAgeMonths, childRow, familyRow, profileFromRow } from "../src/lib/experience/profile-mapper.ts";
 import { stampChanges } from "../src/lib/experience/profile-meta.ts";
-import { parseProfileChange } from "../src/lib/ai/profile-change.ts";
 import type { FamilyProfile } from "../src/lib/experience/types.ts";
 
 const childId = "11111111-1111-4111-8111-111111111111";
@@ -89,12 +88,6 @@ test("stampChanges không bịa nguồn cho giá trị cũ không đổi", () =>
   assert.equal(stampChanges(legacy, legacy, "user_entered").fieldMeta, undefined);
 });
 
-test("đổi cân nặng qua chat được ghi nguồn user_entered", () => {
-  const changed = parseProfileChange("Cập nhật Gold giờ nặng 11kg", base);
-  assert.equal(changed?.children[0].weightKg, 11);
-  assert.equal(changed?.fieldMeta?.[`children.${childId}.weightKg`]?.source, "user_entered");
-  assert.equal(validProfile(changed), true);
-});
 
 test("changedPaths chỉ trả các trường thật sự đổi (để tô sáng trên panel)", async () => {
   const { changedPaths } = await import("../src/lib/experience/profile-meta.ts");

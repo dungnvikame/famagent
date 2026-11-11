@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { careHealth, screenGuide, sleepRange } from "../src/lib/care/nurturing.ts";
-import { CARE_METHOD_LIST, fitsAges, suggestCareMethods } from "../src/lib/care/methods.ts";
 import { buildAssessment } from "../src/lib/onboarding/assessment.ts";
 import { buildQuestions } from "../src/lib/onboarding/questions.ts";
 import { validProfile } from "../src/lib/experience/validate.ts";
@@ -36,15 +35,6 @@ test("bé 9 tháng xem màn hình 1–2 giờ là dễ tổn thương; vấn đ�
 test("bé 3 tuổi xem dưới 1 giờ là đạt; gia đình chăm tốt không có vấn đề", () => {
   const report = careHealth(base({ vaccines: "on_track", checkup: "recent", sleepQuality: "good", nutrition: "varied", playTime: "gt60", screenTime: "lt1h", reading: "daily", safety: ["stairs", "outlets", "chemicals", "vehicle"] }, [36]), now);
   assert.equal(report.score, 90); assert.deepEqual(report.problems, []);
-});
-
-test("6 phương pháp nuôi dạy có nguồn gốc và độ tuổi; gợi ý theo tuổi và câu trả lời (tối đa 2)", () => {
-  assert.deepEqual(CARE_METHOD_LIST.map((item) => item.id), ["easy", "rie", "montessori", "positive-discipline", "emotion-coaching", "french"]);
-  for (const method of CARE_METHOD_LIST) { assert.ok(method.origin.length > 10); assert.equal(method.practices.length, 3); }
-  assert.equal(fitsAges(CARE_METHOD_LIST.find((item) => item.id === "easy")!, [30]), false);
-  assert.deepEqual(suggestCareMethods(base({ sleepQuality: "short" }), now).map((item) => item.id), ["easy", "rie"]);
-  assert.deepEqual(suggestCareMethods(base({ nutrition: "picky" }, [40]), now).map((item) => item.id), ["french", "emotion-coaching"]);
-  assert.deepEqual(suggestCareMethods(base({ setup: "expecting" }, []), now).map((item) => item.id), ["easy", "rie"]);
 });
 
 test("câu hỏi đánh giá chăm con chỉ khi có con và người dùng đồng ý; kết quả vào assessment + facts không có tên con", () => {

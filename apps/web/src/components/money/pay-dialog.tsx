@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import type { DueEntry } from "@/lib/money/fixed-items";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";

@@ -5,34 +5,20 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAccount } from "@/components/app-shell/use-account";
 import { buildBrief, type FamilyBrief } from "@/lib/brief/build-brief";
-import { cloudEnabled, loadCloudConversations, loadCloudProfile, loadCloudSaved } from "@/lib/experience/cloud";
-import { getConversations, getProfile, getSavedProducts } from "@/lib/experience/storage";
-import type { Conversation, FamilyProfile } from "@/lib/experience/types";
+import { cloudEnabled, loadCloudProfile } from "@/lib/experience/cloud";
+import { getProfile } from "@/lib/experience/storage";
+import type { FamilyProfile } from "@/lib/experience/types";
 import { loadMoney } from "@/lib/money/client";
 import { monthKey, shortVnd, summarizeMonth, type MonthSummary } from "@/lib/money/summary";
-import { loadShopping } from "@/lib/shopping/item-client";
-import { checkCandidate, StockCheck } from "@/components/shopping/stock-check";
-import type { StockCheck as StockCheckRow } from "@/lib/shopping/items";
-import { estimateItems, itemRateResolver, type ItemEstimate } from "@/lib/shopping/items";
-import { DailyTasks } from "./daily-tasks";
-import { localDay } from "@/lib/brief/daily-tasks";
-import { lastMeasureDays, loadMeasures } from "@/lib/family/client";
 import { loadTravel } from "@/lib/travel/client";
 import type { TravelState } from "@/lib/travel/types";
 
-/** Home = Family Brief (spec v2 §16): what needs attention first, then Money · Shopping · insights. Never opens into chat. */
+/** Home = Family Brief (spec v2 §16): what needs attention first, then this month's money and insights. */
 export function FamilyBriefPage() {
   const router = useRouter();
   const account = useAccount();
   const [profile, setProfile] = useState<FamilyProfile | null>(null);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [savedCount, setSavedCount] = useState(0);
   const [money, setMoney] = useState<MonthSummary | null>(null);
-  const [loggedToday, setLoggedToday] = useState(false);
-  const [stock, setStock] = useState<ItemEstimate[]>([]);
-  const [checks, setChecks] = useState<StockCheckRow[]>([]);
-  const [shoppingTick, setShoppingTick] = useState(0);
-  const [measures, setMeasures] = useState<Record<string, { weight?: string; height?: string }>>({});
   const [travel, setTravel] = useState<TravelState | null>(null);
   const [error, setError] = useState("");
   const [ready, setReady] = useState(false);
@@ -41,31 +27,22 @@ export function FamilyBriefPage() {
     let cancelled = false;
     async function load() {
       try {
-        const [family, existing, saved] = cloudEnabled
-          ? await Promise.all([loadCloudProfile(), loadCloudConversations(), loadCloudSaved()])
-          : [getProfile(), getConversations(), getSavedProducts()];
+        const family = cloudEnabled ? await loadCloudProfile() : getProfile();
         if (cancelled) return;
         if (!family?.onboardedAt) { router.replace("/onboarding"); return; }
-        setProfile(family); setConversations(existing); setSavedCount(saved.length); setReady(true);
+        setProfile(family); setReady(true);
         // Money is optional on Home: a failure (e.g. not yet signed in) just leaves the setup card.
-        loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); const today = localDay(new Date()); setLoggedToday(bundle.transactions.some((tx) => tx.occurredOn === today)); }).catch(() => {});
-        // Growth log for "đến lịch cân đo"; without it the card falls back to the profile's weight date.
-        loadMeasures().then((rows) => { if (!cancelled) setMeasures(lastMeasureDays(rows)); }).catch(() => {});
-        loadShopping().then((shopping) => { if (!cancelled) { setStock(estimateItems(shopping.items, shopping.purchases, itemRateResolver(family), new Date(), shopping.checks)); setChecks(shopping.checks); } }).catch(() => {});
+        loadMoney(monthKey(new Date())).then((bundle) => { if (cancelled) return; setMoney(summarizeMonth(bundle)); }).catch(() => {});
         // The travel card is optional: no trips (or a load failure) just means no card.
         loadTravel().then((trips) => { if (!cancelled) setTravel(trips); }).catch(() => {});
       } catch (cause) { if (!cancelled) { setError(cause instanceof Error ? cause.message : "Không thể tải dữ liệu."); setReady(true); } }
     }
     void load();
     return () => { cancelled = true; };
-  }, [router, shoppingTick]);
+  }, [router]);
 
   if (!ready) return <div className="app-page" aria-busy="true"><p className="app-sub">Đang chuẩn bị bản tin gia đình…</p></div>;
-  const brief: FamilyBrief = buildBrief({ profile, conversations, savedCount, displayName: account.name, money, stock, measures, travel });
-  const known = stock.filter((item) => item.known);
-  const candidate = checkCandidate(stock, (itemId) => checks.filter((check) => check.itemId === itemId).map((check) => check.checkedOn).sort().at(-1), localDay(new Date()));
-  const child = profile?.children[0];
-
+  const brief: FamilyBrief = buildBrief({ profile, displayName: account.name, money, travel });
   return <div className="app-page">
     <div><h1>{brief.greeting}</h1><p className="app-sub">{brief.subtitle}</p></div>
     {error && <p className="form-error">{error}</p>}
@@ -74,24 +51,14 @@ export function FamilyBriefPage() {
       <div className="brief-att">{brief.attention.map((card) => <div className="app-card brief-card" key={card.id}><span className={`ic ${card.tone}`} aria-hidden="true">{card.badge}</span><div className="t"><b>{card.title}</b><small>{card.detail}</small></div><Link className={`app-btn${card.tone === "warn" ? "" : " ghost"}`} href={card.cta.href}>{card.cta.label}</Link></div>)}</div>
     </section>
 
-    {profile && <DailyTasks profile={profile} loggedToday={loggedToday} />}
-
-    <div className="app-grid2">
-      <section className="app-section" aria-labelledby="brief-money"><h2 id="brief-money">Tiền tháng này</h2>
+    <section className="app-section" aria-labelledby="brief-money"><h2 id="brief-money">Tiền tháng này</h2>
         <div className="app-card"><div className="app-grid2"><div className="brief-kpi"><small>Đã chi</small><b>{money?.expense ? shortVnd(money.expense) : "—"}</b></div><div className="brief-kpi"><small>Kế hoạch</small><b>{money?.plan ? shortVnd(money.plan) : "—"}</b></div></div>
           {money?.plan ? <span className="bar"><span style={{ width: `${Math.min(100, Math.round(money.expense / money.plan * 100))}%` }} className={money.expense > money.plan ? "over" : undefined} /></span> : null}
           <p className="app-sub" style={{ marginTop: 10 }}>{money && money.transactionCount ? <>{money.expectedExpense ? `Dự kiến cuối tháng chi ${shortVnd(money.expectedExpense)}` : `${money.transactionCount} khoản tháng này`}{money.plan && money.remainingOfPlan !== undefined ? ` · còn ${shortVnd(money.remainingOfPlan)} trong kế hoạch` : ""}. </> : "Chưa có giao dịch nào. "}<Link className="brief-link" href="/money">Mở Tài chính →</Link></p></div>
-      </section>
-      <section className="app-section" aria-labelledby="brief-shop"><h2 id="brief-shop">Mua sắm</h2>
-        <div className="app-card">{known.length ? <div className="app-rows brief-upcoming">{known.slice(0, 2).map((estimate) => <div key={estimate.item.id}><span><b>{estimate.item.name}</b><small>{estimate.daysLeft === 0 ? "ước tính đã hết" : `còn ~${estimate.daysLeft} ngày`}</small></span></div>)}</div>
-          : <p className="app-sub" style={{ marginTop: 0 }}>{child ? `Ghi lần mua đồ cho ${child.name ? `bé ${child.name}` : "bé"} để FamAgent tính ngày hết và nhắc mua lại.` : "Ghi lần mua để FamAgent tính ngày hết và nhắc mua lại."}</p>}
-          {candidate && <StockCheck estimate={candidate} onDone={() => setShoppingTick((value) => value + 1)} />}
-          <p className="app-sub" style={{ marginTop: 10 }}><Link className="brief-link" href="/shopping">Mở kế hoạch mua sắm →</Link></p></div>
-      </section>
-    </div>
+    </section>
 
     {brief.insights.length > 0 && <section className="app-section" aria-labelledby="brief-ins"><h2 id="brief-ins">FamAgent nhận thấy</h2>
-      <div className="brief-att">{brief.insights.map((item, index) => <div className="app-card brief-insight" key={index}><span className="app-orb" aria-hidden="true" /><div><p>{item.text}</p><small>{item.source}{item.href && <> · <Link className="brief-link" href={item.href}>Hỏi thêm</Link></>}</small></div></div>)}</div>
+      <div className="brief-att">{brief.insights.map((item, index) => <div className="app-card brief-insight" key={index}><span className="app-orb" aria-hidden="true" /><div><p>{item.text}</p><small>{item.source}{item.href && <> · <Link className="brief-link" href={item.href}>Xem</Link></>}</small></div></div>)}</div>
     </section>}
   </div>;
 }

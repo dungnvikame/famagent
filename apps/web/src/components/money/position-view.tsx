@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { groupAmountTyping, parseVnd, todayLocal } from "@/lib/money/parse";
 import { debtLeftIn, monthsToPayOff, positionSummary } from "@/lib/money/position";
 import { parsePosition } from "@/lib/money/position-parse";

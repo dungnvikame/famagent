@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { IconCheck, IconPencil, IconRuler, IconShield, IconSparkle, IconWallet } from "@/components/onboarding/icons";
-import { AFFILIATE_DISCLOSURE } from "@/lib/catalog/format";
+import { IconCheck, IconRuler, IconShield, IconSparkle, IconWallet } from "@/components/onboarding/icons";
 
 export const metadata = {
   title: "FamAgent | Trợ lý riêng cho gia đình bạn: tiền, mua sắm, chăm con",
@@ -135,7 +134,6 @@ export default function Home() {
       <h2>Bớt một việc phải nhớ, từ hôm nay</h2>
       <p>Kể về nhà mình trong 1 phút, đăng nhập Gmail, rồi ghi khoản chi đầu tiên hoặc hỏi về bỉm cho bé. Phần còn lại FamAgent nhớ giúp.</p>
       <Link className="lp-cta" href="/onboarding">Tạo trợ lý cho nhà mình <span aria-hidden="true">→</span></Link>
-      <p className="lp-fine"><IconPencil size={14} /> {AFFILIATE_DISCLOSURE}</p>
     </section>
   </div>;
 }

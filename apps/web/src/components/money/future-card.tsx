@@ -1,6 +1,6 @@
 "use client";
 
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { vndCompact } from "@/lib/money/format-vnd";
 import { hasOutlook, outlook, type Tip } from "@/lib/money/outlook";
 import type { MonthSummary } from "@/lib/money/summary";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { categoryRows, cumulativeSpend, dailyCash, monthInsights, pulseOf, topExpenses, versusLastMonth, type CategoryRow, type MonthInsight } from "@/lib/money/month-report";
 import { formatVnDate, parseVnd } from "@/lib/money/parse";
 import { daysInMonth, monthKey, type MonthSummary } from "@/lib/money/summary";

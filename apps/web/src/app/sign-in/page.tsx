@@ -83,7 +83,7 @@ export default function SignInPage() {
   const title = afterOnboarding ? "Tạo tài khoản để giữ hồ sơ" : signedIn ? "Bạn đã đăng nhập" : "Đăng nhập FamAgent";
   const lead = afterOnboarding
     ? "Để bắt đầu tư vấn, hãy xác nhận email của bạn. Hồ sơ vừa tạo sẽ được giữ trong tài khoản này trên mọi thiết bị. Không cần mật khẩu — chỉ một liên kết qua email."
-    : "Nhận liên kết đăng nhập qua email. Hồ sơ gia đình, lịch sử tư vấn và sản phẩm đã lưu đi theo tài khoản.";
+    : "Nhận liên kết đăng nhập qua email. Hồ sơ gia đình và sổ thu chi đi theo tài khoản.";
 
   return <main className="container account-page auth-page">
     <div className="auth-card">

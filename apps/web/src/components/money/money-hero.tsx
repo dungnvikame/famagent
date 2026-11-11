@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import type { DueEntry } from "@/lib/money/fixed-items";
 import { vndCompact } from "@/lib/money/format-vnd";
 import type { PotBalance } from "@/lib/money/history";

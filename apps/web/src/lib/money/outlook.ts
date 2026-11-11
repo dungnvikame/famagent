@@ -3,7 +3,7 @@ import { vndCompact } from "./format-vnd.ts";
 import { cashflow, effectivePlan, flexibleCategories, type CashflowMonth } from "./plan.ts";
 import { daysInMonth, monthKey, type MonthSummary } from "./summary.ts";
 import type { MoneyBundle } from "./types.ts";
-import { vnd } from "../catalog/format.ts";
+import { vnd } from "./format-vnd.ts";
 
 /**
  * "Tương lai & nên làm gì": the next three months from the fixed items and the plan, plus up to three rule-based

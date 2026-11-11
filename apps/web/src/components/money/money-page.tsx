@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { vnd } from "@/lib/catalog/format";
+import { vnd } from "@/lib/money/format-vnd";
 import { cloudEnabled, loadCloudProfile, saveCloudProfile } from "@/lib/experience/cloud";
 import { getProfile, saveProfile, trackEvent } from "@/lib/experience/storage";
 import type { ChildProfile, FamilyProfile } from "@/lib/experience/types";
@@ -284,7 +284,7 @@ export function MoneyPage() {
         onDeleteBudget={async (id) => { await act("money_budget_deleted")(() => deleteMoneyItem("budgets", id)); }}
         frameworkSlot={profile ? <FrameworkPanel profile={profile} summary={summary} bundle={bundle} onChoose={(id) => void chooseMethod(id)} onSaveCustom={saveCustom} /> : undefined}
         goalsSlot={<GoalsPlan goals={bundle.goals} onGoal={(item) => act("money_goal_saved")(() => saveMoneyItem("goals", item))} onDeleteGoal={(id) => act("money_goal_deleted")(() => deleteMoneyItem("goals", id))} />} />}
-      <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}. <Link className="brief-link" href="/agent">Hỏi FamAgent về tiền →</Link></p>
+      <p className="app-sub money-foot">Số dư: tiền tiêu {vnd(summary.balances.cash)} · tiết kiệm {vnd(summary.balances.savings)}.</p>
     </>}
   </div>;
 }
