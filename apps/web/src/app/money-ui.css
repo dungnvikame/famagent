@@ -33,14 +33,6 @@
 .mh-extra li.warn b{color:var(--danger)}.mh-extra li.ok b{color:var(--ok)}
 @media(max-width:700px){.mh{grid-template-columns:1fr;padding:18px;gap:14px}.mh-pots{grid-template-columns:1fr 1fr}.mh-pots .mh-link,.mh-extra{grid-column:1/-1}}
 
-/* ---------- due strip ---------- */
-.mh-due h2{font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--mu-muted);margin:0 0 8px}
-.mh-due ul{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-.mh-due li{background:#fff;border:1px solid var(--line);border-radius:16px;padding:12px 14px;min-height:64px;display:grid;gap:2px}
-.mh-due li b{font-size:14px}.mh-due li span{font-size:13px;color:var(--mu-muted)}
-.mh-due li.soon{border-color:#f0b77b;background:#fff8ee}
-@media(max-width:700px){.mh-due ul{display:flex;overflow-x:auto;scrollbar-width:none;margin:0 -16px;padding:0 16px 4px}.mh-due li{flex:0 0 220px}}
-
 /* ---------- tabs (≥44px, scroll sideways on a phone) ---------- */
 .money-page .app-tabs{overflow-x:auto;scrollbar-width:none}
 .money-page .app-tabs::-webkit-scrollbar{display:none}
@@ -140,5 +132,4 @@
   .lt-edit .lt-actions .lt-save{flex:1;min-height:48px}
   .lt-edit input:not([type=checkbox]),.lt-edit select{min-height:48px;font-size:16px}
   .lt-details td{padding:0 0 8px;background:transparent}
-  .lt-empty-row td{padding:18px 0}
-}
+  .lt-empty-row td{padding:18px 0}}

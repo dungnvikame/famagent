@@ -9,26 +9,11 @@ body:has(.ob-app)>.site-header,body:has(.ob-app)>.site-footer{display:none}
 .ob-progress i{width:24px;height:5px;border-radius:3px;background:var(--ob-line)}
 .ob-progress i.on{background:var(--green)}.ob-progress i.now{background:#998ccc}
 .ob-progress em{font-style:normal;margin-left:6px;color:#7d7796}
-.ob-thread{flex:1;min-height:0;overflow-y:auto;padding:22px 24px;display:flex;flex-direction:column;gap:12px}
-.ob-msg{max-width:min(620px,82%);padding:11px 14px;border-radius:14px;font-size:15px;white-space:pre-wrap}
-.ob-msg.agent{background:#fff;border:1px solid var(--ob-line);border-top-left-radius:4px}
-.ob-msg.user{align-self:flex-end;background:var(--green);color:#fff;border-top-right-radius:4px}
-.ob-typing{display:flex;gap:4px;padding:12px 14px;background:#fff;border:1px solid var(--ob-line);border-radius:14px;width:58px}
-.ob-typing b{width:6px;height:6px;border-radius:50%;background:#a69dca;animation:ob-blink 1.2s infinite}
-.ob-typing b:nth-child(2){animation-delay:.2s}.ob-typing b:nth-child(3){animation-delay:.4s}
+
 @keyframes ob-blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
-.ob-confirm{align-self:flex-start;max-width:min(620px,88%);background:var(--ob-warn);border:1px solid var(--ob-warn-line);color:var(--ob-warn-ink);border-radius:14px;padding:12px 14px;font-size:15px}
-.ob-confirm p{margin:0}.ob-confirm-actions{display:flex;gap:8px;margin-top:10px}
-.ob-chips{display:flex;flex-wrap:wrap;gap:8px;padding:0 24px 10px}
-.ob-chip{border:1px solid #d2cee3;background:#fff;color:var(--green);border-radius:999px;padding:8px 13px;font-weight:600;font-size:13px;cursor:pointer}
-.ob-chip:hover:not(:disabled){border-color:var(--green)}
-.ob-chip.primary{background:var(--green);border-color:var(--green);color:#fff}
-.ob-chip:disabled,.ob-btn:disabled{opacity:.55;cursor:not-allowed}
-.ob-composer{margin:0 24px 10px;border:1px solid #d2cee1;border-radius:14px;background:#fff;padding:8px 8px 8px 14px;display:flex;gap:10px;align-items:flex-end}
-.ob-composer:focus-within{border-color:var(--green);box-shadow:0 0 0 3px var(--mint)}
-.ob-composer textarea{flex:1;border:0;outline:none;resize:none;font:inherit;font-size:15px;background:transparent;color:inherit;padding:6px 0;max-height:120px}
-.ob-composer button{border:0;background:var(--green);color:#fff;border-radius:10px;padding:9px 14px;font-weight:700;cursor:pointer}
-.ob-composer button:disabled{opacity:.5;cursor:not-allowed}
+
+.ob-btn:disabled{opacity:.55;cursor:not-allowed}
+
 .ob-consent{margin:0 24px 14px;display:flex;gap:8px;align-items:flex-start;font-size:12px;color:var(--ob-muted)}
 .ob-consent input{margin-top:3px}
 .ob-error{margin:0 24px 12px;color:#9a3b2c;font-size:13px}
@@ -66,16 +51,12 @@ button.ob-field{cursor:pointer}button.ob-field:hover,button.ob-field:focus-visib
 .ob-field-actions button[type=button]{background:#e5e3ec;color:var(--ink)}
 .ob-panel-error{color:#9a3b2c;font-size:12px;margin:6px 0 0}
 .ob-panel-foot{margin:8px 0 0;font-size:12px}.ob-panel-foot a{color:var(--green);font-weight:600}
-.ob-link-banner{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;justify-content:space-between;margin:0 auto 10px;width:min(800px,calc(100% - 40px));background:#f0eef7;border:1px solid var(--ob-line);border-radius:12px;padding:9px 14px;font-size:13px}
-.ob-link-banner a{color:var(--green);font-weight:700}
-.ob-link-banner button{border:0;background:none;color:var(--ob-muted);cursor:pointer}
-.agent-header-actions{display:flex;gap:8px;align-items:center}
-.agent-data-panel .ob-panel{border:0;overflow:visible}.agent-data-panel .ob-panel-body{padding:0;display:block!important}.agent-data-panel .ob-panel-compact{display:none!important}
-.ob-app :focus-visible,.agent-data-panel :focus-visible{outline:2px solid var(--green);outline-offset:2px}
+
+.ob-app :focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .ob-inline-btn{border:0;background:none;color:var(--green);font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
-.ob-signin{margin-left:auto;color:var(--green);font-weight:700}
+
 button.ob-field:disabled{cursor:progress;opacity:.7}
-@media (prefers-reduced-motion:reduce){.ob-typing b,.ob-field.fresh{animation:none}}
+@media (prefers-reduced-motion:reduce){.ob-field.fresh{animation:none}}
 @media (max-width:980px){
   .ob-app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);height:100dvh}
   .ob-rail{display:none}
@@ -85,9 +66,8 @@ button.ob-field:disabled{cursor:progress;opacity:.7}
   .ob-panel-compact b{color:var(--green);white-space:nowrap}
   .ob-panel-body{display:none;max-height:55dvh;overflow-y:auto}
   .ob-panel.open .ob-panel-body{display:block}
-  .ob-top,.ob-thread{padding-left:16px;padding-right:16px}
-  .ob-chips,.ob-composer,.ob-consent,.ob-error{margin-left:16px;margin-right:16px}.ob-chips{padding:0 0 10px}
-  .ob-msg,.ob-confirm{max-width:90%}
+  .ob-top{padding-left:16px;padding-right:16px}
+  .ob-consent,.ob-error{margin-left:16px;margin-right:16px}
 }
 
 /* Turnstile (P8): the widget only renders when Cloudflare needs interaction. */

@@ -42,8 +42,7 @@
   .ob-options,.ob-options.many{grid-template-columns:1fr}
   .ob-option{min-height:56px}
   .ob-text{flex-direction:column;align-items:stretch}
-  .ob-text .ob-btn{width:100%}
-}
+  .ob-text .ob-btn{width:100%}}
 @media (prefers-reduced-motion:reduce){.ob-step{animation:none}.ob-option,.ob-option-mark{transition:none}}
 
 /* Loading state: full-width centred (the base .ob-app grid has a 56px first column). */

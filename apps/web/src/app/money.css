@@ -2,7 +2,7 @@
 .month-nav{display:inline-flex;align-items:center;gap:10px}
 .month-nav b{min-width:120px;text-align:center;font-size:15px}
 .month-nav .app-btn{min-width:40px;padding:6px 12px;font-size:18px;line-height:1}
-.money-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
 .money-plan{grid-column:1/-1;display:grid;gap:6px}
 .money-plan small{display:flex;flex-wrap:wrap;gap:8px;align-items:center;color:var(--muted);font-size:12.5px}
 .bar{display:block;height:8px;border-radius:var(--pill);background:#e8e4f6;overflow:hidden;margin-top:6px}
@@ -10,88 +10,52 @@
 .bar>span.over{background:linear-gradient(135deg,#f0a08a,#b4413c)}
 .money-foot{margin-top:4px}
 
-.ledger-wrap{overflow-x:auto;background:var(--glass);backdrop-filter:var(--blur);-webkit-backdrop-filter:var(--blur);border:1px solid var(--glass-border);border-radius:20px;box-shadow:var(--shadow)}
 .ledger{width:100%;min-width:760px;border-collapse:collapse;font-size:13.5px}
 .ledger th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#7a6fb0;padding:12px 12px 8px;border-bottom:1px solid var(--line)}
 .ledger td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 .ledger td:nth-child(2){min-width:200px}
 .ledger tbody tr:last-child td{border-bottom:0}
 .ledger .num,.ledger td.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap;font-weight:700}
-.ledger-row.kind-expense td.num{color:var(--ink)}.ledger-row.kind-income td.num{color:var(--ok)}.ledger-row.kind-saving td.num{color:var(--primary-ink)}
-.ledger-kind{font-size:11px;font-weight:700;padding:2px 8px;border-radius:var(--pill);background:#f1eff8;color:#4a4468}
-.ledger-kind.income{background:var(--ok-bg);color:var(--ok)}.ledger-kind.saving{background:#ece8ff;color:var(--primary-ink)}
+
 .ledger-content{display:block}.ledger td small{display:block;color:var(--muted);font-size:12px}
 .ledger td .app-pill{margin-left:6px;vertical-align:middle}
-.ledger-child{text-align:center}.ledger-child label{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--muted);cursor:pointer;white-space:nowrap}
-.ledger-actions{white-space:nowrap;text-align:right}
-.ledger-actions .app-btn{min-height:36px;padding:6px 14px}
+
 .ledger-link{background:none;border:0;color:var(--primary);font:600 13px var(--font-sans),inherit;cursor:pointer;padding:6px 8px;min-height:36px}
 .ledger-link.danger{color:var(--danger)}
-.ledger-new td{background:#ffffffb8}
-.ledger input,.ledger select,.inline-form input,.inline-form select,.budget-edit input{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px}
-.ledger input:focus,.ledger select:focus,.inline-form input:focus,.inline-form select:focus,.budget-edit input:focus{outline:0;border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff}
-.ledger-new td:nth-child(1){width:150px}.ledger-new td:nth-child(3){width:110px}.ledger-new td:nth-child(4){width:170px}.ledger-new td:nth-child(5){width:130px}
+
+.ledger input,.ledger select,.inline-form input,.inline-form select{width:100%;min-width:0;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;background:#fff;min-height:40px}
+.ledger input:focus,.ledger select:focus,.inline-form input:focus,.inline-form select:focus{outline:0;border-color:#b9adff;box-shadow:0 0 0 3px #ece8ff}
+
 .ledger-empty{text-align:center;color:var(--muted);padding:26px 12px!important}
 
 .month-view{display:flex;flex-direction:column;gap:20px}
-.budget-rows>div{align-items:center}
+
 .budget-name{flex:1;min-width:0;display:grid}.budget-name b{font-size:14px}
-.budget-pill{border:0;cursor:pointer;min-height:32px;padding:6px 12px;font:700 12px var(--font-sans),inherit}
-.budget-edit{display:inline-flex;gap:6px;align-items:center}.budget-edit input{width:110px}.budget-edit .app-btn{min-height:36px;padding:6px 12px}
+
 .row-actions{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 
 .money-settings{display:flex;flex-direction:column;gap:20px}
 .inline-form{display:grid;grid-template-columns:2fr 1fr 1.4fr 1fr auto auto;gap:8px;align-items:center;padding:12px 16px}
 .inline-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4a4468}
 .day-field{display:flex!important;align-items:center;gap:6px;white-space:nowrap}.day-field input{width:64px}
-.settings-form{grid-template-columns:repeat(3,1fr) auto;align-items:end}
+
 .app-rows .inline-form{border-top:1px solid var(--line)}
 .money-settings .app-rows>div.inline-form{display:grid}
 
 @media(max-width:900px){
-  .money-kpis{grid-template-columns:1fr 1fr}
-  .inline-form,.settings-form{grid-template-columns:1fr 1fr}
-  .inline-form .app-btn{grid-column:1/-1}
-  .ledger{min-width:680px}
-}
-@media(max-width:560px){.inline-form,.settings-form{grid-template-columns:1fr}.month-nav b{min-width:96px;font-size:14px}}
 
-/* Purchases → Tiền + tồn kho */
-.mark-purchased{position:relative;display:inline-flex}
-.purchase-backdrop{position:fixed;inset:0;z-index:55;border:0;background:#1f1b2e59;cursor:default}
-.purchase-form{position:fixed;z-index:60;left:50%;top:50%;transform:translate(-50%,-50%);backdrop-filter:none;-webkit-backdrop-filter:none;width:min(340px,calc(100vw - 32px));display:grid;gap:8px;padding:16px;text-align:left;font-size:13px;background:#fff;box-shadow:var(--shadow-lg)}
-.purchase-form b{font-size:14px}
-.purchase-form label{display:grid;gap:4px;font-size:12px;font-weight:700;color:#4a4468}
-.purchase-form input{width:100%;border:1px solid var(--line);border-radius:10px;padding:8px 10px;font:inherit;font-size:14px;min-height:40px;background:#fff}
-.purchase-form .purchase-check{display:flex;align-items:center;gap:8px;font-weight:600}
-.purchase-form .purchase-check input{width:auto;min-height:0}
-.purchase-form small{color:var(--muted);font-size:11.5px;line-height:1.45}
-.purchase-actions{display:flex;gap:6px;align-items:center}
-.purchased-done{font-size:12px;color:var(--ok);font-weight:700}
-.tracking-card{align-items:flex-start}
-.tracking-card .t small{display:block;margin-top:4px}
-.tracking-actions{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
-.agent-product-actions .mark-purchased{flex:1}
-.agent-product-actions .mark-purchased>button{width:100%;min-height:0;padding:9px 5px;font-size:10px;border-radius:8px}
-.agent-budget-hint{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#4a4468;background:#fff3d6;border:1px solid #f4dca6;border-radius:12px;padding:10px 12px;margin-top:10px;line-height:1.5}
-.agent-budget-hint.ok{background:var(--ok-bg);border-color:#b8e6d3}
+  .inline-form{grid-template-columns:1fr 1fr}
+  .inline-form .app-btn{grid-column:1/-1}
+  .ledger{min-width:680px}}
+@media(max-width:560px){.inline-form{grid-template-columns:1fr}.month-nav b{min-width:96px;font-size:14px}}
 
 /* Phone: the ledger becomes stacked cards (no horizontal scroll, 44px targets). */
 @media(max-width:640px){
-  .ledger-wrap{overflow:visible;background:transparent;border:0;box-shadow:none;backdrop-filter:none;-webkit-backdrop-filter:none}
+
   .ledger,.ledger tbody,.ledger tr,.ledger td{display:block;min-width:0;width:auto}
   .ledger thead{display:none}
   .ledger tr{background:var(--glass);border:1px solid var(--glass-border);border-radius:16px;padding:10px 14px;margin-bottom:10px;box-shadow:var(--shadow-sm);position:relative}
   .ledger td{padding:4px 0;border:0}
   .ledger td[data-label="Ngày"]{font-size:12px;color:var(--muted)}
-  .ledger-row td[data-label="Nội dung"]{font-weight:700;font-size:15px;padding-right:110px}
-  .ledger-row td.num{position:absolute;top:26px;right:14px;font-size:15px}
-  .ledger-row td[data-label="Loại"],.ledger-row td[data-label="Nhóm"],.ledger-row td[data-label="Cho con"]{display:inline-block;margin-right:8px;font-size:12px;color:var(--muted)}
-  .ledger-row td[data-label="Cho con"]:empty{display:none}
-  .ledger-row td.ledger-actions{text-align:left;padding-top:6px}
-  .ledger-new td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;color:#7a6fb0;margin-bottom:3px;letter-spacing:.04em;text-transform:uppercase}
-  .ledger-new td.ledger-child::before,.ledger-new td.ledger-actions::before{display:none}
-  .ledger-new td.ledger-child,.ledger-new td.ledger-actions{text-align:left;padding-top:8px}
-  .ledger-new td.ledger-actions .app-btn{width:100%}
-  .ledger-empty{padding:18px 0!important}
-}
+
+  .ledger-empty{padding:18px 0!important}}

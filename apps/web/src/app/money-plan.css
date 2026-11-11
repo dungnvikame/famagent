@@ -122,8 +122,7 @@
 /* narrow: a fixed item becomes two lines + its buttons (also on tablets, the right-hand columns need room) */
 @media(max-width:900px){
   .pl-item{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"main amt" "tag tag" "acts acts"}
-  .pl-item-main{grid-area:main}.pl-item-amt{grid-area:amt}.pl-tag{grid-area:tag}.pl-item-acts{grid-area:acts;justify-content:flex-start;margin-left:-10px}
-}
+  .pl-item-main{grid-area:main}.pl-item-amt{grid-area:amt}.pl-tag{grid-area:tag}.pl-item-acts{grid-area:acts;justify-content:flex-start;margin-left:-10px}}
 /* phone */
 @media(max-width:700px){
   .pl-card{padding:14px}
@@ -134,6 +133,5 @@
   .pl-bud{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name amt" "track track" "src src"}
   .pl-bud.editing{grid-template-areas:"name name" "edit edit" "src src"}
   .pl-bud-src{flex-direction:row;align-items:center;justify-content:flex-start;gap:8px;text-align:left}
-  .pl-fold summary{padding:0 14px}.pl-fold-body{padding:0 14px 14px}
-}
+  .pl-fold summary{padding:0 14px}.pl-fold-body{padding:0 14px 14px}}
 @media(prefers-reduced-motion:reduce){.pl-card,.pl-seg button{transition:none}}
