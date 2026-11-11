@@ -76,20 +76,43 @@ export interface DueEntry {
 
 const answered = (periods: RecurringPeriod[], id: string, period: string) => periods.some((p) => p.recurringId === id && p.period === period);
 
+/** How far back a missed lump is chased: the two previous quarters, or last year's turn. */
+const LUMP_LOOKBACK = { quarter: 6, year: 12 } as const;
+/** A lump nobody ever answered is asked about its turns this far back (two quarters; not a year-old insurance bill). */
+const UNANSWERED_LUMP_MONTHS = 6;
+
+/**
+ * "ngày 10" inside the running month; a period of another month says which one, so two missed quarters of the same
+ * item can be told apart: "Quý 3 · ngày 10 tháng 7".
+ */
+export function periodLabel(item: Pick<MoneyRecurring, "schedule" | "dayOfMonth">, period: string, current: string): string {
+  const label = windowLabel(item, period);
+  if (period === current || !label) return label;
+  const m = Number(period.slice(5));
+  return `${scheduleOf(item).kind === "quarter" ? `Quý ${Math.ceil(m / 3)} · ` : ""}${label} tháng ${m}`;
+}
+
 /**
  * Periods waiting for an answer, most urgent first. A period is settled by a paid/skipped record or by any period at
- * or before the item's `lastPostedMonth`; an item that was never settled starts asking with the current month, and
- * missed periods are only chased for `lookbackMonths` months. Monthly items never ask about next month yet.
+ * or before the item's `lastPostedMonth`. Without that mark, periods before the item's first answer are left alone;
+ * an item with no answer at all starts asking with the current month when it comes every month, while a quarter or
+ * year lump (one missed turn is months of silence) is asked about its turns of the last six months. Missed periods
+ * are chased for `lookbackMonths` months (lumps: two quarters / one year). Monthly items never ask about next month yet.
  */
 export function dueEntries(recurring: MoneyRecurring[], periods: RecurringPeriod[], amounts: Record<string, number[]> | undefined, now: Date, opts: { horizonDays?: number; lookbackMonths?: number } = {}): DueEntry[] {
-  const horizon = opts.horizonDays ?? 7; const lookback = opts.lookbackMonths ?? 3;
+  const horizon = opts.horizonDays ?? 7;
   const today = dayStart(now); const todayIndex = dayIndex(`${monthOf(today)}-${pad(today.getDate())}`); const current = monthOf(today);
   const out: DueEntry[] = [];
   for (const item of recurring) {
     if (!item.active) continue;
+    const kind = scheduleOf(item).kind;
+    const lookback = kind === "quarter" || kind === "year" ? LUMP_LOOKBACK[kind] : opts.lookbackMonths ?? 3;
+    const firstAnswer = periods.reduce<string | undefined>((min, p) => p.recurringId === item.id && (!min || p.period < min) ? p.period : min, undefined);
+    // Oldest period still asked about when nothing says "settled up to here".
+    const start = firstAnswer ?? (isMonthly(item) ? current : shiftMonth(current, -UNANSWERED_LUMP_MONTHS));
     for (let offset = -lookback; offset <= 1; offset += 1) {
       const period = shiftMonth(current, offset);
-      if (item.lastPostedMonth ? period <= item.lastPostedMonth : period < current) continue;
+      if (item.lastPostedMonth ? period <= item.lastPostedMonth : period < start) continue;
       // Next month's rent or salary is asked once that month starts; only quarter/year items (a lump) warn ahead.
       if (offset === 1 && isMonthly(item)) continue;
       const window = windowIn(item, period);
@@ -99,7 +122,7 @@ export function dueEntries(recurring: MoneyRecurring[], periods: RecurringPeriod
       const state: DueEntry["state"] | null = todayIndex > dayIndex(to) ? "overdue" : offset < 1 && daysToStart <= ASK_DAYS_BEFORE ? "due" : daysToStart <= horizon ? "soon" : null;
       if (!state) continue;
       const { amount, estimated } = expectedAmount(item, amounts);
-      out.push({ recurringId: item.id, name: item.name, kind: item.kind, category: item.category, period, from, to, label: windowLabel(item, period), daysToStart, state, amount, estimated });
+      out.push({ recurringId: item.id, name: item.name, kind: item.kind, category: item.category, period, from, to, label: periodLabel(item, period, current), daysToStart, state, amount, estimated });
     }
   }
   const rank = { overdue: 0, due: 1, soon: 2 };

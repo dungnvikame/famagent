@@ -1,4 +1,4 @@
-import { scheduleOf, windowLabel, type DueEntry } from "./fixed-items.ts";
+import { appliesInMonth, scheduleOf, windowLabel, type DueEntry } from "./fixed-items.ts";
 import { fixedMonthly, flexibleBudget, plannedIncome, setAsideMonthly } from "./plan.ts";
 import { doneWord } from "./recurring-form.ts";
 import { daysInMonth, type MonthSummary } from "./summary.ts";
@@ -83,6 +83,9 @@ export function itemStatus(item: MoneyRecurring, month: string, periods: Recurri
   if (answer) return { tone: "paid", label: `${doneWord(item.kind)}${answer.paidOn ? ` ${dayMonth(answer.paidOn)}` : ""}${answer.amount ? ` · ${vndCompact(answer.amount)}` : ""}` };
   const waiting = due.find((entry) => entry.recurringId === item.id && entry.period === month);
   if (waiting) return waiting.state === "overdue" ? { tone: "overdue", label: "Quá hạn" } : waiting.state === "due" ? { tone: "due", label: "Tới hạn" } : { tone: "soon", label: "Sắp tới" };
+  // A quarter/year item is not due this month, but an earlier turn nobody answered outranks "Chưa tới".
+  const missed = month === today.slice(0, 7) && !appliesInMonth(item, month) ? due.filter((entry) => entry.recurringId === item.id && entry.state === "overdue" && entry.period < month).length : 0;
+  if (missed) return { tone: "overdue", label: missed > 1 ? `Quá hạn ${missed} kỳ` : "Quá hạn" };
   if (item.lastPostedMonth && month <= item.lastPostedMonth) return { tone: "paid", label: item.kind === "expense" ? "Đã xong" : doneWord(item.kind) };
   return { tone: "later", label: month < today.slice(0, 7) ? "Chưa ghi nhận" : "Chưa tới" };
 }

@@ -30,12 +30,12 @@ test("windows: clamp to the month, ranges, end of month, quarter and year months
 });
 
 test("due entries on 29/9: internet and the instalment are asked now, tuition is coming up, answered ones are gone", () => {
-  const periods = [paid("salary", "2026-09"), paid("rent", "2026-09"), paid("power", "2026-09")];
+  const periods = [paid("salary", "2026-09"), paid("rent", "2026-09"), paid("power", "2026-09"), paid("school", "2026-07")];
   const due = dueEntries(all, periods, { net: [250_000, 250_000, 260_000] }, today);
   assert.deepEqual(due.map((d) => [d.recurringId, d.state, d.period, d.label]), [
     ["net", "due", "2026-09", "26–30"],
     ["car", "due", "2026-09", "ngày 30"],
-    ["school", "soon", "2026-10", "1–10"],
+    ["school", "soon", "2026-10", "Quý 4 · 1–10 tháng 10"],
   ]);
   assert.equal(due[0].amount, 253_333);
   assert.equal(due[0].estimated, true);
@@ -55,10 +55,32 @@ test("a window that passed without an answer is overdue; a skip or a settled mon
   assert.deepEqual(dueEntries([rent], [], undefined, today).map((d) => d.period), ["2026-09"]);
 });
 
+test("a quarter lump nobody answered keeps asking after its month: Q3 and Q4 both wait on 11/11", () => {
+  const fund = item({ id: "fund", name: "Quỹ liên gia", amount: 1_000_000, dayOfMonth: 10, schedule: { kind: "quarter" }, amountMode: "estimate" });
+  const nov = new Date(2026, 10, 11);
+  assert.deepEqual(dueEntries([fund], [], undefined, nov).map((d) => [d.period, d.state, d.label]), [
+    ["2026-07", "overdue", "Quý 3 · ngày 10 tháng 7"],
+    ["2026-10", "overdue", "Quý 4 · ngày 10 tháng 10"],
+  ]);
+  // Paying Q3 leaves Q4; skipping Q4 too clears the strip.
+  assert.deepEqual(dueEntries([fund], [paid("fund", "2026-07")], undefined, nov).map((d) => d.period), ["2026-10"]);
+  assert.deepEqual(dueEntries([fund], [paid("fund", "2026-07"), { recurringId: "fund", period: "2026-10", status: "skipped" }], undefined, nov), []);
+  // Quarters before the first answer or the settled mark are left alone; only two quarters back are chased.
+  assert.deepEqual(dueEntries([fund], [paid("fund", "2026-10")], undefined, nov), []);
+  assert.deepEqual(dueEntries([{ ...fund, lastPostedMonth: "2026-07" }], [], undefined, nov).map((d) => d.period), ["2026-10"]);
+  assert.deepEqual(dueEntries([fund], [], undefined, new Date(2027, 1, 15)).map((d) => d.period), ["2026-10", "2027-01"]);
+  // A yearly lump with a history that missed last December is still asked in autumn; one never answered is not (11 months old).
+  assert.deepEqual(dueEntries([{ ...insurance, lastPostedMonth: "2024-12" }], [], undefined, nov).map((d) => [d.period, d.label]), [["2025-12", "ngày 15 tháng 12"]]);
+  assert.deepEqual(dueEntries([insurance], [], undefined, nov), []);
+  // A monthly item answered once, then missed: the missed month stays after the month turns.
+  assert.deepEqual(dueEntries([rent], [paid("rent", "2026-09")], undefined, nov).map((d) => d.period), ["2026-10", "2026-11"]);
+});
+
 test("paused items never ask; tuition on 1/10 shows up two days ahead but not two weeks ahead", () => {
   assert.deepEqual(dueEntries([{ ...net, active: false }], [], undefined, today), []);
-  assert.equal(dueEntries([school], [], undefined, new Date(2026, 8, 12)).length, 0);
-  assert.equal(dueEntries([school], [], undefined, new Date(2026, 8, 24)).length, 1);
+  const settled = { ...school, lastPostedMonth: "2026-07" };
+  assert.equal(dueEntries([settled], [], undefined, new Date(2026, 8, 12)).length, 0);
+  assert.equal(dueEntries([settled], [], undefined, new Date(2026, 8, 24)).length, 1);
 });
 
 test("estimate: average of the last three paid amounts, the set amount before any", () => {

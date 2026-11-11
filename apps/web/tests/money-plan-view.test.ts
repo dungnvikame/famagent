@@ -71,6 +71,9 @@ test("item status this month: paid with date and amount, skipped, waiting states
   assert.equal(itemStatus(net, "2026-09", [], [due("net", "overdue")], "2026-09-29").label, "Quá hạn");
   assert.equal(itemStatus(net, "2026-09", [], [due("net", "soon")], "2026-09-29").label, "Sắp tới");
   assert.equal(itemStatus(net, "2026-09", [], [due("net", "overdue", "2026-08")], "2026-09-29").label, "Chưa tới");
+  // A quarter item is not due in September, but its missed July turn(s) show on the row.
+  assert.deepEqual(itemStatus(school, "2026-09", [], [due("school", "overdue", "2026-07")], "2026-09-29"), { tone: "overdue", label: "Quá hạn" });
+  assert.equal(itemStatus(school, "2026-09", [], [due("school", "overdue", "2026-04"), due("school", "overdue", "2026-07")], "2026-09-29").label, "Quá hạn 2 kỳ");
   assert.equal(itemStatus({ ...net, lastPostedMonth: "2026-09" }, "2026-09", [], [], "2026-09-29").label, "Đã xong");
   assert.equal(itemStatus(school, "2026-09", [], [], "2026-09-29").label, "Chưa tới");
   assert.equal(itemStatus(net, "2026-07", [], [], "2026-09-29").label, "Chưa ghi nhận");
